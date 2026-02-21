@@ -31,7 +31,7 @@ def run_index(factory: ServiceFactory, repo: RepositoryConfig, json_output: bool
         console.print(
             f"[green]✓[/green] [bold]{repo.name}[/bold]: {result.documents_indexed} indexed, "
             f"{result.documents_skipped} skipped, {result.documents_failed} failed, "
-            f"{result.fragments_created} fragments"
+            f"{result.documents_purged} purged, {result.fragments_created} fragments"
         )
 
         if result.errors:
@@ -43,6 +43,7 @@ def run_index(factory: ServiceFactory, repo: RepositoryConfig, json_output: bool
         "documents_indexed": result.documents_indexed,
         "documents_skipped": result.documents_skipped,
         "documents_failed": result.documents_failed,
+        "documents_purged": result.documents_purged,
         "fragments_created": result.fragments_created,
         "errors": result.errors,
     }

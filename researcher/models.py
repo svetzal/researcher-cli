@@ -70,6 +70,7 @@ class IndexingResult(BaseModel):
     documents_indexed: int
     documents_skipped: int
     documents_failed: int
+    documents_purged: int
     fragments_created: int
     errors: list[str] = Field(default_factory=list)
 

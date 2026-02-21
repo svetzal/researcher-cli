@@ -19,6 +19,7 @@ def _make_indexing_result(
     documents_indexed: int = 5,
     documents_skipped: int = 37,
     documents_failed: int = 0,
+    documents_purged: int = 0,
     fragments_created: int = 50,
     errors: list[str] | None = None,
 ) -> IndexingResult:
@@ -26,6 +27,7 @@ def _make_indexing_result(
         documents_indexed=documents_indexed,
         documents_skipped=documents_skipped,
         documents_failed=documents_failed,
+        documents_purged=documents_purged,
         fragments_created=fragments_created,
         errors=errors or [],
     )

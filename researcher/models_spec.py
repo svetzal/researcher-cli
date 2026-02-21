@@ -77,7 +77,9 @@ class DescribeDocumentSearchResult:
 
 class DescribeIndexingResult:
     def should_default_errors_to_empty_list(self):
-        result = IndexingResult(documents_indexed=5, documents_skipped=2, documents_failed=0, fragments_created=25)
+        result = IndexingResult(
+            documents_indexed=5, documents_skipped=2, documents_failed=0, documents_purged=0, fragments_created=25
+        )
 
         assert result.errors == []
 
@@ -86,6 +88,7 @@ class DescribeIndexingResult:
             documents_indexed=4,
             documents_skipped=2,
             documents_failed=1,
+            documents_purged=0,
             fragments_created=20,
             errors=["Failed to process doc.pdf"],
         )

@@ -33,7 +33,7 @@ class DescribeIndexCommand:
         mock_repo_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.index_repository.return_value = IndexingResult(
-            documents_indexed=2, documents_skipped=1, documents_failed=0, fragments_created=10
+            documents_indexed=2, documents_skipped=1, documents_failed=0, documents_purged=0, fragments_created=10
         )
 
         with patch("researcher.cli.main.ServiceFactory") as MockFactory:
@@ -51,7 +51,7 @@ class DescribeIndexCommand:
         mock_repo_service.list_repositories.return_value = [repo1, repo2]
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.index_repository.return_value = IndexingResult(
-            documents_indexed=1, documents_skipped=0, documents_failed=0, fragments_created=5
+            documents_indexed=1, documents_skipped=0, documents_failed=0, documents_purged=0, fragments_created=5
         )
 
         with patch("researcher.cli.main.ServiceFactory") as MockFactory:
@@ -84,6 +84,7 @@ class DescribeIndexCommand:
             documents_indexed=0,
             documents_skipped=0,
             documents_failed=1,
+            documents_purged=0,
             fragments_created=0,
             errors=["Failed to parse file.md"],
         )
@@ -295,7 +296,7 @@ class DescribeIndexCommandJsonOutput:
         mock_repo_service.list_repositories.return_value = [repo]
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.index_repository.return_value = IndexingResult(
-            documents_indexed=5, documents_skipped=37, documents_failed=0, fragments_created=50
+            documents_indexed=5, documents_skipped=37, documents_failed=0, documents_purged=0, fragments_created=50
         )
 
         with patch("researcher.cli.main.ServiceFactory") as MockFactory:

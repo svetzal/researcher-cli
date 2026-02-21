@@ -56,10 +56,12 @@ class IndexService:
 
     def index_repository(self, config: RepositoryConfig) -> IndexingResult:
         """Index all documents in the repository, skipping unchanged files."""
+        purged = self.purge_excluded_documents(config)
         result = IndexingResult(
             documents_indexed=0,
             documents_skipped=0,
             documents_failed=0,
+            documents_purged=purged,
             fragments_created=0,
         )
         checksums = self._load_checksums()

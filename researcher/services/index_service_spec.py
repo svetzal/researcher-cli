@@ -73,6 +73,7 @@ class DescribeIndexService:
             exclude_patterns=["node_modules", ".*"],
         )
         mock_filesystem.list_files.return_value = []
+        mock_chroma.get_all_document_paths.return_value = []
 
         service.index_repository(repo_config)
 
@@ -145,6 +146,42 @@ class DescribeIndexService:
 
         mock_embedding.embed_texts.assert_called_once_with(["Hello world"])
         mock_chroma.add_fragments_with_embeddings.assert_called_once()
+
+    def should_purge_excluded_documents_during_indexing(
+        self, service, mock_filesystem, mock_docling, mock_chroma, temp_dir
+    ):
+        """Documents indexed before exclude patterns were configured should be purged on next index."""
+        repo_config = RepositoryConfig(
+            name="test-repo",
+            path="/tmp/docs",
+            embedding_provider="chromadb",
+            exclude_patterns=["node_modules"],
+        )
+        # Simulate previously-indexed node_modules docs in checksums and chroma
+        checksums_path = temp_dir / "checksums.json"
+        checksums_path.write_text(
+            json.dumps(
+                {
+                    "/tmp/docs/readme.md": "aaa",
+                    "/tmp/docs/node_modules/dep.md": "bbb",
+                }
+            )
+        )
+        mock_chroma.get_all_document_paths.return_value = [
+            "/tmp/docs/readme.md",
+            "/tmp/docs/node_modules/dep.md",
+        ]
+        # list_files now excludes node_modules, so only readme.md is returned
+        mock_filesystem.list_files.return_value = [Path("/tmp/docs/readme.md")]
+        mock_filesystem.compute_checksum.return_value = "aaa"
+
+        result = service.index_repository(repo_config)
+
+        assert result.documents_purged == 1
+        mock_chroma.delete_by_document.assert_called_once_with("documents", "/tmp/docs/node_modules/dep.md")
+        # The purged document should be removed from checksums
+        loaded = json.loads(checksums_path.read_text())
+        assert "/tmp/docs/node_modules/dep.md" not in loaded
 
     def should_remove_document_from_index(self, service, mock_chroma, temp_dir):
         checksums_path = temp_dir / "checksums.json"
