@@ -1,3 +1,5 @@
+import json
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 from typer.testing import CliRunner
@@ -284,3 +286,237 @@ class DescribeSearchCommand:
 
         assert result.exit_code == 0
         assert "doc.md" in result.output
+
+
+class DescribeIndexCommandJsonOutput:
+    def should_write_valid_json_with_repositories_key(self):
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [repo]
+        mock_index_service = Mock(spec=IndexService)
+        mock_index_service.index_repository.return_value = IndexingResult(
+            documents_indexed=5, documents_skipped=37, documents_failed=0, fragments_created=50
+        )
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            MockFactory.return_value.index_service.return_value = mock_index_service
+            result = runner.invoke(app, ["index", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "repositories" in data
+        assert len(data["repositories"]) == 1
+        assert data["repositories"][0]["repository"] == "test-repo"
+        assert data["repositories"][0]["documents_indexed"] == 5
+
+    def should_write_error_json_when_repo_not_found(self):
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_repo_service.get_repository.side_effect = ValueError("Repository 'missing' not found")
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            result = runner.invoke(app, ["index", "missing", "--json"])
+
+        assert result.exit_code == 1
+        data = json.loads(result.output)
+        assert "error" in data
+
+    def should_write_empty_repositories_when_none_configured(self):
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = []
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            result = runner.invoke(app, ["index", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data == {"repositories": []}
+
+
+class DescribeStatusCommandJsonOutput:
+    def should_write_valid_json_with_repositories_key(self):
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [repo]
+        mock_index_service = Mock(spec=IndexService)
+        mock_index_service.get_stats.return_value = IndexStats(
+            repository_name="test-repo", total_documents=42, total_fragments=318, last_indexed=None
+        )
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            MockFactory.return_value.index_service.return_value = mock_index_service
+            result = runner.invoke(app, ["status", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "repositories" in data
+        assert data["repositories"][0]["repository_name"] == "test-repo"
+        assert data["repositories"][0]["total_documents"] == 42
+        assert data["repositories"][0]["total_fragments"] == 318
+        assert data["repositories"][0]["last_indexed"] is None
+
+    def should_serialize_last_indexed_as_iso_string(self):
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        ts = datetime(2026, 2, 20, 10, 0, 0)
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [repo]
+        mock_index_service = Mock(spec=IndexService)
+        mock_index_service.get_stats.return_value = IndexStats(
+            repository_name="test-repo", total_documents=5, total_fragments=25, last_indexed=ts
+        )
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            MockFactory.return_value.index_service.return_value = mock_index_service
+            result = runner.invoke(app, ["status", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["repositories"][0]["last_indexed"] == "2026-02-20T10:00:00"
+
+    def should_write_error_json_when_repo_not_found(self):
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_repo_service.get_repository.side_effect = ValueError("not found")
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            result = runner.invoke(app, ["status", "missing", "--json"])
+
+        assert result.exit_code == 1
+        data = json.loads(result.output)
+        assert "error" in data
+
+    def should_write_empty_repositories_when_none_configured(self):
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = []
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            result = runner.invoke(app, ["status", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data == {"repositories": []}
+
+
+class DescribeRemoveCommandJsonOutput:
+    def should_write_valid_json_on_success(self):
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.get_repository.return_value = repo
+        mock_index_service = Mock(spec=IndexService)
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            MockFactory.return_value.index_service.return_value = mock_index_service
+            result = runner.invoke(app, ["remove", "test-repo", "/path/to/doc.md", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["repository"] == "test-repo"
+        assert data["document_path"] == "/path/to/doc.md"
+        assert data["removed"] is True
+
+    def should_write_error_json_when_repo_not_found(self):
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.get_repository.side_effect = ValueError("not found")
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            result = runner.invoke(app, ["remove", "missing", "/path/doc.md", "--json"])
+
+        assert result.exit_code == 1
+        data = json.loads(result.output)
+        assert "error" in data
+
+
+class DescribeSearchCommandJsonOutput:
+    def should_write_valid_json_for_document_mode(self):
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [repo]
+        sr = SearchResult(fragment_id="f1", text="some text", document_path="doc.md", fragment_index=0, distance=0.1)
+        doc_result = DocumentSearchResult(document_path="doc.md", top_fragments=[sr], best_distance=0.1)
+        mock_search_service = Mock(spec=SearchService)
+        mock_search_service.search_documents.return_value = [doc_result]
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            MockFactory.return_value.search_service.return_value = mock_search_service
+            result = runner.invoke(app, ["search", "query", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["query"] == "query"
+        assert data["mode"] == "documents"
+        assert data["result_count"] == 1
+        assert data["results"][0]["document_path"] == "doc.md"
+
+    def should_write_valid_json_for_fragment_mode(self):
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [repo]
+        sr = SearchResult(
+            fragment_id="f1", text="fragment text", document_path="doc.md", fragment_index=2, distance=0.2
+        )
+        mock_search_service = Mock(spec=SearchService)
+        mock_search_service.search_fragments.return_value = [sr]
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            MockFactory.return_value.search_service.return_value = mock_search_service
+            result = runner.invoke(app, ["search", "query", "--mode", "fragments", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["mode"] == "fragments"
+        assert data["results"][0]["fragment_index"] == 2
+        assert data["results"][0]["text"] == "fragment text"
+
+    def should_write_empty_result_json_when_no_repos_configured(self):
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = []
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            result = runner.invoke(app, ["search", "query", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["result_count"] == 0
+        assert data["results"] == []
+
+    def should_write_error_json_when_repo_not_found(self):
+        repo = RepositoryConfig(name="other", path="/tmp")
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [repo]
+        mock_repo_service.get_repository.side_effect = ValueError("not found")
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            result = runner.invoke(app, ["search", "query", "--repo", "missing", "--json"])
+
+        assert result.exit_code == 1
+        data = json.loads(result.output)
+        assert "error" in data
+
+    def should_accept_short_flag(self):
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_repo_service = Mock(spec=RepositoryService)
+        mock_repo_service.list_repositories.return_value = [repo]
+        mock_search_service = Mock(spec=SearchService)
+        mock_search_service.search_documents.return_value = []
+
+        with patch("researcher.cli.main.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_repo_service
+            MockFactory.return_value.search_service.return_value = mock_search_service
+            result = runner.invoke(app, ["search", "query", "-j"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "results" in data

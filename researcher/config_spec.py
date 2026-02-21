@@ -19,6 +19,16 @@ class DescribeRepositoryConfig:
 
         assert config.file_types == ["md", "txt"]
 
+    def should_default_exclude_patterns_to_empty_list(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs")
+
+        assert config.exclude_patterns == []
+
+    def should_accept_custom_exclude_patterns(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs", exclude_patterns=["node_modules", ".*"])
+
+        assert config.exclude_patterns == ["node_modules", ".*"]
+
 
 class DescribeResearcherConfig:
     def should_have_empty_repositories_by_default(self):
@@ -81,3 +91,25 @@ class DescribeConfigGateway:
 
         assert loaded.repositories[0].embedding_provider == "ollama"
         assert loaded.repositories[0].embedding_model == "nomic-embed-text"
+
+    def should_serialise_and_deserialise_exclude_patterns(self, gateway):
+        repo = RepositoryConfig(
+            name="test",
+            path="/tmp/test",
+            exclude_patterns=["node_modules", ".*"],
+        )
+        config = ResearcherConfig(repositories=[repo])
+
+        gateway.save(config)
+        loaded = gateway.load()
+
+        assert loaded.repositories[0].exclude_patterns == ["node_modules", ".*"]
+
+    def should_deserialise_missing_exclude_patterns_as_empty_list(self, gateway):
+        repo = RepositoryConfig(name="test", path="/tmp/test")
+        config = ResearcherConfig(repositories=[repo])
+
+        gateway.save(config)
+        loaded = gateway.load()
+
+        assert loaded.repositories[0].exclude_patterns == []

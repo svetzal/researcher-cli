@@ -12,6 +12,7 @@ class RepositoryConfig(BaseModel):
     file_types: list[str] = Field(default_factory=lambda: ["md", "txt", "pdf", "docx", "html"])
     embedding_provider: str = "chromadb"  # "chromadb" | "ollama" | "openai"
     embedding_model: str | None = None
+    exclude_patterns: list[str] = Field(default_factory=list)
 
 
 class ResearcherConfig(BaseModel):

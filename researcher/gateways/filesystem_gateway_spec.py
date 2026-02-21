@@ -96,3 +96,69 @@ class DescribeFilesystemGateway:
 
         assert gateway.file_exists(path) is True
         assert gateway.file_exists(temp_dir / "missing.txt") is False
+
+    def should_not_exclude_files_when_no_patterns(self, gateway, temp_dir):
+        (temp_dir / "doc.md").write_text("# Hello")
+
+        files = gateway.list_files(["md"], exclude_patterns=None)
+
+        assert len(files) == 1
+
+    def should_not_exclude_files_when_empty_patterns(self, gateway, temp_dir):
+        (temp_dir / "doc.md").write_text("# Hello")
+
+        files = gateway.list_files(["md"], exclude_patterns=[])
+
+        assert len(files) == 1
+
+    def should_exclude_files_under_matching_directory(self, gateway, temp_dir):
+        node_modules = temp_dir / "node_modules"
+        node_modules.mkdir()
+        (node_modules / "package.md").write_text("# Package")
+        (temp_dir / "readme.md").write_text("# Readme")
+
+        files = gateway.list_files(["md"], exclude_patterns=["node_modules"])
+
+        assert len(files) == 1
+        assert files[0].name == "readme.md"
+
+    def should_exclude_dot_folders_with_wildcard_pattern(self, gateway, temp_dir):
+        dot_git = temp_dir / ".git"
+        dot_git.mkdir()
+        (dot_git / "config.md").write_text("git config")
+        dot_venv = temp_dir / ".venv"
+        dot_venv.mkdir()
+        (dot_venv / "info.md").write_text("venv info")
+        (temp_dir / "real.md").write_text("# Real")
+
+        files = gateway.list_files(["md"], exclude_patterns=[".*"])
+
+        assert len(files) == 1
+        assert files[0].name == "real.md"
+
+    def should_exclude_multiple_patterns(self, gateway, temp_dir):
+        node_modules = temp_dir / "node_modules"
+        node_modules.mkdir()
+        (node_modules / "dep.md").write_text("dep")
+        dist = temp_dir / "dist"
+        dist.mkdir()
+        (dist / "bundle.md").write_text("bundle")
+        (temp_dir / "readme.md").write_text("# Readme")
+
+        files = gateway.list_files(["md"], exclude_patterns=["node_modules", "dist"])
+
+        assert len(files) == 1
+        assert files[0].name == "readme.md"
+
+    def should_exclude_files_in_nested_excluded_directories(self, gateway, temp_dir):
+        src = temp_dir / "src"
+        src.mkdir()
+        node_modules = src / "node_modules"
+        node_modules.mkdir()
+        (node_modules / "dep.md").write_text("dep")
+        (src / "main.md").write_text("# Main")
+
+        files = gateway.list_files(["md"], exclude_patterns=["node_modules"])
+
+        assert len(files) == 1
+        assert files[0].name == "main.md"

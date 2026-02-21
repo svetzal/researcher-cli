@@ -23,6 +23,7 @@ Use the `researcher` CLI (or its MCP tools) to run semantic searches across your
 | More results | `researcher search "query" --documents 10` |
 | Precise snippet | `researcher search "query" --mode fragments` |
 | More fragments | `researcher search "query" --mode fragments --fragments 20` |
+| Machine-readable output | `researcher search "query" --json` |
 
 ## Search Command
 
@@ -36,6 +37,7 @@ researcher search QUERY [OPTIONS]
 | `--mode` | `-m` | `documents` | `documents` or `fragments` |
 | `--documents` | `-d` | `5` | Number of documents to return |
 | `--fragments` | `-f` | `10` | Number of fragments to return |
+| `--json` | `-j` | off | Output raw JSON instead of Rich terminal display |
 
 ## Choosing a Search Mode
 
@@ -53,6 +55,60 @@ Returns individual text chunks ranked by semantic distance. Use when you need a 
   - `0.6+` — Weak match, treat with caution
 - **Document mode**: Results show the document path and the best-matching fragment preview
 - **Fragment mode**: Results show the fragment text with its source document
+
+## Agent Use: JSON Mode
+
+Always use `--json` (or `-j`) when processing search output programmatically. This bypasses Rich terminal formatting and writes clean JSON to stdout.
+
+### Document mode JSON schema (`--json`, default)
+
+```json
+{
+  "query": "authentication patterns",
+  "mode": "documents",
+  "repository": null,
+  "repos_searched": ["my-notes", "research"],
+  "result_count": 2,
+  "results": [
+    {
+      "document_path": "/Users/me/Notes/auth.md",
+      "best_distance": 0.1234,
+      "fragment_count": 3,
+      "top_fragment": {
+        "text": "JWT tokens should be ...",
+        "fragment_index": 2,
+        "distance": 0.1234
+      }
+    }
+  ]
+}
+```
+
+### Fragment mode JSON schema (`--mode fragments --json`)
+
+```json
+{
+  "query": "retry with backoff",
+  "mode": "fragments",
+  "repository": null,
+  "repos_searched": ["my-notes"],
+  "result_count": 1,
+  "results": [
+    {
+      "document_path": "/Users/me/Notes/patterns.md",
+      "fragment_index": 5,
+      "distance": 0.2341,
+      "text": "Exponential backoff retries ..."
+    }
+  ]
+}
+```
+
+Key notes:
+- `result_count: 0` with `results: []` means no matches — do not attempt to parse "No results found" text in JSON mode
+- `repository` is the repo name when `--repo` is used, otherwise `null`
+- `repos_searched` always lists every repository that was queried
+- Errors are also JSON-shaped: `{"error": "..."}` with exit code 1
 
 ## MCP Tools
 
@@ -114,4 +170,7 @@ researcher search "JWT token expiry" --repo architecture-notes
 
 # Find a specific code snippet
 researcher search "retry with backoff" --mode fragments --fragments 5
+
+# Process results programmatically
+researcher search "authentication" --json | jq '.results[].document_path'
 ```

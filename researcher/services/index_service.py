@@ -16,6 +16,7 @@ from researcher.models import (
     IndexingResult,
     IndexStats,
 )
+from researcher.path_exclusion import is_path_excluded
 
 logger = structlog.get_logger()
 
@@ -62,7 +63,7 @@ class IndexService:
             fragments_created=0,
         )
         checksums = self._load_checksums()
-        files = self._filesystem.list_files(config.file_types)
+        files = self._filesystem.list_files(config.file_types, config.exclude_patterns)
 
         for file_path in files:
             path_key = str(file_path)
@@ -138,6 +139,33 @@ class IndexService:
         checksums.pop(document_path, None)
         self._save_checksums(checksums)
         logger.info("Removed document", path=document_path)
+
+    def purge_excluded_documents(self, config: RepositoryConfig) -> int:
+        """Remove all indexed documents that now match the repository's exclude patterns.
+
+        Args:
+            config: The repository configuration containing the current exclusion patterns
+                and base path.
+
+        Returns:
+            The number of documents purged from the index.
+        """
+        if not config.exclude_patterns:
+            return 0
+
+        base_path = Path(config.path)
+        all_paths = self._chroma.get_all_document_paths(COLLECTION_NAME)
+        count = 0
+        for path_str in all_paths:
+            path = Path(path_str)
+            try:
+                relative = path.relative_to(base_path)
+            except ValueError:
+                continue
+            if is_path_excluded(relative, config.exclude_patterns):
+                self.remove_document(path_str)
+                count += 1
+        return count
 
     def get_stats(self) -> IndexStats:
         """Return current index statistics."""

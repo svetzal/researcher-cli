@@ -65,6 +65,28 @@ class DescribeIndexService:
         assert result.documents_indexed == 0
         mock_docling.convert.assert_not_called()
 
+    def should_pass_exclude_patterns_to_list_files(self, service, mock_filesystem, mock_docling, mock_chroma):
+        repo_config = RepositoryConfig(
+            name="test-repo",
+            path="/tmp/docs",
+            embedding_provider="chromadb",
+            exclude_patterns=["node_modules", ".*"],
+        )
+        mock_filesystem.list_files.return_value = []
+
+        service.index_repository(repo_config)
+
+        mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, ["node_modules", ".*"])
+
+    def should_pass_empty_exclude_patterns_when_none_configured(
+        self, service, mock_filesystem, mock_docling, mock_chroma, repo_config
+    ):
+        mock_filesystem.list_files.return_value = []
+
+        service.index_repository(repo_config)
+
+        mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, [])
+
     def should_index_new_files(self, service, mock_filesystem, mock_docling, mock_chroma, repo_config):
         file_path = Path("/tmp/docs/doc.md")
         mock_filesystem.list_files.return_value = [file_path]
@@ -154,3 +176,98 @@ class DescribeIndexService:
         assert stats.total_documents == 2
         assert stats.total_fragments == 10
         assert stats.last_indexed is not None
+
+    class DescribePurgeExcludedDocuments:
+        @pytest.fixture
+        def temp_dir(self):
+            with tempfile.TemporaryDirectory() as d:
+                yield Path(d)
+
+        @pytest.fixture
+        def mock_chroma(self):
+            return Mock(spec=ChromaGateway)
+
+        @pytest.fixture
+        def service(self, mock_chroma, temp_dir):
+            return IndexService(
+                filesystem_gateway=Mock(spec=FilesystemGateway),
+                docling_gateway=Mock(spec=DoclingGateway),
+                embedding_gateway=Mock(spec=EmbeddingGateway),
+                chroma_gateway=mock_chroma,
+                repo_name="test-repo",
+                repo_data_dir=temp_dir,
+            )
+
+        def should_purge_documents_matching_exclude_patterns(self, service, mock_chroma, temp_dir):
+            mock_chroma.get_all_document_paths.return_value = ["/tmp/docs/node_modules/dep.md"]
+            checksums_path = temp_dir / "checksums.json"
+            checksums_path.write_text(json.dumps({"/tmp/docs/node_modules/dep.md": "abc"}))
+            config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
+
+            service.purge_excluded_documents(config)
+
+            mock_chroma.delete_by_document.assert_called_once_with("documents", "/tmp/docs/node_modules/dep.md")
+
+        def should_return_count_of_purged_documents(self, service, mock_chroma, temp_dir):
+            mock_chroma.get_all_document_paths.return_value = [
+                "/tmp/docs/node_modules/a.md",
+                "/tmp/docs/node_modules/b.md",
+                "/tmp/docs/readme.md",
+            ]
+            checksums_path = temp_dir / "checksums.json"
+            checksums_path.write_text(
+                json.dumps(
+                    {
+                        "/tmp/docs/node_modules/a.md": "a",
+                        "/tmp/docs/node_modules/b.md": "b",
+                        "/tmp/docs/readme.md": "c",
+                    }
+                )
+            )
+            config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
+
+            count = service.purge_excluded_documents(config)
+
+            assert count == 2
+
+        def should_return_zero_when_no_patterns(self, service, mock_chroma):
+            config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=[])
+
+            count = service.purge_excluded_documents(config)
+
+            assert count == 0
+            mock_chroma.get_all_document_paths.assert_not_called()
+
+        def should_skip_documents_not_under_repo_base(self, service, mock_chroma, temp_dir):
+            mock_chroma.get_all_document_paths.return_value = [
+                "/other/place/node_modules/file.md",
+            ]
+            checksums_path = temp_dir / "checksums.json"
+            checksums_path.write_text(json.dumps({}))
+            config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
+
+            count = service.purge_excluded_documents(config)
+
+            assert count == 0
+            mock_chroma.delete_by_document.assert_not_called()
+
+        def should_not_purge_documents_that_do_not_match(self, service, mock_chroma, temp_dir):
+            mock_chroma.get_all_document_paths.return_value = [
+                "/tmp/docs/src/main.md",
+                "/tmp/docs/README.md",
+            ]
+            checksums_path = temp_dir / "checksums.json"
+            checksums_path.write_text(
+                json.dumps(
+                    {
+                        "/tmp/docs/src/main.md": "a",
+                        "/tmp/docs/README.md": "b",
+                    }
+                )
+            )
+            config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
+
+            count = service.purge_excluded_documents(config)
+
+            assert count == 0
+            mock_chroma.delete_by_document.assert_not_called()

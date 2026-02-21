@@ -46,3 +46,8 @@ python_files = ["*_spec.py"]
 python_classes = ["Describe*"]
 python_functions = ["should_*"]
 addopts = "--cov=researcher --cov-report=term-missing"
+
+[dependency-groups]
+dev = [
+    "pip-audit>=2.10.0",
+]

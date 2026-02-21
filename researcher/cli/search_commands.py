@@ -1,3 +1,6 @@
+import json
+
+import typer
 from rich.console import Console
 from rich.panel import Panel
 
@@ -13,6 +16,7 @@ def run_search_fragments(
     repos: list[RepositoryConfig],
     query: str,
     n_results: int,
+    json_output: bool = False,
 ) -> None:
     """Search for fragments across one or more repositories."""
     all_results: list[SearchResult] = []
@@ -23,6 +27,26 @@ def run_search_fragments(
 
     all_results.sort(key=lambda r: r.distance)
     all_results = all_results[:n_results]
+
+    if json_output:
+        data = {
+            "query": query,
+            "mode": "fragments",
+            "repository": repos[0].name if len(repos) == 1 else None,
+            "repos_searched": [r.name for r in repos],
+            "result_count": len(all_results),
+            "results": [
+                {
+                    "document_path": r.document_path,
+                    "fragment_index": r.fragment_index,
+                    "distance": r.distance,
+                    "text": r.text,
+                }
+                for r in all_results
+            ],
+        }
+        typer.echo(json.dumps(data, default=str))
+        return
 
     if not all_results:
         console.print("[dim]No results found.[/dim]")
@@ -44,6 +68,7 @@ def run_search_documents(
     repos: list[RepositoryConfig],
     query: str,
     n_results: int,
+    json_output: bool = False,
 ) -> None:
     """Search for documents across one or more repositories."""
     all_results: list[DocumentSearchResult] = []
@@ -54,6 +79,35 @@ def run_search_documents(
 
     all_results.sort(key=lambda r: r.best_distance)
     all_results = all_results[:n_results]
+
+    if json_output:
+        results_data = []
+        for doc_result in all_results:
+            top = doc_result.top_fragments[0] if doc_result.top_fragments else None
+            results_data.append(
+                {
+                    "document_path": doc_result.document_path,
+                    "best_distance": doc_result.best_distance,
+                    "fragment_count": len(doc_result.top_fragments),
+                    "top_fragment": {
+                        "text": top.text,
+                        "fragment_index": top.fragment_index,
+                        "distance": top.distance,
+                    }
+                    if top
+                    else None,
+                }
+            )
+        data = {
+            "query": query,
+            "mode": "documents",
+            "repository": repos[0].name if len(repos) == 1 else None,
+            "repos_searched": [r.name for r in repos],
+            "result_count": len(all_results),
+            "results": results_data,
+        }
+        typer.echo(json.dumps(data, default=str))
+        return
 
     if not all_results:
         console.print("[dim]No results found.[/dim]")
