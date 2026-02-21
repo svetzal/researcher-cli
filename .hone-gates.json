@@ -1,0 +1,24 @@
+{
+  "gates": [
+    {
+      "name": "test",
+      "command": "uv run pytest",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "uv run ruff check researcher",
+      "required": true
+    },
+    {
+      "name": "format",
+      "command": "uv run ruff format --check researcher",
+      "required": true
+    },
+    {
+      "name": "security",
+      "command": "uvx pip-audit",
+      "required": false
+    }
+  ]
+}
