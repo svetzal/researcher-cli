@@ -16,18 +16,28 @@ class ChromaGateway:
         return self._client.get_or_create_collection(name=name)
 
     def add_fragments(self, collection_name: str, fragments: list[FragmentForStorage]) -> None:
-        """Add fragments using ChromaDB's built-in embedding function."""
+        """Upsert fragments using ChromaDB's built-in embedding function.
+
+        Uses upsert rather than add so that a desync between the checksum cache
+        and ChromaDB (e.g. from an interrupted previous run) never causes a
+        duplicate-ID error.
+        """
         collection = self._client.get_or_create_collection(name=collection_name)
-        collection.add(
+        collection.upsert(
             ids=[f.id for f in fragments],
             documents=[f.text for f in fragments],
             metadatas=[f.metadata for f in fragments],
         )
 
     def add_fragments_with_embeddings(self, collection_name: str, fragments: list[FragmentWithEmbedding]) -> None:
-        """Add fragments with pre-computed embeddings."""
+        """Upsert fragments with pre-computed embeddings.
+
+        Uses upsert rather than add so that a desync between the checksum cache
+        and ChromaDB (e.g. from an interrupted previous run) never causes a
+        duplicate-ID error.
+        """
         collection = self._client.get_or_create_collection(name=collection_name, embedding_function=None)
-        collection.add(
+        collection.upsert(
             ids=[f.id for f in fragments],
             documents=[f.text for f in fragments],
             metadatas=[f.metadata for f in fragments],
