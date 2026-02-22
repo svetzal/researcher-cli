@@ -91,3 +91,19 @@ class DescribeServiceFactory:
 
         expected_data_dir = temp_dir / "repositories" / "my-repo"
         assert service._repo_data_dir == expected_data_dir
+
+    def should_pass_image_pipeline_from_repo_config_to_docling_gateway(self, factory, temp_dir):
+        repo = RepositoryConfig(name="my-repo", path=str(temp_dir), image_pipeline="vlm", image_vlm_model="smoldocling")
+
+        service = factory.index_service(repo)
+
+        assert service._docling._image_pipeline == "vlm"
+        assert service._docling._image_vlm_model == "smoldocling"
+
+    def should_pass_standard_pipeline_by_default_to_docling_gateway(self, factory, temp_dir):
+        repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
+
+        service = factory.index_service(repo)
+
+        assert service._docling._image_pipeline == "standard"
+        assert service._docling._image_vlm_model is None

@@ -29,6 +29,22 @@ class DescribeRepositoryConfig:
 
         assert config.exclude_patterns == ["node_modules", ".*"]
 
+    def should_default_image_pipeline_to_standard(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs")
+
+        assert config.image_pipeline == "standard"
+
+    def should_default_image_vlm_model_to_none(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs")
+
+        assert config.image_vlm_model is None
+
+    def should_accept_vlm_image_pipeline(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs", image_pipeline="vlm", image_vlm_model="smoldocling")
+
+        assert config.image_pipeline == "vlm"
+        assert config.image_vlm_model == "smoldocling"
+
 
 class DescribeResearcherConfig:
     def should_have_empty_repositories_by_default(self):
@@ -114,3 +130,29 @@ class DescribeConfigGateway:
         loaded = gateway.load()
 
         assert loaded.repositories[0].exclude_patterns == [".*"]
+
+    def should_serialise_and_deserialise_image_pipeline_settings(self, gateway):
+        repo = RepositoryConfig(
+            name="test",
+            path="/tmp/test",
+            image_pipeline="vlm",
+            image_vlm_model="smoldocling",
+        )
+        config = ResearcherConfig(repositories=[repo])
+
+        gateway.save(config)
+        loaded = gateway.load()
+
+        assert loaded.repositories[0].image_pipeline == "vlm"
+        assert loaded.repositories[0].image_vlm_model == "smoldocling"
+
+    def should_deserialise_missing_image_pipeline_as_standard(self, gateway):
+        raw_yaml = "repositories:\n- name: test\n  path: /tmp/test\n"
+        config_file = gateway.config_dir / "config.yaml"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        config_file.write_text(raw_yaml)
+
+        loaded = gateway.load()
+
+        assert loaded.repositories[0].image_pipeline == "standard"
+        assert loaded.repositories[0].image_vlm_model is None

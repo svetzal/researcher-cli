@@ -42,6 +42,8 @@ researcher repo add NAME PATH [OPTIONS]
 | `--embedding-provider` | `chromadb` | Embedding provider: `chromadb`, `ollama`, `openai` |
 | `--embedding-model` | provider default | Override the model name |
 | `--exclude` / `-e` | none | Glob pattern to exclude (repeatable) |
+| `--image-pipeline` | `standard` | Image processing pipeline: `standard` (OCR) or `vlm` (Vision Language Model) |
+| `--image-vlm-model` | `granite_docling` | VLM preset name (only used when `--image-pipeline=vlm`) |
 | `--json` / `-j` | off | Output result as JSON |
 
 **Examples:**
@@ -63,6 +65,12 @@ researcher repo add webapp ~/Projects/webapp --exclude node_modules --exclude '.
 
 # Exclude build artefacts
 researcher repo add project ~/Projects/myapp --exclude node_modules --exclude dist --exclude build --exclude '.*'
+
+# Use VLM pipeline for richer image understanding (downloads model on first use)
+researcher repo add screenshots ~/Screenshots --image-pipeline vlm
+
+# Use a smaller/faster VLM model
+researcher repo add screenshots ~/Screenshots --image-pipeline vlm --image-vlm-model smoldocling
 ```
 
 **Common `--exclude` patterns:**
@@ -95,6 +103,8 @@ researcher repo update NAME [OPTIONS]
 | `--embedding-model` | unchanged | Model name — **replaces** the existing value (`""` clears it) |
 | `--exclude` / `-e` | none added | Glob pattern to **add** to the existing exclusion list (repeatable; deduplicates) |
 | `--no-purge` | off | Skip auto-purging indexed docs that now match new exclusion patterns |
+| `--image-pipeline` | unchanged | Image processing pipeline: `standard` (OCR) or `vlm` (Vision Language Model) |
+| `--image-vlm-model` | unchanged | VLM preset name (only used when `--image-pipeline=vlm`) |
 | `--json` / `-j` | off | Output result as JSON |
 
 **Additive exclude behaviour.** Unlike `repo add`, the `--exclude` flag on `repo update` *appends* new patterns to the existing list rather than replacing it. Patterns that are already present are silently deduplicated. Passing no `--exclude` flag leaves the exclusion list unchanged.
@@ -120,6 +130,9 @@ researcher repo update my-notes --embedding-provider openai --embedding-model te
 
 # Use instead of remove+re-add when only config needs changing
 researcher repo update my-notes --file-types md,txt --embedding-provider ollama
+
+# Switch an existing repo to VLM image processing
+researcher repo update my-vault --image-pipeline vlm --image-vlm-model smoldocling
 ```
 
 > **Tip:** Prefer `repo update` over `repo remove` + `repo add` when you only need to adjust configuration. `repo remove` discards the entire index, forcing a full re-index; `repo update` preserves existing indexed documents and only removes those that become excluded.
@@ -180,6 +193,48 @@ Removes the repository configuration and its entire index data from `~/.research
 - Default model: `text-embedding-3-small`
 - Best for: highest quality embeddings, large repositories
 - Setup: `export OPENAI_API_KEY=sk-...`
+
+---
+
+## Image Processing
+
+By default, researcher uses OCR (optical character recognition) to extract text from image files (`.png`, `.jpg`, `.jpeg`, etc.). For richer semantic understanding — useful for screenshots, diagrams, and figures — you can switch to a Vision Language Model (VLM) pipeline.
+
+### `standard` (default)
+
+Uses Docling's built-in OCR pipeline. Fast, no additional model downloads required.
+
+### `vlm` (Vision Language Model)
+
+Sends images through a VLM that can understand layout, charts, code blocks, and natural-language descriptions of visual content. Models are downloaded on first use and cached locally.
+
+**Enable VLM for a new repository:**
+```bash
+researcher repo add screenshots ~/Screenshots --image-pipeline vlm
+```
+
+**Switch an existing repository to VLM:**
+```bash
+researcher repo update my-vault --image-pipeline vlm --image-vlm-model smoldocling
+```
+
+### Available VLM Presets
+
+| Preset | Notes |
+|--------|-------|
+| `granite_docling` | Default when `--image-vlm-model` is omitted. IBM Granite-based model, well-balanced. |
+| `smoldocling` | Lightweight and fast (~200 MB). Good starting point. |
+| `deepseek_ocr` | Optimised for OCR-heavy documents. |
+| `granite_vision` | IBM Granite vision model. |
+| `pixtral` | Mistral-based vision model. |
+| `got_ocr` | General OCR Theory model. |
+| `phi4` | Microsoft Phi-4 vision model. |
+| `qwen` | Alibaba Qwen vision model. |
+| `gemma_12b` | Google Gemma 12B vision model (~4 GB). |
+| `gemma_27b` | Google Gemma 27B vision model (~8 GB). |
+| `dolphin` | Dolphin vision model. |
+
+> **Note:** Models download automatically on the first indexing run after switching to `vlm`. Download sizes range from ~200 MB (`smoldocling`) to several GB for the largest models. Ensure sufficient disk space and a stable internet connection before the first run.
 
 ---
 
@@ -290,13 +345,15 @@ Always use `--json` (or `-j`) when processing admin command output programmatica
       "file_types": ["md", "txt"],
       "embedding_provider": "chromadb",
       "embedding_model": null,
-      "exclude_patterns": ["node_modules", ".*"]
+      "exclude_patterns": ["node_modules", ".*"],
+      "image_pipeline": "standard",
+      "image_vlm_model": null
     }
   ]
 }
 ```
 
-`exclude_patterns` is always present; it is an empty array when no patterns have been configured.
+`exclude_patterns` is always present; it is an empty array when no patterns have been configured. `image_pipeline` is always present (`"standard"` or `"vlm"`). `image_vlm_model` is `null` unless a specific VLM preset was set.
 
 ### `researcher repo add NAME PATH --json` schema
 
@@ -307,11 +364,13 @@ Always use `--json` (or `-j`) when processing admin command output programmatica
   "file_types": ["md", "txt"],
   "embedding_provider": "chromadb",
   "embedding_model": null,
-  "exclude_patterns": ["node_modules", ".*"]
+  "exclude_patterns": ["node_modules", ".*"],
+  "image_pipeline": "standard",
+  "image_vlm_model": null
 }
 ```
 
-`exclude_patterns` is always present; it is an empty array when no `--exclude` flags were supplied.
+`exclude_patterns` is always present; it is an empty array when no `--exclude` flags were supplied. `image_pipeline` is always present (`"standard"` or `"vlm"`). `image_vlm_model` is `null` unless a specific VLM preset was set.
 
 ### `researcher repo update NAME --json` schema
 
@@ -323,6 +382,8 @@ Always use `--json` (or `-j`) when processing admin command output programmatica
   "embedding_provider": "chromadb",
   "embedding_model": null,
   "exclude_patterns": ["node_modules", "dist"],
+  "image_pipeline": "vlm",
+  "image_vlm_model": "smoldocling",
   "purged_documents": 3
 }
 ```

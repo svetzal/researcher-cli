@@ -13,6 +13,8 @@ class RepositoryConfig(BaseModel):
     embedding_provider: str = "chromadb"  # "chromadb" | "ollama" | "openai"
     embedding_model: str | None = None
     exclude_patterns: list[str] = Field(default_factory=lambda: [".*"])
+    image_pipeline: str = "standard"  # "standard" (OCR) | "vlm" (Vision Language Model)
+    image_vlm_model: str | None = None  # VLM preset name; None means "granite_docling"
 
 
 class ResearcherConfig(BaseModel):

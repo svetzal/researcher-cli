@@ -36,7 +36,10 @@ class ServiceFactory:
 
         return IndexService(
             filesystem_gateway=FilesystemGateway(base_path=Path(repo.path)),
-            docling_gateway=DoclingGateway(),
+            docling_gateway=DoclingGateway(
+                image_pipeline=repo.image_pipeline,
+                image_vlm_model=repo.image_vlm_model,
+            ),
             embedding_gateway=EmbeddingGateway(
                 provider=repo.embedding_provider,
                 model=repo.embedding_model,

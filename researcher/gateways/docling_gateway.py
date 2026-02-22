@@ -11,15 +11,30 @@ class DoclingGateway:
     Only the `index` command needs this gateway.
     """
 
-    def __init__(self):
+    def __init__(self, image_pipeline: str = "standard", image_vlm_model: str | None = None):
         self._converter: Any = None
         self._chunker: Any = None
+        self._image_pipeline = image_pipeline
+        self._image_vlm_model = image_vlm_model
 
     def _get_converter(self):
         if self._converter is None:
-            from docling.document_converter import DocumentConverter
+            from docling.datamodel.base_models import InputFormat
+            from docling.document_converter import DocumentConverter, ImageFormatOption
 
-            self._converter = DocumentConverter()
+            format_options = {}
+            if self._image_pipeline == "vlm":
+                from docling.datamodel.pipeline_options import VlmConvertOptions, VlmPipelineOptions
+                from docling.pipeline.vlm_pipeline import VlmPipeline
+
+                vlm_opts = VlmConvertOptions.from_preset(self._image_vlm_model or "granite_docling")
+                pipeline_options = VlmPipelineOptions(vlm_options=vlm_opts)
+                format_options[InputFormat.IMAGE] = ImageFormatOption(
+                    pipeline_cls=VlmPipeline,
+                    pipeline_options=pipeline_options,
+                )
+
+            self._converter = DocumentConverter(format_options=format_options if format_options else None)
         return self._converter
 
     def _get_chunker(self):

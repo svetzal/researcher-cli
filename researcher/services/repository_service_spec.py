@@ -85,6 +85,18 @@ class DescribeRepositoryService:
         assert repo.embedding_provider == "ollama"
         assert repo.embedding_model == "nomic-embed-text"
 
+    def should_store_image_pipeline_setting(self, service):
+        repo = service.add_repository("my-repo", "/tmp/docs", image_pipeline="vlm", image_vlm_model="smoldocling")
+
+        assert repo.image_pipeline == "vlm"
+        assert repo.image_vlm_model == "smoldocling"
+
+    def should_default_image_pipeline_to_standard(self, service):
+        repo = service.add_repository("my-repo", "/tmp/docs")
+
+        assert repo.image_pipeline == "standard"
+        assert repo.image_vlm_model is None
+
 
 class DescribeRepositoryServiceUpdateRepository:
     @pytest.fixture
@@ -167,3 +179,22 @@ class DescribeRepositoryServiceUpdateRepository:
         reloaded = service.get_repository("my-repo")
         assert reloaded.file_types == ["pdf"]
         assert "dist" in reloaded.exclude_patterns
+
+    def should_update_image_pipeline_setting(self, service, existing_repo):
+        updated, _ = service.update_repository("my-repo", image_pipeline="vlm", image_vlm_model="smoldocling")
+
+        assert updated.image_pipeline == "vlm"
+        assert updated.image_vlm_model == "smoldocling"
+
+    def should_not_change_image_pipeline_when_not_provided(self, service, existing_repo):
+        updated, _ = service.update_repository("my-repo")
+
+        assert updated.image_pipeline == "standard"
+        assert updated.image_vlm_model is None
+
+    def should_persist_image_pipeline_updates(self, service, config_gateway, existing_repo):
+        service.update_repository("my-repo", image_pipeline="vlm", image_vlm_model="phi4")
+
+        reloaded = service.get_repository("my-repo")
+        assert reloaded.image_pipeline == "vlm"
+        assert reloaded.image_vlm_model == "phi4"

@@ -23,6 +23,20 @@ def add_repo(
         "-e",
         help="Glob pattern to exclude (repeatable, e.g. --exclude node_modules --exclude '.*')",
     ),
+    image_pipeline: str = typer.Option(
+        "standard",
+        "--image-pipeline",
+        help="Image processing pipeline: 'standard' (OCR) or 'vlm' (Vision Language Model)",
+    ),
+    image_vlm_model: str = typer.Option(
+        None,
+        "--image-vlm-model",
+        help=(
+            "VLM preset name (only used when --image-pipeline=vlm). "
+            "Available: smoldocling, granite_docling, deepseek_ocr, granite_vision, pixtral, "
+            "got_ocr, phi4, qwen, gemma_12b, gemma_27b, dolphin. Default: granite_docling"
+        ),
+    ),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Add a new document repository."""
@@ -36,6 +50,8 @@ def add_repo(
             embedding_provider=embedding_provider,
             embedding_model=embedding_model,
             exclude_patterns=exclude or [],
+            image_pipeline=image_pipeline,
+            image_vlm_model=image_vlm_model,
         )
         if json_output:
             data = {
@@ -45,6 +61,8 @@ def add_repo(
                 "embedding_provider": repo.embedding_provider,
                 "embedding_model": repo.embedding_model,
                 "exclude_patterns": repo.exclude_patterns,
+                "image_pipeline": repo.image_pipeline,
+                "image_vlm_model": repo.image_vlm_model,
             }
             typer.echo(json.dumps(data, default=str))
         else:
@@ -95,6 +113,20 @@ def update_repo(
         "--no-purge",
         help="Skip purging previously-indexed files that match the new exclusion patterns.",
     ),
+    image_pipeline: str = typer.Option(
+        None,
+        "--image-pipeline",
+        help="Image processing pipeline: 'standard' (OCR) or 'vlm' (Vision Language Model)",
+    ),
+    image_vlm_model: str = typer.Option(
+        None,
+        "--image-vlm-model",
+        help=(
+            "VLM preset name (only used when --image-pipeline=vlm). "
+            "Available: smoldocling, granite_docling, deepseek_ocr, granite_vision, pixtral, "
+            "got_ocr, phi4, qwen, gemma_12b, gemma_27b, dolphin. Default: granite_docling"
+        ),
+    ),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Update an existing repository's configuration."""
@@ -107,6 +139,8 @@ def update_repo(
             embedding_provider=embedding_provider,
             embedding_model=embedding_model,
             add_exclude_patterns=exclude or [],
+            image_pipeline=image_pipeline,
+            image_vlm_model=image_vlm_model,
         )
         purged = 0
         if added_patterns and not no_purge:
@@ -121,6 +155,8 @@ def update_repo(
                 "embedding_provider": repo.embedding_provider,
                 "embedding_model": repo.embedding_model,
                 "exclude_patterns": repo.exclude_patterns,
+                "image_pipeline": repo.image_pipeline,
+                "image_vlm_model": repo.image_vlm_model,
                 "purged_documents": purged,
             }
             typer.echo(json.dumps(data, default=str))
