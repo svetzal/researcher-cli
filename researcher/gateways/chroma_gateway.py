@@ -69,15 +69,24 @@ class ChromaGateway:
         return collection.count()
 
     def get_all_document_paths(self, collection_name: str) -> list[str]:
-        """Return all unique document paths stored in the collection."""
+        """Return all unique document paths stored in the collection.
+
+        Paginates through results in batches to avoid SQLite's variable limit
+        on large collections.
+        """
         collection = self._client.get_or_create_collection(name=collection_name)
-        if collection.count() == 0:
+        total = collection.count()
+        if total == 0:
             return []
-        results = collection.get(include=["metadatas"])
-        paths = set()
-        for metadata in results.get("metadatas", []):
-            if metadata and "document_path" in metadata:
-                paths.add(metadata["document_path"])
+        batch_size = 500
+        paths: set[str] = set()
+        offset = 0
+        while offset < total:
+            results = collection.get(include=["metadatas"], limit=batch_size, offset=offset)
+            for metadata in results.get("metadatas", []):
+                if metadata and "document_path" in metadata:
+                    paths.add(metadata["document_path"])
+            offset += batch_size
         return sorted(paths)
 
     def _parse_query_results(self, results: dict) -> list[SearchResult]:

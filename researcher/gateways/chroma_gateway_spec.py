@@ -83,6 +83,23 @@ class DescribeChromaGateway:
 
         assert paths == []
 
+    def should_paginate_when_collection_exceeds_batch_size(self, gateway):
+        fragments = [
+            FragmentForStorage(
+                id=f"f{i}",
+                text=f"Fragment {i}",
+                metadata={"document_path": f"/doc{i}.md", "fragment_index": 0},
+            )
+            for i in range(550)
+        ]
+        gateway.add_fragments("test-collection", fragments)
+
+        paths = gateway.get_all_document_paths("test-collection")
+
+        assert len(paths) == 550
+        assert "/doc0.md" in paths
+        assert "/doc549.md" in paths
+
     def should_add_fragments_with_embeddings(self, gateway):
         fragments = [
             FragmentWithEmbedding(
