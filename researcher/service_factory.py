@@ -39,6 +39,7 @@ class ServiceFactory:
             docling_gateway=DoclingGateway(
                 image_pipeline=repo.image_pipeline,
                 image_vlm_model=repo.image_vlm_model,
+                audio_asr_model=repo.audio_asr_model,
             ),
             embedding_gateway=EmbeddingGateway(
                 provider=repo.embedding_provider,

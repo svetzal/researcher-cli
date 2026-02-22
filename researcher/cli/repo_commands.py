@@ -37,6 +37,11 @@ def add_repo(
             "got_ocr, phi4, qwen, gemma_12b, gemma_27b, dolphin. Default: granite_docling"
         ),
     ),
+    audio_asr_model: str = typer.Option(
+        None,
+        "--audio-asr-model",
+        help="Whisper ASR model for audio files. Options: tiny, base, small, medium, large, turbo. Default: turbo",
+    ),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Add a new document repository."""
@@ -52,6 +57,7 @@ def add_repo(
             exclude_patterns=exclude or [],
             image_pipeline=image_pipeline,
             image_vlm_model=image_vlm_model,
+            audio_asr_model=audio_asr_model or "turbo",
         )
         if json_output:
             data = {
@@ -63,6 +69,7 @@ def add_repo(
                 "exclude_patterns": repo.exclude_patterns,
                 "image_pipeline": repo.image_pipeline,
                 "image_vlm_model": repo.image_vlm_model,
+                "audio_asr_model": repo.audio_asr_model,
             }
             typer.echo(json.dumps(data, default=str))
         else:
@@ -127,6 +134,11 @@ def update_repo(
             "got_ocr, phi4, qwen, gemma_12b, gemma_27b, dolphin. Default: granite_docling"
         ),
     ),
+    audio_asr_model: str = typer.Option(
+        None,
+        "--audio-asr-model",
+        help="Whisper ASR model for audio files. Options: tiny, base, small, medium, large, turbo. Default: turbo",
+    ),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Update an existing repository's configuration."""
@@ -141,6 +153,7 @@ def update_repo(
             add_exclude_patterns=exclude or [],
             image_pipeline=image_pipeline,
             image_vlm_model=image_vlm_model,
+            audio_asr_model=audio_asr_model,
         )
         purged = 0
         if added_patterns and not no_purge:
@@ -157,6 +170,7 @@ def update_repo(
                 "exclude_patterns": repo.exclude_patterns,
                 "image_pipeline": repo.image_pipeline,
                 "image_vlm_model": repo.image_vlm_model,
+                "audio_asr_model": repo.audio_asr_model,
                 "purged_documents": purged,
             }
             typer.echo(json.dumps(data, default=str))

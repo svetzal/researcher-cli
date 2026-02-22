@@ -177,6 +177,34 @@ class DescribeRepoAddCommand:
         assert data["image_pipeline"] == "vlm"
         assert data["image_vlm_model"] == "smoldocling"
 
+    def should_pass_audio_asr_model_to_service_on_add(self):
+        mock_service = Mock(spec=RepositoryService)
+        mock_service.add_repository.return_value = RepositoryConfig(
+            name="my-repo", path="/tmp/docs", audio_asr_model="small"
+        )
+
+        with patch("researcher.cli.repo_commands.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_service
+            result = runner.invoke(repo_app, ["add", "my-repo", "/tmp/docs", "--audio-asr-model", "small"])
+
+        assert result.exit_code == 0
+        call_kwargs = mock_service.add_repository.call_args.kwargs
+        assert call_kwargs["audio_asr_model"] == "small"
+
+    def should_include_audio_asr_model_in_json_output_on_add(self):
+        mock_service = Mock(spec=RepositoryService)
+        mock_service.add_repository.return_value = RepositoryConfig(
+            name="my-repo", path="/tmp/docs", audio_asr_model="medium"
+        )
+
+        with patch("researcher.cli.repo_commands.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_service
+            result = runner.invoke(repo_app, ["add", "my-repo", "/tmp/docs", "--audio-asr-model", "medium", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["audio_asr_model"] == "medium"
+
 
 class DescribeRepoRemoveCommand:
     def should_remove_repository(self):
@@ -635,3 +663,41 @@ class DescribeRepoUpdateCommand:
         call_kwargs = mock_service.update_repository.call_args.kwargs
         assert call_kwargs["image_pipeline"] is None
         assert call_kwargs["image_vlm_model"] is None
+
+    def should_pass_audio_asr_model_to_service_on_update(self):
+        mock_service = Mock(spec=RepositoryService)
+        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="base")
+        mock_service.update_repository.return_value = (updated_repo, [])
+
+        with patch("researcher.cli.repo_commands.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_service
+            result = runner.invoke(repo_app, ["update", "my-repo", "--audio-asr-model", "base"])
+
+        assert result.exit_code == 0
+        call_kwargs = mock_service.update_repository.call_args.kwargs
+        assert call_kwargs["audio_asr_model"] == "base"
+
+    def should_pass_none_audio_asr_model_when_not_provided_on_update(self):
+        mock_service = Mock(spec=RepositoryService)
+        mock_service.update_repository.return_value = (self._make_updated_repo(), [])
+
+        with patch("researcher.cli.repo_commands.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_service
+            result = runner.invoke(repo_app, ["update", "my-repo"])
+
+        assert result.exit_code == 0
+        call_kwargs = mock_service.update_repository.call_args.kwargs
+        assert call_kwargs["audio_asr_model"] is None
+
+    def should_include_audio_asr_model_in_json_output_on_update(self):
+        mock_service = Mock(spec=RepositoryService)
+        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="large")
+        mock_service.update_repository.return_value = (updated_repo, [])
+
+        with patch("researcher.cli.repo_commands.ServiceFactory") as MockFactory:
+            MockFactory.return_value.repository_service = mock_service
+            result = runner.invoke(repo_app, ["update", "my-repo", "--audio-asr-model", "large", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["audio_asr_model"] == "large"

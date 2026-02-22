@@ -15,6 +15,7 @@ class RepositoryConfig(BaseModel):
     exclude_patterns: list[str] = Field(default_factory=lambda: [".*"])
     image_pipeline: str = "standard"  # "standard" (OCR) | "vlm" (Vision Language Model)
     image_vlm_model: str | None = None  # VLM preset name; None means "granite_docling"
+    audio_asr_model: str = "turbo"  # tiny | base | small | medium | large | turbo
 
 
 class ResearcherConfig(BaseModel):

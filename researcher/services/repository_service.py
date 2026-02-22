@@ -21,6 +21,7 @@ class RepositoryService:
         exclude_patterns: list[str] | None = None,
         image_pipeline: str = "standard",
         image_vlm_model: str | None = None,
+        audio_asr_model: str = "turbo",
     ) -> RepositoryConfig:
         """Add a new repository to the configuration."""
         config = self._config_gateway.load()
@@ -37,6 +38,7 @@ class RepositoryService:
             exclude_patterns=exclude_patterns or [],
             image_pipeline=image_pipeline,
             image_vlm_model=image_vlm_model,
+            audio_asr_model=audio_asr_model,
         )
         config.repositories.append(repo)
         self._config_gateway.save(config)
@@ -75,6 +77,7 @@ class RepositoryService:
         add_exclude_patterns: list[str] | None = None,
         image_pipeline: str | None = None,
         image_vlm_model: str | None = None,
+        audio_asr_model: str | None = None,
     ) -> tuple[RepositoryConfig, list[str]]:
         """Update an existing repository configuration.
 
@@ -87,6 +90,7 @@ class RepositoryService:
                 Duplicates are silently ignored.
             image_pipeline: New image processing pipeline (replaces existing when provided).
             image_vlm_model: New VLM preset name (replaces existing when provided).
+            audio_asr_model: New Whisper ASR model name (replaces existing when provided).
 
         Returns:
             A tuple of (updated_config, newly_added_patterns) where
@@ -106,6 +110,7 @@ class RepositoryService:
         new_embedding_model = embedding_model if embedding_model is not None else repo.embedding_model
         new_image_pipeline = image_pipeline if image_pipeline is not None else repo.image_pipeline
         new_image_vlm_model = image_vlm_model if image_vlm_model is not None else repo.image_vlm_model
+        new_audio_asr_model = audio_asr_model if audio_asr_model is not None else repo.audio_asr_model
 
         existing = repo.exclude_patterns
         added = [p for p in (add_exclude_patterns or []) if p not in existing]
@@ -120,6 +125,7 @@ class RepositoryService:
             exclude_patterns=new_exclude_patterns,
             image_pipeline=new_image_pipeline,
             image_vlm_model=new_image_vlm_model,
+            audio_asr_model=new_audio_asr_model,
         )
         config.repositories = [updated if r.name == name else r for r in config.repositories]
         self._config_gateway.save(config)

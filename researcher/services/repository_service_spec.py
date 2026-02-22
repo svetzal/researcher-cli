@@ -97,6 +97,16 @@ class DescribeRepositoryService:
         assert repo.image_pipeline == "standard"
         assert repo.image_vlm_model is None
 
+    def should_store_audio_asr_model_setting(self, service):
+        repo = service.add_repository("my-repo", "/tmp/docs", audio_asr_model="small")
+
+        assert repo.audio_asr_model == "small"
+
+    def should_default_audio_asr_model_to_turbo(self, service):
+        repo = service.add_repository("my-repo", "/tmp/docs")
+
+        assert repo.audio_asr_model == "turbo"
+
 
 class DescribeRepositoryServiceUpdateRepository:
     @pytest.fixture
@@ -198,3 +208,19 @@ class DescribeRepositoryServiceUpdateRepository:
         reloaded = service.get_repository("my-repo")
         assert reloaded.image_pipeline == "vlm"
         assert reloaded.image_vlm_model == "phi4"
+
+    def should_update_audio_asr_model_when_provided(self, service, existing_repo):
+        updated, _ = service.update_repository("my-repo", audio_asr_model="medium")
+
+        assert updated.audio_asr_model == "medium"
+
+    def should_not_change_audio_asr_model_when_not_provided(self, service, existing_repo):
+        updated, _ = service.update_repository("my-repo")
+
+        assert updated.audio_asr_model == "turbo"
+
+    def should_persist_audio_asr_model_updates(self, service, config_gateway, existing_repo):
+        service.update_repository("my-repo", audio_asr_model="base")
+
+        reloaded = service.get_repository("my-repo")
+        assert reloaded.audio_asr_model == "base"

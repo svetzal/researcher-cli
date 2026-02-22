@@ -44,6 +44,7 @@ researcher repo add NAME PATH [OPTIONS]
 | `--exclude` / `-e` | none | Glob pattern to exclude (repeatable) |
 | `--image-pipeline` | `standard` | Image processing pipeline: `standard` (OCR) or `vlm` (Vision Language Model) |
 | `--image-vlm-model` | `granite_docling` | VLM preset name (only used when `--image-pipeline=vlm`) |
+| `--audio-asr-model` | `turbo` | Whisper ASR model for audio files. Options: `tiny`, `base`, `small`, `medium`, `large`, `turbo` |
 | `--json` / `-j` | off | Output result as JSON |
 
 **Examples:**
@@ -71,6 +72,12 @@ researcher repo add screenshots ~/Screenshots --image-pipeline vlm
 
 # Use a smaller/faster VLM model
 researcher repo add screenshots ~/Screenshots --image-pipeline vlm --image-vlm-model smoldocling
+
+# Add with audio/video indexing using a specific ASR model
+researcher repo add meetings ~/Recordings --audio-asr-model small
+
+# Add a repo for lecture recordings using the highest-accuracy Whisper model
+researcher repo add lectures ~/Lectures --file-types mp3,mp4,wav --audio-asr-model large
 ```
 
 **Common `--exclude` patterns:**
@@ -105,6 +112,7 @@ researcher repo update NAME [OPTIONS]
 | `--no-purge` | off | Skip auto-purging indexed docs that now match new exclusion patterns |
 | `--image-pipeline` | unchanged | Image processing pipeline: `standard` (OCR) or `vlm` (Vision Language Model) |
 | `--image-vlm-model` | unchanged | VLM preset name (only used when `--image-pipeline=vlm`) |
+| `--audio-asr-model` | unchanged | Whisper ASR model for audio files. Options: `tiny`, `base`, `small`, `medium`, `large`, `turbo` |
 | `--json` / `-j` | off | Output result as JSON |
 
 **Additive exclude behaviour.** Unlike `repo add`, the `--exclude` flag on `repo update` *appends* new patterns to the existing list rather than replacing it. Patterns that are already present are silently deduplicated. Passing no `--exclude` flag leaves the exclusion list unchanged.
@@ -133,6 +141,9 @@ researcher repo update my-notes --file-types md,txt --embedding-provider ollama
 
 # Switch an existing repo to VLM image processing
 researcher repo update my-vault --image-pipeline vlm --image-vlm-model smoldocling
+
+# Switch to a more accurate ASR model for existing audio repository
+researcher repo update meetings --audio-asr-model large
 ```
 
 > **Tip:** Prefer `repo update` over `repo remove` + `repo add` when you only need to adjust configuration. `repo remove` discards the entire index, forcing a full re-index; `repo update` preserves existing indexed documents and only removes those that become excluded.
@@ -146,6 +157,9 @@ researcher repo update my-vault --image-pipeline vlm --image-vlm-model smoldocli
   "embedding_provider": "chromadb",
   "embedding_model": null,
   "exclude_patterns": ["node_modules", "dist"],
+  "image_pipeline": "standard",
+  "image_vlm_model": null,
+  "audio_asr_model": "turbo",
   "purged_documents": 3
 }
 ```
@@ -220,21 +234,70 @@ researcher repo update my-vault --image-pipeline vlm --image-vlm-model smoldocli
 
 ### Available VLM Presets
 
-| Preset | Notes |
-|--------|-------|
-| `granite_docling` | Default when `--image-vlm-model` is omitted. IBM Granite-based model, well-balanced. |
-| `smoldocling` | Lightweight and fast (~200 MB). Good starting point. |
-| `deepseek_ocr` | Optimised for OCR-heavy documents. |
-| `granite_vision` | IBM Granite vision model. |
-| `pixtral` | Mistral-based vision model. |
-| `got_ocr` | General OCR Theory model. |
-| `phi4` | Microsoft Phi-4 vision model. |
-| `qwen` | Alibaba Qwen vision model. |
-| `gemma_12b` | Google Gemma 12B vision model (~4 GB). |
-| `gemma_27b` | Google Gemma 27B vision model (~8 GB). |
-| `dolphin` | Dolphin vision model. |
+| Preset | Size | Download | Best for | Notes |
+|--------|------|----------|----------|-------|
+| `granite_docling` | 258M | ~500 MB | General screenshots, UI, diagrams. **Default.** | IBM Granite-based; excellent balance of speed and quality |
+| `smoldocling` | 256M | ~500 MB | Speed-critical; low-resource environments | Lightweight; minor quality gap vs granite_docling |
+| `granite_vision` | 2B | ~2.4 GB | Visual layouts, tables, charts, infographics | IBM Granite vision; stronger on complex layouts |
+| `deepseek_ocr` | 3B | ~6.7 GB | Math, formulas, dense OCR documents | Outputs Markdown, not DocTags |
+| `qwen` | 3B | ~5-6 GB | UI/screen grounding; edge deployment | Strong JSON output support |
+| `got_ocr` | 580M | ~3-4 GB | High-precision OCR; math, sheet music | F1 ~0.95+ on English/Chinese OCR |
+| `phi4` | 5.6B | ~10 GB | Multimodal (image + audio); math reasoning | Matches Gemini Flash on document understanding |
+| `pixtral` | 12B | ~24 GB | Complex multi-image; handwriting | Mistral-based; handles arbitrary image sizes |
+| `gemma_12b` | 12B | ~20 GB | Complex multi-page; 128K context | Requires high-end GPU |
+| `gemma_27b` | 27B | ~50 GB | Maximum accuracy | Highest resource requirement |
+| `dolphin` | varies | varies | Alternative ByteDance model | |
 
-> **Note:** Models download automatically on the first indexing run after switching to `vlm`. Download sizes range from ~200 MB (`smoldocling`) to several GB for the largest models. Ensure sufficient disk space and a stable internet connection before the first run.
+> **Note:** Models download automatically on the first indexing run after switching to `vlm`. Download sizes range from ~500 MB (`smoldocling`, `granite_docling`) to ~50 GB for the largest models. Ensure sufficient disk space and a stable internet connection before the first run.
+
+---
+
+## Audio Processing
+
+Researcher can transcribe audio and video files using [OpenAI Whisper](https://github.com/openai/whisper) models via Docling's ASR (Automatic Speech Recognition) pipeline. Transcribed text is chunked and indexed alongside all other document types.
+
+**Supported audio/video formats include:** `.mp3`, `.mp4`, `.wav`, `.m4a`, `.ogg`, `.flac`, `.webm`, and others supported by Docling's audio backend.
+
+To index audio files, add their extensions to `--file-types`:
+```bash
+researcher repo add meetings ~/Recordings --file-types mp3,mp4,wav,m4a
+```
+
+The ASR model is configured per repository with `--audio-asr-model`. Models are downloaded on first use and cached locally.
+
+### Available ASR (Whisper) Models
+
+| Model | Params | Download | WER | Speed | Best for |
+|-------|--------|----------|-----|-------|----------|
+| `tiny` | 39M | ~140 MB | Highest | ~1-2x real-time | Edge devices, real-time, extreme resource constraints |
+| `base` | 74M | ~290 MB | High | ~2-3x | Mobile, basic transcription |
+| `small` | 244M | ~770 MB | Medium | ~5-10x | Good balance, local deployment |
+| `medium` | 769M | ~1.5 GB | Lower | ~10-20x | Cloud deployments, standard use |
+| `large` | 1.55B | ~2.9 GB | ~3-4% | ~20-40x | Maximum accuracy, offline batch processing |
+| `turbo` | 809M | ~1.6 GB | ~1.9% | ~216x real-time | **Default.** Large-v2 quality at 6x the speed |
+
+WER = Word Error Rate (lower is better). Speed is relative to audio duration (e.g. 216x means a 1-hour recording transcribes in ~17 seconds).
+
+**Recommendations:**
+- **Most users:** `turbo` (default) — near-large accuracy at a fraction of the cost
+- **Resource-constrained:** `small` or `base`
+- **Maximum accuracy:** `large`
+- **Real-time / live use:** `tiny` or `base`
+
+**Examples:**
+```bash
+# Default (turbo) — good for most meeting recordings
+researcher repo add meetings ~/Recordings --file-types mp3,mp4,wav
+
+# High accuracy for lecture archive
+researcher repo add lectures ~/Lectures --file-types mp4,m4a --audio-asr-model large
+
+# Lightweight for a low-powered machine
+researcher repo add podcasts ~/Podcasts --file-types mp3 --audio-asr-model small
+
+# Switch an existing repo to a more accurate model
+researcher repo update meetings --audio-asr-model medium
+```
 
 ---
 
@@ -347,13 +410,14 @@ Always use `--json` (or `-j`) when processing admin command output programmatica
       "embedding_model": null,
       "exclude_patterns": ["node_modules", ".*"],
       "image_pipeline": "standard",
-      "image_vlm_model": null
+      "image_vlm_model": null,
+      "audio_asr_model": "turbo"
     }
   ]
 }
 ```
 
-`exclude_patterns` is always present; it is an empty array when no patterns have been configured. `image_pipeline` is always present (`"standard"` or `"vlm"`). `image_vlm_model` is `null` unless a specific VLM preset was set.
+`exclude_patterns` is always present; it is an empty array when no patterns have been configured. `image_pipeline` is always present (`"standard"` or `"vlm"`). `image_vlm_model` is `null` unless a specific VLM preset was set. `audio_asr_model` is always present (default: `"turbo"`).
 
 ### `researcher repo add NAME PATH --json` schema
 
@@ -366,11 +430,12 @@ Always use `--json` (or `-j`) when processing admin command output programmatica
   "embedding_model": null,
   "exclude_patterns": ["node_modules", ".*"],
   "image_pipeline": "standard",
-  "image_vlm_model": null
+  "image_vlm_model": null,
+  "audio_asr_model": "turbo"
 }
 ```
 
-`exclude_patterns` is always present; it is an empty array when no `--exclude` flags were supplied. `image_pipeline` is always present (`"standard"` or `"vlm"`). `image_vlm_model` is `null` unless a specific VLM preset was set.
+`exclude_patterns` is always present; it is an empty array when no `--exclude` flags were supplied. `image_pipeline` is always present (`"standard"` or `"vlm"`). `image_vlm_model` is `null` unless a specific VLM preset was set. `audio_asr_model` is always present (default: `"turbo"`).
 
 ### `researcher repo update NAME --json` schema
 
@@ -384,6 +449,7 @@ Always use `--json` (or `-j`) when processing admin command output programmatica
   "exclude_patterns": ["node_modules", "dist"],
   "image_pipeline": "vlm",
   "image_vlm_model": "smoldocling",
+  "audio_asr_model": "turbo",
   "purged_documents": 3
 }
 ```
@@ -547,8 +613,24 @@ Returns indexing statistics. Omit `repository` for all repos.
 | `.pdf` | PDF documents |
 | `.docx` | Word documents |
 | `.html` | HTML pages |
+| `.pptx` | PowerPoint presentations |
+| `.xlsx` | Excel spreadsheets |
+| `.csv` | CSV data files |
+| `.png` | PNG images |
+| `.jpg` / `.jpeg` | JPEG images |
+| `.tiff` | TIFF images |
+| `.bmp` | BMP images |
+| `.mp3` | MP3 audio |
+| `.mp4` | MP4 video |
+| `.wav` | WAV audio |
+| `.m4a` | M4A audio |
+| `.ogg` | OGG audio |
+| `.flac` | FLAC audio |
+| `.webm` | WebM audio/video |
 
-Customize per repository with `--file-types` on `repo add`, or change the list at any time with `repo update --file-types`.
+The default set when adding a new repository is `md,txt,pdf,docx,html`. Customize per repository with `--file-types` on `repo add`, or change the list at any time with `repo update --file-types`.
+
+Audio and video files are transcribed using the configured Whisper ASR model. Image files are processed using either the standard OCR pipeline or a VLM pipeline.
 
 ---
 

@@ -45,6 +45,16 @@ class DescribeRepositoryConfig:
         assert config.image_pipeline == "vlm"
         assert config.image_vlm_model == "smoldocling"
 
+    def should_default_audio_asr_model_to_turbo(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs")
+
+        assert config.audio_asr_model == "turbo"
+
+    def should_accept_custom_audio_asr_model(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs", audio_asr_model="small")
+
+        assert config.audio_asr_model == "small"
+
 
 class DescribeResearcherConfig:
     def should_have_empty_repositories_by_default(self):
@@ -156,3 +166,26 @@ class DescribeConfigGateway:
 
         assert loaded.repositories[0].image_pipeline == "standard"
         assert loaded.repositories[0].image_vlm_model is None
+
+    def should_serialise_and_deserialise_audio_asr_model(self, gateway):
+        repo = RepositoryConfig(
+            name="test",
+            path="/tmp/test",
+            audio_asr_model="small",
+        )
+        config = ResearcherConfig(repositories=[repo])
+
+        gateway.save(config)
+        loaded = gateway.load()
+
+        assert loaded.repositories[0].audio_asr_model == "small"
+
+    def should_deserialise_missing_audio_asr_model_as_turbo(self, gateway):
+        raw_yaml = "repositories:\n- name: test\n  path: /tmp/test\n"
+        config_file = gateway.config_dir / "config.yaml"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        config_file.write_text(raw_yaml)
+
+        loaded = gateway.load()
+
+        assert loaded.repositories[0].audio_asr_model == "turbo"
