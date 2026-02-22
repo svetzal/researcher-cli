@@ -34,7 +34,9 @@ class DescribeIndexService:
 
     @pytest.fixture
     def mock_chroma(self):
-        return Mock(spec=ChromaGateway)
+        m = Mock(spec=ChromaGateway)
+        m.get_all_document_paths.return_value = []
+        return m
 
     @pytest.fixture
     def service(self, mock_filesystem, mock_docling, mock_embedding, mock_chroma, temp_dir):
@@ -79,14 +81,14 @@ class DescribeIndexService:
 
         mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, ["node_modules", ".*"])
 
-    def should_pass_empty_exclude_patterns_when_none_configured(
+    def should_pass_default_exclude_patterns_to_list_files(
         self, service, mock_filesystem, mock_docling, mock_chroma, repo_config
     ):
         mock_filesystem.list_files.return_value = []
 
         service.index_repository(repo_config)
 
-        mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, [])
+        mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, [".*"])
 
     def should_index_new_files(self, service, mock_filesystem, mock_docling, mock_chroma, repo_config):
         file_path = Path("/tmp/docs/doc.md")

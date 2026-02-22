@@ -257,7 +257,7 @@ class DescribeRepoAddJsonOutput:
         data = json.loads(result.output)
         assert data["exclude_patterns"] == ["node_modules", ".*"]
 
-    def should_include_empty_exclude_patterns_in_json_output_when_none_provided(self):
+    def should_include_default_exclude_patterns_in_json_output_when_none_provided(self):
         mock_service = Mock(spec=RepositoryService)
         mock_service.add_repository.return_value = RepositoryConfig(
             name="my-notes",
@@ -270,7 +270,7 @@ class DescribeRepoAddJsonOutput:
 
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["exclude_patterns"] == []
+        assert data["exclude_patterns"] == [".*"]
 
 
 class DescribeRepoRemoveJsonOutput:
@@ -372,7 +372,7 @@ class DescribeRepoListJsonOutput:
         repo = data["repositories"][0]
         assert repo["exclude_patterns"] == ["node_modules", ".*"]
 
-    def should_include_empty_exclude_patterns_in_list_json_output_when_none_set(self):
+    def should_include_default_exclude_patterns_in_list_json_output_when_none_set(self):
         mock_service = Mock(spec=RepositoryService)
         mock_service.list_repositories.return_value = [RepositoryConfig(name="my-notes", path="/tmp/notes")]
 
@@ -382,7 +382,7 @@ class DescribeRepoListJsonOutput:
 
         data = json.loads(result.output)
         repo = data["repositories"][0]
-        assert repo["exclude_patterns"] == []
+        assert repo["exclude_patterns"] == [".*"]
 
 
 class DescribeRepoUpdateCommand:

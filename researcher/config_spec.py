@@ -19,10 +19,10 @@ class DescribeRepositoryConfig:
 
         assert config.file_types == ["md", "txt"]
 
-    def should_default_exclude_patterns_to_empty_list(self):
+    def should_default_exclude_patterns_to_dot_folders(self):
         config = RepositoryConfig(name="test", path="/tmp/docs")
 
-        assert config.exclude_patterns == []
+        assert config.exclude_patterns == [".*"]
 
     def should_accept_custom_exclude_patterns(self):
         config = RepositoryConfig(name="test", path="/tmp/docs", exclude_patterns=["node_modules", ".*"])
@@ -105,11 +105,12 @@ class DescribeConfigGateway:
 
         assert loaded.repositories[0].exclude_patterns == ["node_modules", ".*"]
 
-    def should_deserialise_missing_exclude_patterns_as_empty_list(self, gateway):
-        repo = RepositoryConfig(name="test", path="/tmp/test")
-        config = ResearcherConfig(repositories=[repo])
+    def should_deserialise_missing_exclude_patterns_as_default(self, gateway):
+        raw_yaml = "repositories:\n- name: test\n  path: /tmp/test\n"
+        config_file = gateway.config_dir / "config.yaml"
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        config_file.write_text(raw_yaml)
 
-        gateway.save(config)
         loaded = gateway.load()
 
-        assert loaded.repositories[0].exclude_patterns == []
+        assert loaded.repositories[0].exclude_patterns == [".*"]
