@@ -1,11 +1,9 @@
-import json
-import os
-from datetime import datetime
 from pathlib import Path
 
 import structlog
 
 from researcher.config import RepositoryConfig
+from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
@@ -35,26 +33,14 @@ class IndexService:
         embedding_gateway: EmbeddingGateway,
         chroma_gateway: ChromaGateway,
         repo_name: str,
-        repo_data_dir: Path,
+        checksum_gateway: ChecksumGateway,
     ):
         self._filesystem = filesystem_gateway
         self._docling = docling_gateway
         self._embedding = embedding_gateway
         self._chroma = chroma_gateway
         self._repo_name = repo_name
-        self._repo_data_dir = repo_data_dir
-        self._checksums_path = repo_data_dir / "checksums.json"
-
-    def _load_checksums(self) -> dict[str, str]:
-        if not self._checksums_path.exists():
-            return {}
-        with open(self._checksums_path) as f:
-            return json.load(f)
-
-    def _save_checksums(self, checksums: dict[str, str]) -> None:
-        self._repo_data_dir.mkdir(parents=True, exist_ok=True)
-        with open(self._checksums_path, "w") as f:
-            json.dump(checksums, f, indent=2)
+        self._checksums = checksum_gateway
 
     def index_repository(self, config: RepositoryConfig) -> IndexingResult:
         """Index all documents in the repository, skipping unchanged files."""
@@ -66,7 +52,7 @@ class IndexService:
             documents_purged=purged,
             fragments_created=0,
         )
-        checksums = self._load_checksums()
+        checksums = self._checksums.load()
         files = self._filesystem.list_files(config.file_types, config.exclude_patterns)
 
         for file_path in files:
@@ -92,7 +78,7 @@ class IndexService:
                 result.errors.append(f"{path_key}: {e}")
                 logger.error("Failed to index file", path=path_key, error=str(e))
 
-        self._save_checksums(checksums)
+        self._checksums.save(checksums)
         return result
 
     def index_file(self, file_path: Path, config: RepositoryConfig) -> ChunkResult:
@@ -139,9 +125,9 @@ class IndexService:
     def remove_document(self, document_path: str) -> None:
         """Remove all fragments for a document from the index."""
         self._chroma.delete_by_document(COLLECTION_NAME, document_path)
-        checksums = self._load_checksums()
+        checksums = self._checksums.load()
         checksums.pop(document_path, None)
-        self._save_checksums(checksums)
+        self._checksums.save(checksums)
         logger.info("Removed document", path=document_path)
 
     def purge_excluded_documents(self, config: RepositoryConfig) -> int:
@@ -173,14 +159,10 @@ class IndexService:
 
     def get_stats(self) -> IndexStats:
         """Return current index statistics."""
-        checksums = self._load_checksums()
+        checksums = self._checksums.load()
         total_documents = len(checksums)
         total_fragments = self._chroma.count(COLLECTION_NAME)
-
-        last_indexed = None
-        if self._checksums_path.exists():
-            mtime = os.path.getmtime(self._checksums_path)
-            last_indexed = datetime.fromtimestamp(mtime)
+        last_indexed = self._checksums.last_modified()
 
         return IndexStats(
             repository_name=self._repo_name,

@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 from researcher.asr_config import resolve_asr_spec_name, resolve_vlm_preset
+from researcher.chunking import fragments_from_chunks
 from researcher.models import Fragment
 
 
@@ -73,16 +74,4 @@ class DoclingGateway:
         """Chunk a DoclingDocument into text fragments."""
         chunker = self._get_chunker()
         chunks = list(chunker.chunk(document))
-        fragments = []
-        for i, chunk in enumerate(chunks):
-            text = chunk.text.strip() if hasattr(chunk, "text") else str(chunk).strip()
-            if not text:
-                continue
-            fragments.append(
-                Fragment(
-                    text=text,
-                    document_path=document_path,
-                    fragment_index=i,
-                )
-            )
-        return fragments
+        return fragments_from_chunks(chunks, document_path)

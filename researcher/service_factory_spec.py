@@ -89,8 +89,8 @@ class DescribeServiceFactory:
 
         service = factory.index_service(repo)
 
-        expected_data_dir = temp_dir / "repositories" / "my-repo"
-        assert service._repo_data_dir == expected_data_dir
+        expected_checksums_path = temp_dir / "repositories" / "my-repo" / "checksums.json"
+        assert service._checksums._path == expected_checksums_path
 
     def should_pass_image_pipeline_from_repo_config_to_docling_gateway(self, factory, temp_dir):
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir), image_pipeline="vlm", image_vlm_model="smoldocling")

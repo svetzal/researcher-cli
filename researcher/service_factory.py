@@ -2,6 +2,7 @@ from functools import cached_property
 from pathlib import Path
 
 from researcher.config import ConfigGateway, RepositoryConfig, ResearcherConfig
+from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
@@ -33,6 +34,7 @@ class ServiceFactory:
         """Create a fresh IndexService for the given repository."""
         repo_data_dir = self._config_dir / "repositories" / repo.name
         chroma_dir = repo_data_dir / "chroma"
+        checksums_path = repo_data_dir / "checksums.json"
 
         return IndexService(
             filesystem_gateway=FilesystemGateway(base_path=Path(repo.path)),
@@ -47,7 +49,7 @@ class ServiceFactory:
             ),
             chroma_gateway=ChromaGateway(persist_directory=chroma_dir),
             repo_name=repo.name,
-            repo_data_dir=repo_data_dir,
+            checksum_gateway=ChecksumGateway(checksums_path=checksums_path),
         )
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:
