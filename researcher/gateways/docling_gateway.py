@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 
+from researcher.asr_config import resolve_asr_spec_name, resolve_vlm_preset
 from researcher.models import Fragment
 
 
@@ -10,15 +11,6 @@ class DoclingGateway:
     docling is imported lazily to avoid loading ML models on every CLI invocation.
     Only the `index` command needs this gateway.
     """
-
-    _ASR_MODEL_MAP: dict[str, str] = {
-        "tiny": "WHISPER_TINY",
-        "base": "WHISPER_BASE",
-        "small": "WHISPER_SMALL",
-        "medium": "WHISPER_MEDIUM",
-        "large": "WHISPER_LARGE",
-        "turbo": "WHISPER_TURBO",
-    }
 
     def __init__(
         self,
@@ -42,7 +34,7 @@ class DoclingGateway:
                 from docling.datamodel.pipeline_options import VlmConvertOptions, VlmPipelineOptions
                 from docling.pipeline.vlm_pipeline import VlmPipeline
 
-                vlm_opts = VlmConvertOptions.from_preset(self._image_vlm_model or "granite_docling")
+                vlm_opts = VlmConvertOptions.from_preset(resolve_vlm_preset(self._image_vlm_model))
                 pipeline_options = VlmPipelineOptions(vlm_options=vlm_opts)
                 format_options[InputFormat.IMAGE] = ImageFormatOption(
                     pipeline_cls=VlmPipeline,
@@ -53,7 +45,7 @@ class DoclingGateway:
                 import docling.datamodel.asr_model_specs as asr_specs
                 from docling.pipeline.asr_pipeline import AsrPipeline, AsrPipelineOptions
 
-                spec_name = self._ASR_MODEL_MAP.get(self._audio_asr_model, "WHISPER_TURBO")
+                spec_name = resolve_asr_spec_name(self._audio_asr_model)
                 asr_model_spec = getattr(asr_specs, spec_name)
                 asr_pipeline_options = AsrPipelineOptions(asr_options=asr_model_spec)
                 format_options[InputFormat.AUDIO] = AudioFormatOption(

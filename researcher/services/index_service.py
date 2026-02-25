@@ -1,4 +1,6 @@
 import json
+import os
+from datetime import datetime
 from pathlib import Path
 
 import structlog
@@ -177,9 +179,6 @@ class IndexService:
 
         last_indexed = None
         if self._checksums_path.exists():
-            import os
-            from datetime import datetime
-
             mtime = os.path.getmtime(self._checksums_path)
             last_indexed = datetime.fromtimestamp(mtime)
 
