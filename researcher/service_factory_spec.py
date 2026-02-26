@@ -97,13 +97,12 @@ class DescribeServiceFactory:
 
         service = factory.index_service(repo)
 
-        assert service._docling._image_pipeline == "vlm"
-        assert service._docling._image_vlm_model == "smoldocling"
+        assert service._docling._converter_config.vlm is not None
+        assert service._docling._converter_config.vlm.preset == "smoldocling"
 
     def should_pass_standard_pipeline_by_default_to_docling_gateway(self, factory, temp_dir):
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
 
         service = factory.index_service(repo)
 
-        assert service._docling._image_pipeline == "standard"
-        assert service._docling._image_vlm_model is None
+        assert service._docling._converter_config.vlm is None

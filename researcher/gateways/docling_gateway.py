@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from researcher.asr_config import resolve_asr_spec_name, resolve_vlm_preset
 from researcher.chunking import fragments_from_chunks
+from researcher.docling_config import build_converter_config
 from researcher.models import Fragment
 
 
@@ -21,9 +21,7 @@ class DoclingGateway:
     ):
         self._converter: Any = None
         self._chunker: Any = None
-        self._image_pipeline = image_pipeline
-        self._image_vlm_model = image_vlm_model
-        self._audio_asr_model = audio_asr_model
+        self._converter_config = build_converter_config(image_pipeline, image_vlm_model, audio_asr_model)
 
     def _get_converter(self):
         if self._converter is None:
@@ -31,23 +29,22 @@ class DoclingGateway:
             from docling.document_converter import AudioFormatOption, DocumentConverter, ImageFormatOption
 
             format_options = {}
-            if self._image_pipeline == "vlm":
+            if self._converter_config.vlm is not None:
                 from docling.datamodel.pipeline_options import VlmConvertOptions, VlmPipelineOptions
                 from docling.pipeline.vlm_pipeline import VlmPipeline
 
-                vlm_opts = VlmConvertOptions.from_preset(resolve_vlm_preset(self._image_vlm_model))
+                vlm_opts = VlmConvertOptions.from_preset(self._converter_config.vlm.preset)
                 pipeline_options = VlmPipelineOptions(vlm_options=vlm_opts)
                 format_options[InputFormat.IMAGE] = ImageFormatOption(
                     pipeline_cls=VlmPipeline,
                     pipeline_options=pipeline_options,
                 )
 
-            if self._audio_asr_model:
+            if self._converter_config.asr is not None:
                 import docling.datamodel.asr_model_specs as asr_specs
                 from docling.pipeline.asr_pipeline import AsrPipeline, AsrPipelineOptions
 
-                spec_name = resolve_asr_spec_name(self._audio_asr_model)
-                asr_model_spec = getattr(asr_specs, spec_name)
+                asr_model_spec = getattr(asr_specs, self._converter_config.asr.spec_name)
                 asr_pipeline_options = AsrPipelineOptions(asr_options=asr_model_spec)
                 format_options[InputFormat.AUDIO] = AudioFormatOption(
                     pipeline_cls=AsrPipeline,
