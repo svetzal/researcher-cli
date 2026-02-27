@@ -94,7 +94,7 @@ class DescribeIndexService:
         mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, [".*"])
 
     def should_index_new_files(self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config):
-        file_path = Path("/tmp/docs/doc.md")
+        file_path = Path("/tmp/docs/doc.pdf")
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_docling.convert.return_value = "mock_document"
@@ -110,7 +110,7 @@ class DescribeIndexService:
     def should_delete_old_fragments_before_reindexing(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
     ):
-        file_path = Path("/tmp/docs/doc.md")
+        file_path = Path("/tmp/docs/doc.pdf")
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_docling.convert.return_value = "mock_document"
@@ -123,10 +123,57 @@ class DescribeIndexService:
 
         mock_chroma.delete_by_document.assert_called_once()
 
+    def should_bypass_docling_for_plain_text_files(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
+    ):
+        file_path = Path("/tmp/docs/notes.txt")
+        mock_filesystem.list_files.return_value = [file_path]
+        mock_filesystem.compute_checksum.return_value = "new_checksum"
+        mock_filesystem.read_file.return_value = "Some plain text content"
+        mock_checksums.load.return_value = {}
+
+        result = service.index_repository(repo_config)
+
+        assert result.documents_indexed == 1
+        mock_docling.convert.assert_not_called()
+        mock_docling.chunk.assert_not_called()
+        mock_filesystem.read_file.assert_called_once_with(file_path)
+
+    def should_bypass_docling_for_markdown_files(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
+    ):
+        file_path = Path("/tmp/docs/readme.md")
+        mock_filesystem.list_files.return_value = [file_path]
+        mock_filesystem.compute_checksum.return_value = "new_checksum"
+        mock_filesystem.read_file.return_value = "# Heading\n\nSome markdown content"
+        mock_checksums.load.return_value = {}
+
+        result = service.index_repository(repo_config)
+
+        assert result.documents_indexed == 1
+        mock_docling.convert.assert_not_called()
+        mock_docling.chunk.assert_not_called()
+
+    def should_use_docling_for_pdf_files(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
+    ):
+        file_path = Path("/tmp/docs/report.pdf")
+        mock_filesystem.list_files.return_value = [file_path]
+        mock_filesystem.compute_checksum.return_value = "new_checksum"
+        mock_docling.convert.return_value = "mock_document"
+        mock_docling.chunk.return_value = [Fragment(text="PDF content", document_path=str(file_path), fragment_index=0)]
+        mock_checksums.load.return_value = {}
+
+        result = service.index_repository(repo_config)
+
+        assert result.documents_indexed == 1
+        mock_docling.convert.assert_called_once_with(file_path)
+        mock_filesystem.read_file.assert_not_called()
+
     def should_record_errors_without_reraise(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
     ):
-        file_path = Path("/tmp/docs/bad.md")
+        file_path = Path("/tmp/docs/bad.pdf")
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "checksum"
         mock_docling.convert.side_effect = RuntimeError("Conversion failed")
@@ -142,7 +189,7 @@ class DescribeIndexService:
         self, service, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums, repo_config
     ):
         repo_config = RepositoryConfig(name="test-repo", path="/tmp/docs", embedding_provider="ollama")
-        file_path = Path("/tmp/docs/doc.md")
+        file_path = Path("/tmp/docs/doc.pdf")
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "checksum"
         mock_docling.convert.return_value = "mock_document"

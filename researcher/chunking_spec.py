@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from researcher.chunking import fragments_from_chunks
+from researcher.chunking import chunk_plain_text, fragments_from_chunks
 from researcher.models import Fragment
 
 
@@ -69,3 +69,72 @@ class DescribeFragmentsFromChunks:
         result = fragments_from_chunks(chunks, "/path/to/doc.md")
 
         assert all(f.document_path == "/path/to/doc.md" for f in result)
+
+
+class DescribeChunkPlainText:
+    def should_return_empty_list_for_empty_text(self):
+        assert chunk_plain_text("", "/doc.txt") == []
+
+    def should_return_empty_list_for_whitespace_only(self):
+        assert chunk_plain_text("   \n\n  ", "/doc.txt") == []
+
+    def should_return_single_fragment_for_short_text(self):
+        result = chunk_plain_text("Hello world", "/doc.txt")
+
+        assert len(result) == 1
+        assert result[0].text == "Hello world"
+        assert result[0].document_path == "/doc.txt"
+        assert result[0].fragment_index == 0
+
+    def should_split_on_paragraph_boundaries(self):
+        para_a = "A" * 600
+        para_b = "B" * 600
+        text = f"{para_a}\n\n{para_b}"
+
+        result = chunk_plain_text(text, "/doc.txt", max_chars=1000, overlap_chars=200)
+
+        assert len(result) == 2
+        assert result[0].text == para_a
+        assert para_b in result[1].text
+
+    def should_include_overlap_between_chunks(self):
+        para1 = "A" * 400
+        para2 = "B" * 400
+        para3 = "C" * 400
+
+        result = chunk_plain_text(
+            f"{para1}\n\n{para2}\n\n{para3}",
+            "/doc.txt",
+            max_chars=900,
+            overlap_chars=500,
+        )
+
+        assert len(result) == 2
+        # Second chunk should contain para2 (overlap) and para3
+        assert para2 in result[1].text
+        assert para3 in result[1].text
+
+    def should_skip_empty_paragraphs(self):
+        text = "Hello\n\n\n\nWorld"
+
+        result = chunk_plain_text(text, "/doc.txt")
+
+        assert len(result) == 1
+        assert result[0].text == "Hello\n\nWorld"
+
+    def should_assign_sequential_fragment_indices(self):
+        paras = [f"Paragraph {i} " + "x" * 500 for i in range(5)]
+        text = "\n\n".join(paras)
+
+        result = chunk_plain_text(text, "/doc.txt", max_chars=600, overlap_chars=100)
+
+        indices = [f.fragment_index for f in result]
+        assert indices == list(range(len(result)))
+
+    def should_set_document_path_on_all_fragments(self):
+        paras = ["A" * 600, "B" * 600]
+        text = "\n\n".join(paras)
+
+        result = chunk_plain_text(text, "/my/doc.txt", max_chars=1000, overlap_chars=200)
+
+        assert all(f.document_path == "/my/doc.txt" for f in result)

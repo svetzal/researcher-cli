@@ -2,6 +2,7 @@ from pathlib import Path
 
 import structlog
 
+from researcher.chunking import PLAIN_TEXT_EXTENSIONS, chunk_plain_text
 from researcher.config import RepositoryConfig
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
@@ -81,11 +82,20 @@ class IndexService:
         self._checksums.save(checksums)
         return result
 
+    def _is_plain_text(self, file_path: Path) -> bool:
+        """Check if a file extension indicates plain text that can bypass docling."""
+        return file_path.suffix.lstrip(".").lower() in PLAIN_TEXT_EXTENSIONS
+
     def index_file(self, file_path: Path, config: RepositoryConfig) -> ChunkResult:
         """Convert, chunk, embed, and store a single file."""
         path_key = str(file_path)
-        document = self._docling.convert(file_path)
-        fragments = self._docling.chunk(document, path_key)
+
+        if self._is_plain_text(file_path):
+            text = self._filesystem.read_file(file_path)
+            fragments = chunk_plain_text(text, path_key)
+        else:
+            document = self._docling.convert(file_path)
+            fragments = self._docling.chunk(document, path_key)
 
         if not fragments:
             return ChunkResult(document_path=path_key, fragments=[])
