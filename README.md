@@ -1,6 +1,6 @@
 # researcher-cli
 
-A CLI tool and library for indexing and semantically searching document repositories. Converts documents of various formats into searchable vector embeddings using ChromaDB, enabling fast semantic search across personal knowledge bases, research collections, and document archives.
+A CLI tool and library for indexing and semantically searching document repositories. Converts documents of various formats into searchable vector embeddings using ChromaDB and Docling, enabling fast semantic search across personal knowledge bases, research collections, and document archives.
 
 ## Installation
 
@@ -57,6 +57,26 @@ researcher search <query> [--repo <name>] [--fragments 10] [--documents 5] [--mo
 researcher config show
 researcher config set <key> <value>
 researcher config path
+```
+
+### Project Setup
+
+```bash
+researcher init                # Install Claude Code skills into .claude/skills/
+researcher init --force        # Overwrite existing skill files
+```
+
+This copies the bundled `researcher-admin` and `researcher-find` skills into your project's `.claude/skills/` directory so Claude Code can discover them automatically. After running `init`, configure the MCP server in `.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "researcher": {
+      "command": "researcher",
+      "args": ["serve"]
+    }
+  }
+}
 ```
 
 ### MCP Server
