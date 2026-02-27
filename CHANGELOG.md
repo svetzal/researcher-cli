@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-27
+
+### Added
+
+- `researcher init` command to install bundled Claude Code skills into the current project's `.claude/skills/` directory
+- `--force` flag to overwrite existing skill files
+- `--json` flag for machine-readable init output
+- Bundled skills (`researcher-admin`, `researcher-find`) in the package for distribution
+
+### Removed
+
+- Root `skills/` directory (canonical copies now live in the installable package at `researcher/bundled_skills/`)
+
 ## [0.2.0] - 2026-02-27
 
 ### Added
