@@ -79,7 +79,7 @@ def add_repo(
             typer.echo(json.dumps({"error": str(e)}))
         else:
             console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @repo_app.command("remove")
@@ -100,7 +100,7 @@ def remove_repo(
             typer.echo(json.dumps({"error": str(e)}))
         else:
             console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @repo_app.command("update")
@@ -187,7 +187,7 @@ def update_repo(
             typer.echo(json.dumps({"error": str(e)}))
         else:
             console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @repo_app.command("list")

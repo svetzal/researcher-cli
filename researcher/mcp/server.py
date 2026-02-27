@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import fastmcp
 
@@ -28,7 +27,7 @@ def remove_from_index(repository: str, document_path: str) -> str:
 
 
 @mcp.tool
-def search_fragments(query: str, repository: Optional[str] = None, n_results: int = 10) -> list[dict]:
+def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[dict]:
     """Search for text fragments across indexed repositories."""
     repos = _get_repos(repository)
     all_results = []
@@ -42,7 +41,7 @@ def search_fragments(query: str, repository: Optional[str] = None, n_results: in
 
 
 @mcp.tool
-def search_documents(query: str, repository: Optional[str] = None, n_results: int = 5) -> list[dict]:
+def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[dict]:
     """Search for documents across indexed repositories, returning top fragments per document."""
     repos = _get_repos(repository)
     all_results = []
@@ -63,7 +62,7 @@ def list_repositories() -> list[dict]:
 
 
 @mcp.tool
-def get_index_status(repository: Optional[str] = None) -> dict:
+def get_index_status(repository: str | None = None) -> dict:
     """Get indexing statistics for one or all repositories."""
     repos = _get_repos(repository)
     statuses = []
@@ -77,14 +76,14 @@ def get_index_status(repository: Optional[str] = None) -> dict:
     return {"repositories": statuses}
 
 
-def _get_repos(repository: Optional[str]):
+def _get_repos(repository: str | None):
     """Return a list of repos — one if named, all if None."""
     if repository:
         return [_factory.repository_service.get_repository(repository)]
     return _factory.repository_service.list_repositories()
 
 
-def start_server(port: Optional[int] = None) -> None:
+def start_server(port: int | None = None) -> None:
     """Start the MCP server in HTTP or STDIO mode."""
     if port:
         mcp.run(transport="http", port=port)

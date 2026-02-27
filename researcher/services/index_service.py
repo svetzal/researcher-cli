@@ -118,7 +118,7 @@ class IndexService:
                 metadata={"document_path": path_key, "fragment_index": fragment.fragment_index},
                 embedding=embedding,
             )
-            for i, (fragment, embedding) in enumerate(zip(fragments, embeddings))
+            for i, (fragment, embedding) in enumerate(zip(fragments, embeddings, strict=True))
         ]
         self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
 

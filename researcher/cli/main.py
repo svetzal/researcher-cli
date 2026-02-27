@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -23,7 +22,7 @@ console = Console()
 
 @app.command("index")
 def index_command(
-    repo_name: Optional[str] = typer.Argument(None, help="Repository name (or all if not specified)"),
+    repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Index a repository (or all repositories)."""
@@ -46,7 +45,7 @@ def index_command(
                 typer.echo(json.dumps({"error": str(e)}))
             else:
                 console.print(f"[red]Error:[/red] {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     repo_results = [run_index(factory, repo, json_output=json_output) for repo in repos]
 
@@ -69,7 +68,7 @@ def remove_command(
             typer.echo(json.dumps({"error": str(e)}))
         else:
             console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     service = factory.index_service(repo)
     service.remove_document(document_path)
@@ -82,7 +81,7 @@ def remove_command(
 
 @app.command("status")
 def status_command(
-    repo_name: Optional[str] = typer.Argument(None, help="Repository name (or all if not specified)"),
+    repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Show index statistics for repositories."""
@@ -105,7 +104,7 @@ def status_command(
                 typer.echo(json.dumps({"error": str(e)}))
             else:
                 console.print(f"[red]Error:[/red] {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     repo_stats = [run_status(factory, repo, json_output=json_output) for repo in repos]
 
@@ -116,7 +115,7 @@ def status_command(
 @app.command("search")
 def search_command(
     query: str = typer.Argument(..., help="Search query"),
-    repo: Optional[str] = typer.Option(None, "--repo", "-r", help="Limit search to this repository"),
+    repo: str | None = typer.Option(None, "--repo", "-r", help="Limit search to this repository"),
     fragments: int = typer.Option(10, "--fragments", "-f", help="Number of fragment results"),
     documents: int = typer.Option(5, "--documents", "-d", help="Number of document results"),
     mode: str = typer.Option("documents", "--mode", "-m", help="Search mode: 'fragments' or 'documents'"),
@@ -150,7 +149,7 @@ def search_command(
                 typer.echo(json.dumps({"error": str(e)}))
             else:
                 console.print(f"[red]Error:[/red] {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:
         search_repos = all_repos
 
@@ -162,7 +161,7 @@ def search_command(
 
 @app.command("serve")
 def serve_command(
-    port: Optional[int] = typer.Option(None, "--port", "-p", help="HTTP port (default: STDIO mode)"),
+    port: int | None = typer.Option(None, "--port", "-p", help="HTTP port (default: STDIO mode)"),
 ) -> None:
     """Start the MCP server."""
     from researcher.mcp.server import start_server

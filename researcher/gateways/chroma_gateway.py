@@ -107,7 +107,7 @@ class ChromaGateway:
         metadatas = results.get("metadatas", [[]])[0]
         distances = results.get("distances", [[]])[0]
 
-        for fid, doc, meta, dist in zip(ids, documents, metadatas, distances):
+        for fid, doc, meta, dist in zip(ids, documents, metadatas, distances, strict=True):
             search_results.append(
                 SearchResult(
                     fragment_id=fid,

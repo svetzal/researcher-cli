@@ -39,7 +39,7 @@ def set_config(
             data[key] = int(value)
         except ValueError:
             console.print(f"[red]Error:[/red] Value for '{key}' must be an integer")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:
         data[key] = value
 
