@@ -5,7 +5,7 @@ from researcher.config import RepositoryConfig, ResearcherConfig
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.config_gateway import ConfigGateway
-from researcher.gateways.docling_gateway import DoclingGateway
+from researcher.gateways.docling_gateway import DoclingGateway, is_docling_available
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
 from researcher.services.index_service import IndexService
@@ -37,13 +37,17 @@ class ServiceFactory:
         chroma_dir = repo_data_dir / "chroma"
         checksums_path = repo_data_dir / "checksums.json"
 
-        return IndexService(
-            filesystem_gateway=FilesystemGateway(base_path=Path(repo.path)),
-            docling_gateway=DoclingGateway(
+        docling_gw: DoclingGateway | None = None
+        if is_docling_available():
+            docling_gw = DoclingGateway(
                 image_pipeline=repo.image_pipeline,
                 image_vlm_model=repo.image_vlm_model,
                 audio_asr_model=repo.audio_asr_model,
-            ),
+            )
+
+        return IndexService(
+            filesystem_gateway=FilesystemGateway(base_path=Path(repo.path)),
+            docling_gateway=docling_gw,
             embedding_gateway=EmbeddingGateway(
                 provider=repo.embedding_provider,
                 model=repo.embedding_model,

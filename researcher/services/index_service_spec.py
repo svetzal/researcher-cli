@@ -344,3 +344,83 @@ class DescribeIndexService:
 
             assert count == 0
             mock_chroma.delete_by_document.assert_not_called()
+
+    class DescribeWithoutDocling:
+        """Tests for degraded mode when docling is unavailable."""
+
+        @pytest.fixture
+        def mock_filesystem(self):
+            return Mock(spec=FilesystemGateway)
+
+        @pytest.fixture
+        def mock_embedding(self):
+            return Mock(spec=EmbeddingGateway)
+
+        @pytest.fixture
+        def mock_chroma(self):
+            m = Mock(spec=ChromaGateway)
+            m.get_all_document_paths.return_value = []
+            return m
+
+        @pytest.fixture
+        def mock_checksums(self):
+            return Mock(spec=ChecksumGateway)
+
+        @pytest.fixture
+        def service(self, mock_filesystem, mock_embedding, mock_chroma, mock_checksums):
+            return IndexService(
+                filesystem_gateway=mock_filesystem,
+                docling_gateway=None,
+                embedding_gateway=mock_embedding,
+                chroma_gateway=mock_chroma,
+                repo_name="test-repo",
+                checksum_gateway=mock_checksums,
+            )
+
+        @pytest.fixture
+        def repo_config(self):
+            return RepositoryConfig(name="test-repo", path="/tmp/docs", embedding_provider="chromadb")
+
+        def should_skip_pdf_when_docling_unavailable(
+            self, service, mock_filesystem, mock_chroma, mock_checksums, repo_config
+        ):
+            file_path = Path("/tmp/docs/report.pdf")
+            mock_filesystem.list_files.return_value = [file_path]
+            mock_filesystem.compute_checksum.return_value = "checksum"
+            mock_checksums.load.return_value = {}
+
+            result = service.index_repository(repo_config)
+
+            assert result.documents_skipped == 1
+            assert result.documents_indexed == 0
+            assert result.documents_failed == 0
+            mock_chroma.add_fragments.assert_not_called()
+
+        def should_index_markdown_when_docling_unavailable(
+            self, service, mock_filesystem, mock_chroma, mock_checksums, repo_config
+        ):
+            file_path = Path("/tmp/docs/readme.md")
+            mock_filesystem.list_files.return_value = [file_path]
+            mock_filesystem.compute_checksum.return_value = "checksum"
+            mock_filesystem.read_file.return_value = "# Hello\n\nWorld"
+            mock_checksums.load.return_value = {}
+
+            result = service.index_repository(repo_config)
+
+            assert result.documents_indexed == 1
+            assert result.documents_failed == 0
+            mock_filesystem.read_file.assert_called_once_with(file_path)
+
+        def should_index_txt_when_docling_unavailable(
+            self, service, mock_filesystem, mock_chroma, mock_checksums, repo_config
+        ):
+            file_path = Path("/tmp/docs/notes.txt")
+            mock_filesystem.list_files.return_value = [file_path]
+            mock_filesystem.compute_checksum.return_value = "checksum"
+            mock_filesystem.read_file.return_value = "Some plain text"
+            mock_checksums.load.return_value = {}
+
+            result = service.index_repository(repo_config)
+
+            assert result.documents_indexed == 1
+            mock_filesystem.read_file.assert_called_once_with(file_path)

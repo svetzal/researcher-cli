@@ -30,7 +30,7 @@ class IndexService:
     def __init__(
         self,
         filesystem_gateway: FilesystemGateway,
-        docling_gateway: DoclingGateway,
+        docling_gateway: DoclingGateway | None,
         embedding_gateway: EmbeddingGateway,
         chroma_gateway: ChromaGateway,
         repo_name: str,
@@ -69,6 +69,9 @@ class IndexService:
                     self._chroma.delete_by_document(COLLECTION_NAME, path_key)
 
                 chunk_result = self.index_file(file_path, config)
+                if chunk_result is None:
+                    result.documents_skipped += 1
+                    continue
                 checksums[path_key] = current_checksum
                 result.documents_indexed += 1
                 result.fragments_created += len(chunk_result.fragments)
@@ -86,16 +89,22 @@ class IndexService:
         """Check if a file extension indicates plain text that can bypass docling."""
         return file_path.suffix.lstrip(".").lower() in PLAIN_TEXT_EXTENSIONS
 
-    def index_file(self, file_path: Path, config: RepositoryConfig) -> ChunkResult:
-        """Convert, chunk, embed, and store a single file."""
+    def index_file(self, file_path: Path, config: RepositoryConfig) -> ChunkResult | None:
+        """Convert, chunk, embed, and store a single file.
+
+        Returns None when the file requires docling but docling is unavailable.
+        """
         path_key = str(file_path)
 
         if self._is_plain_text(file_path):
             text = self._filesystem.read_file(file_path)
             fragments = chunk_plain_text(text, path_key)
-        else:
+        elif self._docling is not None:
             document = self._docling.convert(file_path)
             fragments = self._docling.chunk(document, path_key)
+        else:
+            logger.warning("Skipping non-plain-text file (docling unavailable)", path=path_key)
+            return None
 
         if not fragments:
             return ChunkResult(document_path=path_key, fragments=[])

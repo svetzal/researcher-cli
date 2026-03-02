@@ -1,9 +1,31 @@
+import logging
 from pathlib import Path
 from typing import Any
 
 from researcher.chunking import fragments_from_chunks
 from researcher.docling_config import build_converter_config
 from researcher.models import Fragment
+
+_docling_available: bool | None = None
+
+
+def is_docling_available() -> bool:
+    """Check whether the docling library can be imported.
+
+    The result is cached after the first call.
+    """
+    global _docling_available
+    if _docling_available is None:
+        try:
+            import docling.document_converter  # noqa: F401
+
+            _docling_available = True
+        except Exception:
+            _docling_available = False
+            logging.getLogger(__name__).warning(
+                "docling unavailable — only plain text files (.md, .txt) will be indexed"
+            )
+    return _docling_available
 
 
 class DoclingGateway:

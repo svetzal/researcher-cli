@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -93,7 +94,8 @@ class DescribeServiceFactory:
         expected_checksums_path = temp_dir / "repositories" / "my-repo" / "checksums.json"
         assert service._checksums._path == expected_checksums_path
 
-    def should_pass_image_pipeline_from_repo_config_to_docling_gateway(self, factory, temp_dir):
+    @patch("researcher.service_factory.is_docling_available", return_value=True)
+    def should_pass_image_pipeline_from_repo_config_to_docling_gateway(self, _mock, factory, temp_dir):
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir), image_pipeline="vlm", image_vlm_model="smoldocling")
 
         service = factory.index_service(repo)
@@ -101,9 +103,19 @@ class DescribeServiceFactory:
         assert service._docling._converter_config.vlm is not None
         assert service._docling._converter_config.vlm.preset == "smoldocling"
 
-    def should_pass_standard_pipeline_by_default_to_docling_gateway(self, factory, temp_dir):
+    @patch("researcher.service_factory.is_docling_available", return_value=True)
+    def should_pass_standard_pipeline_by_default_to_docling_gateway(self, _mock, factory, temp_dir):
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
 
         service = factory.index_service(repo)
 
         assert service._docling._converter_config.vlm is None
+
+    @patch("researcher.service_factory.is_docling_available", return_value=False)
+    def should_create_index_service_with_no_docling_when_unavailable(self, _mock, factory, temp_dir):
+        repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
+
+        service = factory.index_service(repo)
+
+        assert isinstance(service, IndexService)
+        assert service._docling is None
