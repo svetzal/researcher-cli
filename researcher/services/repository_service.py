@@ -1,6 +1,7 @@
 import structlog
 
-from researcher.config import ConfigGateway, RepositoryConfig
+from researcher.config import RepositoryConfig
+from researcher.gateways.config_gateway import ConfigGateway
 
 logger = structlog.get_logger()
 

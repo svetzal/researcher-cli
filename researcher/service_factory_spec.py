@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from researcher.config import ConfigGateway, RepositoryConfig, ResearcherConfig
+from researcher.config import RepositoryConfig, ResearcherConfig
+from researcher.gateways.config_gateway import ConfigGateway
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_service import IndexService
 from researcher.services.repository_service import RepositoryService

@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 from typer.testing import CliRunner
 
 from researcher.cli.config_commands import config_app
-from researcher.config import ConfigGateway, ResearcherConfig
+from researcher.config import ResearcherConfig
+from researcher.gateways.config_gateway import ConfigGateway
 
 runner = CliRunner()
 

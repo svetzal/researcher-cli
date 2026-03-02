@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from researcher.config import ConfigGateway
+from researcher.gateways.config_gateway import ConfigGateway
 from researcher.services.repository_service import RepositoryService
 
 

@@ -1,9 +1,10 @@
 from functools import cached_property
 from pathlib import Path
 
-from researcher.config import ConfigGateway, RepositoryConfig, ResearcherConfig
+from researcher.config import RepositoryConfig, ResearcherConfig
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
+from researcher.gateways.config_gateway import ConfigGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
