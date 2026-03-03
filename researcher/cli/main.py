@@ -6,6 +6,7 @@ from rich.console import Console
 from researcher.cli.config_commands import config_app
 from researcher.cli.index_commands import emit_json_index_results, emit_json_status_results, run_index, run_status
 from researcher.cli.init_commands import init_command
+from researcher.cli.model_commands import models_app
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
 from researcher.service_factory import ServiceFactory
@@ -17,6 +18,7 @@ app = typer.Typer(
 )
 app.add_typer(repo_app, name="repo")
 app.add_typer(config_app, name="config")
+app.add_typer(models_app, name="models")
 app.command("init")(init_command)
 
 console = Console()

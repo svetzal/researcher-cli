@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `researcher models pack -o archive.tar.gz` command to bundle model cache directories into a portable archive for offline transfer
+- `researcher models unpack archive.tar.gz` command to restore model caches from an archive onto a new machine
+- Model registry mapping VLM presets to HuggingFace cache directories, with support for MLX variants
+
 ### Changed
 
 - Moved `ConfigGateway` from `researcher/config.py` to `researcher/gateways/config_gateway.py` to align with the project's Functional Core / Imperative Shell architecture

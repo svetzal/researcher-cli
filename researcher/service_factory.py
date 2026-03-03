@@ -9,6 +9,7 @@ from researcher.gateways.docling_gateway import DoclingGateway, is_docling_avail
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
 from researcher.services.index_service import IndexService
+from researcher.services.model_archive_service import ModelArchiveService
 from researcher.services.repository_service import RepositoryService
 from researcher.services.search_service import SearchService
 
@@ -56,6 +57,10 @@ class ServiceFactory:
             repo_name=repo.name,
             checksum_gateway=ChecksumGateway(checksums_path=checksums_path),
         )
+
+    def model_archive_service(self) -> ModelArchiveService:
+        """Create a ModelArchiveService."""
+        return ModelArchiveService()
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:
         """Create a fresh SearchService for the given repository."""
