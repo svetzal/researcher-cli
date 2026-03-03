@@ -219,21 +219,29 @@ def list_repos(
         console.print("[dim]No repositories configured.[/dim]")
         return
 
-    table = Table(title="Repositories", show_header=True, header_style="bold cyan")
-    table.add_column("Name", style="bold")
+    table = Table(title="Repositories", show_header=True, header_style="bold cyan", expand=True)
+    table.add_column("Name", style="bold", no_wrap=True)
     table.add_column("Path")
     table.add_column("File Types")
-    table.add_column("Embedding Provider")
-    table.add_column("Model")
-    table.add_column("Exclude Patterns")
+    table.add_column("Embed", no_wrap=True)
+    table.add_column("Image", no_wrap=True)
+    table.add_column("Excludes")
 
     for repo in repos:
+        embed_info = repo.embedding_provider
+        if repo.embedding_model:
+            embed_info += f"\n{repo.embedding_model}"
+
+        image_info = repo.image_pipeline
+        if repo.image_pipeline == "vlm" and repo.image_vlm_model:
+            image_info += f"\n{repo.image_vlm_model}"
+
         table.add_row(
             repo.name,
             repo.path,
             ", ".join(repo.file_types),
-            repo.embedding_provider,
-            repo.embedding_model or "[dim]default[/dim]",
+            embed_info,
+            image_info,
             ", ".join(repo.exclude_patterns) if repo.exclude_patterns else "[dim]none[/dim]",
         )
 
