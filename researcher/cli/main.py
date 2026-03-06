@@ -24,13 +24,20 @@ app.command("init")(init_command)
 console = Console()
 
 
+@app.callback()
+def main_callback(ctx: typer.Context) -> None:
+    if ctx.obj is None:
+        ctx.obj = ServiceFactory()
+
+
 @app.command("index")
 def index_command(
+    ctx: typer.Context,
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Index a repository (or all repositories)."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
     if not repos:
@@ -59,12 +66,13 @@ def index_command(
 
 @app.command("remove")
 def remove_command(
+    ctx: typer.Context,
     repo_name: str = typer.Argument(..., help="Repository name"),
     document_path: str = typer.Argument(..., help="Document path to remove from the index"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Remove a specific document from the index."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     try:
         repo = factory.repository_service.get_repository(repo_name)
     except ValueError as e:
@@ -85,11 +93,12 @@ def remove_command(
 
 @app.command("status")
 def status_command(
+    ctx: typer.Context,
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Show index statistics for repositories."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
     if not repos:
@@ -118,6 +127,7 @@ def status_command(
 
 @app.command("search")
 def search_command(
+    ctx: typer.Context,
     query: str = typer.Argument(..., help="Search query"),
     repo: str | None = typer.Option(None, "--repo", "-r", help="Limit search to this repository"),
     fragments: int = typer.Option(10, "--fragments", "-f", help="Number of fragment results"),
@@ -126,7 +136,7 @@ def search_command(
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Search across indexed repositories."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     all_repos = factory.repository_service.list_repositories()
 
     if not all_repos:

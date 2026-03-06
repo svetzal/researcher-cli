@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Eliminated duplicated `COLLECTION_NAME` constant between `index_service.py` and `search_service.py` by extracting to `researcher/constants.py`
+- `ChecksumGateway.last_modified` now returns a timezone-aware UTC `datetime`, eliminating the Python 3.12 deprecation warning for naive `datetime.fromtimestamp`
 
 ### Added
 
@@ -22,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved `ConfigGateway` from `researcher/config.py` to `researcher/gateways/config_gateway.py` to align with the project's Functional Core / Imperative Shell architecture
 - Docling is now an optional dependency that degrades gracefully when unavailable; plain text files (.md, .txt) are still indexed, and non-plain-text files are skipped with a warning
 - Refactored `ServiceFactory` tests to verify behavior through public interfaces (`isinstance`) instead of reaching into private attributes two levels deep
+- CLI commands now receive `ServiceFactory` via Typer context injection (`ctx.obj`) instead of direct instantiation; eliminates all `patch("...ServiceFactory")` calls in the test suite
+- MCP server uses a lazy `_get_factory()` / `set_factory()` pattern instead of a module-level singleton, preventing real I/O on import during tests
+- `EmbeddingGateway` uses a dispatch dictionary for provider selection instead of an `if/elif` chain
 
 ## [0.3.0] - 2026-02-27
 

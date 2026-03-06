@@ -10,8 +10,15 @@ repo_app = typer.Typer(help="Manage document repositories.")
 console = Console()
 
 
+@repo_app.callback()
+def repo_callback(ctx: typer.Context) -> None:
+    if ctx.obj is None:
+        ctx.obj = ServiceFactory()
+
+
 @repo_app.command("add")
 def add_repo(
+    ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
     path: str = typer.Argument(..., help="Path to the document directory"),
     file_types: str = typer.Option("md,txt,pdf,docx,html", "--file-types", help="Comma-separated file extensions"),
@@ -45,7 +52,7 @@ def add_repo(
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Add a new document repository."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")]
     try:
         repo = factory.repository_service.add_repository(
@@ -84,11 +91,12 @@ def add_repo(
 
 @repo_app.command("remove")
 def remove_repo(
+    ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name to remove"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Remove a document repository."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     try:
         factory.repository_service.remove_repository(name)
         if json_output:
@@ -105,6 +113,7 @@ def remove_repo(
 
 @repo_app.command("update")
 def update_repo(
+    ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
     file_types: str = typer.Option(None, "--file-types", help="Comma-separated file extensions (replaces existing)"),
     embedding_provider: str = typer.Option(None, "--embedding-provider", help="Embedding provider"),
@@ -142,7 +151,7 @@ def update_repo(
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Update an existing repository's configuration."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")] if file_types else None
     try:
         repo, added_patterns = factory.repository_service.update_repository(
@@ -192,10 +201,11 @@ def update_repo(
 
 @repo_app.command("list")
 def list_repos(
+    ctx: typer.Context,
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """List all configured repositories."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
     if json_output:

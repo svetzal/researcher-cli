@@ -11,13 +11,20 @@ models_app = typer.Typer(help="Manage model caches for offline use.")
 console = Console()
 
 
+@models_app.callback()
+def models_callback(ctx: typer.Context) -> None:
+    if ctx.obj is None:
+        ctx.obj = ServiceFactory()
+
+
 @models_app.command("pack")
 def pack_command(
+    ctx: typer.Context,
     output: Path = typer.Option(..., "--output", "-o", help="Output archive path (e.g. models.tar.gz)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Pack model cache directories into a portable archive."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
     if not repos:
@@ -57,11 +64,12 @@ def pack_command(
 
 @models_app.command("unpack")
 def unpack_command(
+    ctx: typer.Context,
     archive: Path = typer.Argument(..., help="Path to the model archive (.tar.gz)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Unpack a model archive into the local cache directories."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     service = factory.model_archive_service()
 
     try:

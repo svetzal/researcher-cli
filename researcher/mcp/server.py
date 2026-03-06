@@ -5,14 +5,29 @@ import fastmcp
 from researcher.service_factory import ServiceFactory
 
 mcp = fastmcp.FastMCP("researcher")
-_factory = ServiceFactory()
+
+_factory: ServiceFactory | None = None
+
+
+def _get_factory() -> ServiceFactory:
+    global _factory
+    if _factory is None:
+        _factory = ServiceFactory()
+    return _factory
+
+
+def set_factory(factory: ServiceFactory) -> None:
+    """Inject a factory — used by tests to avoid constructing a real ServiceFactory."""
+    global _factory
+    _factory = factory
 
 
 @mcp.tool
 def add_to_index(repository: str, file_path: str) -> str:
     """Index a specific file in a repository."""
-    repo = _factory.repository_service.get_repository(repository)
-    service = _factory.index_service(repo)
+    factory = _get_factory()
+    repo = factory.repository_service.get_repository(repository)
+    service = factory.index_service(repo)
     chunk_result = service.index_file(Path(file_path), repo)
     return f"Indexed {len(chunk_result.fragments)} fragments from {file_path}"
 
@@ -20,8 +35,9 @@ def add_to_index(repository: str, file_path: str) -> str:
 @mcp.tool
 def remove_from_index(repository: str, document_path: str) -> str:
     """Remove a document from a repository's index."""
-    repo = _factory.repository_service.get_repository(repository)
-    service = _factory.index_service(repo)
+    factory = _get_factory()
+    repo = factory.repository_service.get_repository(repository)
+    service = factory.index_service(repo)
     service.remove_document(document_path)
     return f"Removed {document_path} from {repository}"
 
@@ -32,7 +48,7 @@ def search_fragments(query: str, repository: str | None = None, n_results: int =
     repos = _get_repos(repository)
     all_results = []
     for repo in repos:
-        service = _factory.search_service(repo)
+        service = _get_factory().search_service(repo)
         results = service.search_fragments(query, n_results=n_results)
         all_results.extend(r.model_dump() for r in results)
 
@@ -46,7 +62,7 @@ def search_documents(query: str, repository: str | None = None, n_results: int =
     repos = _get_repos(repository)
     all_results = []
     for repo in repos:
-        service = _factory.search_service(repo)
+        service = _get_factory().search_service(repo)
         results = service.search_documents(query, n_results=n_results)
         all_results.extend(r.model_dump() for r in results)
 
@@ -57,7 +73,7 @@ def search_documents(query: str, repository: str | None = None, n_results: int =
 @mcp.tool
 def list_repositories() -> list[dict]:
     """List all configured repositories with their settings."""
-    repos = _factory.repository_service.list_repositories()
+    repos = _get_factory().repository_service.list_repositories()
     return [r.model_dump() for r in repos]
 
 
@@ -67,7 +83,7 @@ def get_index_status(repository: str | None = None) -> dict:
     repos = _get_repos(repository)
     statuses = []
     for repo in repos:
-        service = _factory.index_service(repo)
+        service = _get_factory().index_service(repo)
         stats = service.get_stats()
         statuses.append(stats.model_dump(mode="json"))
 
@@ -79,8 +95,8 @@ def get_index_status(repository: str | None = None) -> dict:
 def _get_repos(repository: str | None):
     """Return a list of repos — one if named, all if None."""
     if repository:
-        return [_factory.repository_service.get_repository(repository)]
-    return _factory.repository_service.list_repositories()
+        return [_get_factory().repository_service.get_repository(repository)]
+    return _get_factory().repository_service.list_repositories()
 
 
 def start_server(port: int | None = None) -> None:

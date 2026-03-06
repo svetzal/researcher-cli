@@ -10,10 +10,16 @@ config_app = typer.Typer(help="Manage researcher configuration.")
 console = Console()
 
 
+@config_app.callback()
+def config_callback(ctx: typer.Context) -> None:
+    if ctx.obj is None:
+        ctx.obj = ServiceFactory()
+
+
 @config_app.command("show")
-def show_config() -> None:
+def show_config(ctx: typer.Context) -> None:
     """Display the current configuration."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     config = factory.config
     yaml_text = yaml.dump(config.model_dump(mode="json"), default_flow_style=False)
     syntax = Syntax(yaml_text, "yaml", theme="monokai", line_numbers=False)
@@ -22,11 +28,12 @@ def show_config() -> None:
 
 @config_app.command("set")
 def set_config(
+    ctx: typer.Context,
     key: str = typer.Argument(..., help="Configuration key (e.g. default_embedding_provider)"),
     value: str = typer.Argument(..., help="Configuration value"),
 ) -> None:
     """Set a top-level configuration value."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     config = factory.config
     data = config.model_dump(mode="json")
 
@@ -49,8 +56,8 @@ def set_config(
 
 
 @config_app.command("path")
-def config_path() -> None:
+def config_path(ctx: typer.Context) -> None:
     """Show the path to the configuration file."""
-    factory = ServiceFactory()
+    factory: ServiceFactory = ctx.obj
     config_file = factory.config_gateway.config_dir / "config.yaml"
     console.print(str(config_file))

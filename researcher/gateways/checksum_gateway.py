@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -28,4 +28,4 @@ class ChecksumGateway:
         if not self._path.exists():
             return None
         mtime = os.path.getmtime(self._path)
-        return datetime.fromtimestamp(mtime)
+        return datetime.fromtimestamp(mtime, tz=UTC)
