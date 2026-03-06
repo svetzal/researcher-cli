@@ -123,9 +123,7 @@ class ModelArchiveService:
 
         return UnpackResult(entries_restored=entries_restored, files_extracted=files_extracted)
 
-    def _build_manifest(
-        self, repos: list[RepositoryConfig], entries: list[ModelCacheEntry]
-    ) -> dict:
+    def _build_manifest(self, repos: list[RepositoryConfig], entries: list[ModelCacheEntry]) -> dict:
         return {
             "version": 1,
             "source_repos": [repo.name for repo in repos],

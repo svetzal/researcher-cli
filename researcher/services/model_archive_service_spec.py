@@ -7,8 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from researcher.config import RepositoryConfig
-from researcher.model_registry import ModelCacheEntry
-from researcher.services.model_archive_service import ModelArchiveService, PackResult, UnpackResult
+from researcher.services.model_archive_service import ModelArchiveService
 
 
 class DescribeModelArchiveServicePack:
@@ -102,7 +101,7 @@ class DescribeModelArchiveServicePack:
         archive_path = output_dir / "models.tar.gz"
 
         with patch("researcher.model_registry.resolve_cache_base_dirs", return_value=fake_bases):
-            result = service.pack([repo], archive_path)
+            service.pack([repo], archive_path)
 
         with tarfile.open(archive_path, "r:gz") as tar:
             names = tar.getnames()
@@ -112,13 +111,17 @@ class DescribeModelArchiveServicePack:
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="standard")
         archive_path = output_dir / "models.tar.gz"
 
-        with patch("researcher.model_registry.resolve_cache_base_dirs", return_value=fake_bases):
-            with pytest.raises(FileNotFoundError, match="No model cache directories found"):
-                service.pack([repo], archive_path)
+        with (
+            patch("researcher.model_registry.resolve_cache_base_dirs", return_value=fake_bases),
+            pytest.raises(FileNotFoundError, match="No model cache directories found"),
+        ):
+            service.pack([repo], archive_path)
 
     def should_write_manifest_with_entries(self, service, fake_bases, output_dir):
         self._populate_docling(fake_bases)
-        repo = RepositoryConfig(name="my-repo", path="/tmp/test", image_pipeline="standard", embedding_provider="ollama")
+        repo = RepositoryConfig(
+            name="my-repo", path="/tmp/test", image_pipeline="standard", embedding_provider="ollama"
+        )
         archive_path = output_dir / "models.tar.gz"
 
         with patch("researcher.model_registry.resolve_cache_base_dirs", return_value=fake_bases):
@@ -212,9 +215,11 @@ class DescribeModelArchiveServiceUnpack:
             info.size = len(content)
             tar.addfile(info, io.BytesIO(content))
 
-        with patch("researcher.services.model_archive_service.resolve_cache_base_dirs", return_value=fake_bases):
-            with pytest.raises(ValueError, match="missing manifest.json"):
-                service.unpack(archive_path)
+        with (
+            patch("researcher.services.model_archive_service.resolve_cache_base_dirs", return_value=fake_bases),
+            pytest.raises(ValueError, match=r"missing manifest\.json"),
+        ):
+            service.unpack(archive_path)
 
     def should_roundtrip_pack_and_unpack(self, service, output_dir):
         """Pack from one cache tree, unpack into another, verify files match."""

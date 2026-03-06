@@ -6,7 +6,7 @@ so they can be packed into a portable archive.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from researcher.config import RepositoryConfig
@@ -104,84 +104,67 @@ def resolve_vlm_preset(vlm_model_value: str | None) -> str:
     return vlm_model_value
 
 
+def _collect_requirements(repos: list[RepositoryConfig]) -> tuple[bool, set[str], bool]:
+    """Scan repos to determine which model categories are needed."""
+    need_docling = False
+    need_chroma = False
+    hf_repo_ids: set[str] = set()
+
+    for repo in repos:
+        if repo.image_pipeline == "standard":
+            need_docling = True
+        if repo.image_pipeline == "vlm":
+            _collect_vlm_repo_ids(repo, hf_repo_ids)
+        if repo.embedding_provider == "chromadb":
+            need_chroma = True
+
+    return need_docling, hf_repo_ids, need_chroma
+
+
+def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str]) -> None:
+    """Add HuggingFace repo IDs for a VLM pipeline repo."""
+    preset = resolve_vlm_preset(repo.image_vlm_model)
+    if preset in API_ONLY_PRESETS:
+        return
+    repo_ids = VLM_PRESET_REPOS.get(preset)
+    if repo_ids:
+        default_id, mlx_id = repo_ids
+        hf_repo_ids.add(default_id)
+        if mlx_id:
+            hf_repo_ids.add(mlx_id)
+
+
 def resolve_models_for_repos(repos: list[RepositoryConfig]) -> list[ModelCacheEntry]:
     """Determine which model cache entries are needed for the given repos.
 
     Deduplicates across repos. Only includes entries that exist on disk.
     """
     bases = resolve_cache_base_dirs()
-    seen: set[str] = set()
     entries: list[ModelCacheEntry] = []
+    need_docling, hf_repo_ids, need_chroma = _collect_requirements(repos)
 
-    need_docling = False
-    need_chroma = False
-    hf_repo_ids: set[str] = set()
+    docling_dir = bases["docling"]
+    if need_docling and docling_dir.is_dir():
+        entries.append(ModelCacheEntry(category="docling", source_path=docling_dir, archive_path="docling/models"))
 
-    for repo in repos:
-        # Standard pipeline needs docling's built-in models
-        if repo.image_pipeline == "standard":
-            need_docling = True
-
-        # VLM pipeline needs the HF model(s)
-        if repo.image_pipeline == "vlm":
-            preset = resolve_vlm_preset(repo.image_vlm_model)
-            if preset in API_ONLY_PRESETS:
-                continue
-            repo_ids = VLM_PRESET_REPOS.get(preset)
-            if repo_ids:
-                default_id, mlx_id = repo_ids
-                hf_repo_ids.add(default_id)
-                if mlx_id:
-                    hf_repo_ids.add(mlx_id)
-
-        # ChromaDB embedding needs its ONNX model cache
-        if repo.embedding_provider == "chromadb":
-            need_chroma = True
-
-    # Collect docling models directory
-    if need_docling:
-        docling_dir = bases["docling"]
-        if docling_dir.is_dir():
-            key = f"docling:{docling_dir}"
-            if key not in seen:
-                seen.add(key)
-                entries.append(
-                    ModelCacheEntry(
-                        category="docling",
-                        source_path=docling_dir,
-                        archive_path="docling/models",
-                    )
-                )
-
-    # Collect HuggingFace model directories
     for repo_id in sorted(hf_repo_ids):
         cache_dir_name = hf_repo_id_to_cache_dir(repo_id)
         hf_path = bases["huggingface"] / cache_dir_name
         if hf_path.is_dir():
-            key = f"huggingface:{cache_dir_name}"
-            if key not in seen:
-                seen.add(key)
-                entries.append(
-                    ModelCacheEntry(
-                        category="huggingface",
-                        source_path=hf_path,
-                        archive_path=f"huggingface/hub/{cache_dir_name}",
-                    )
+            entries.append(
+                ModelCacheEntry(
+                    category="huggingface",
+                    source_path=hf_path,
+                    archive_path=f"huggingface/hub/{cache_dir_name}",
                 )
+            )
 
-    # Collect ChromaDB ONNX model
-    if need_chroma:
-        chroma_path = bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH
-        if chroma_path.is_dir():
-            key = f"chroma:{CHROMA_ONNX_MODEL_RELPATH}"
-            if key not in seen:
-                seen.add(key)
-                entries.append(
-                    ModelCacheEntry(
-                        category="chroma",
-                        source_path=chroma_path,
-                        archive_path=f"chroma/{CHROMA_ONNX_MODEL_RELPATH}",
-                    )
-                )
+    chroma_path = bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH
+    if need_chroma and chroma_path.is_dir():
+        entries.append(
+            ModelCacheEntry(
+                category="chroma", source_path=chroma_path, archive_path=f"chroma/{CHROMA_ONNX_MODEL_RELPATH}"
+            )
+        )
 
     return entries

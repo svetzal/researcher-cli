@@ -42,10 +42,7 @@ def pack_command(
         data = {
             "archive": str(result.archive_path),
             "total_files": result.total_files,
-            "entries": [
-                {"category": entry.category, "archive_path": entry.archive_path}
-                for entry in result.entries
-            ],
+            "entries": [{"category": entry.category, "archive_path": entry.archive_path} for entry in result.entries],
         }
         typer.echo(json.dumps(data))
     else:

@@ -6,7 +6,6 @@ import pytest
 
 from researcher.config import RepositoryConfig
 from researcher.model_registry import (
-    ModelCacheEntry,
     hf_repo_id_to_cache_dir,
     resolve_cache_base_dirs,
     resolve_models_for_repos,
@@ -16,7 +15,9 @@ from researcher.model_registry import (
 
 class DescribeHfRepoIdToCacheDir:
     def should_convert_org_slash_model_to_double_dash(self):
-        assert hf_repo_id_to_cache_dir("ibm-granite/granite-docling-258M") == "models--ibm-granite--granite-docling-258M"
+        assert (
+            hf_repo_id_to_cache_dir("ibm-granite/granite-docling-258M") == "models--ibm-granite--granite-docling-258M"
+        )
 
     def should_handle_nested_org_names(self):
         assert hf_repo_id_to_cache_dir("Qwen/Qwen2.5-VL-3B-Instruct") == "models--Qwen--Qwen2.5-VL-3B-Instruct"
