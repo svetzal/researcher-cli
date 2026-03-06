@@ -1,12 +1,11 @@
 import structlog
 
+from researcher.constants import COLLECTION_NAME
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.models import DocumentSearchResult, SearchResult
 
 logger = structlog.get_logger()
-
-COLLECTION_NAME = "documents"
 
 
 class SearchService:

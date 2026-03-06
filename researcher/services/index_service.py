@@ -4,6 +4,7 @@ import structlog
 
 from researcher.chunking import PLAIN_TEXT_EXTENSIONS, chunk_plain_text
 from researcher.config import RepositoryConfig
+from researcher.constants import COLLECTION_NAME
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
@@ -20,8 +21,6 @@ from researcher.models import (
 from researcher.path_exclusion import is_path_excluded
 
 logger = structlog.get_logger()
-
-COLLECTION_NAME = "documents"
 
 
 class IndexService:
