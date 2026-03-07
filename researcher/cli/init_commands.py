@@ -58,9 +58,11 @@ def run_init(
 
 def init_command(
     force: bool = typer.Option(False, "--force", help="Overwrite existing skill files"),
+    global_install: bool = typer.Option(False, "--global", "-g", help="Install to ~/.claude/skills/ (global)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ) -> None:
     """Install researcher skills into the current project's .claude/skills/ directory."""
-    result = run_init(Path.cwd(), force=force, json_output=json_output)
+    target = Path.home() if global_install else Path.cwd()
+    result = run_init(target, force=force, json_output=json_output)
     if json_output:
         typer.echo(json.dumps(result))

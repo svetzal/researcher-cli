@@ -48,6 +48,15 @@ class DescribeRunInit:
             assert (target / ".claude" / "skills" / "researcher-admin").is_dir()
             assert (target / ".claude" / "skills" / "researcher-find").is_dir()
 
+    def should_install_skills_to_home_directory_for_global(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            result = run_init(target, json_output=True)
+
+            assert (target / ".claude" / "skills" / "researcher-admin" / "SKILL.md").exists()
+            assert (target / ".claude" / "skills" / "researcher-find" / "SKILL.md").exists()
+            assert result["target_dir"] == str(target)
+
     def should_output_json_results(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)

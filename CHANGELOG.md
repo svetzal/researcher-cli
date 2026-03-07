@@ -7,16 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-07
+
+### Added
+
+- `--global` / `-g` flag for `researcher init` to install skills to `~/.claude/skills/` for system-wide availability
+- `researcher models pack -o archive.tar.gz` command to bundle model cache directories into a portable archive for offline transfer
+- `researcher models unpack archive.tar.gz` command to restore model caches from an archive onto a new machine
+- Model registry mapping VLM presets to HuggingFace cache directories, with support for MLX variants
+
 ### Fixed
 
 - Eliminated duplicated `COLLECTION_NAME` constant between `index_service.py` and `search_service.py` by extracting to `researcher/constants.py`
 - `ChecksumGateway.last_modified` now returns a timezone-aware UTC `datetime`, eliminating the Python 3.12 deprecation warning for naive `datetime.fromtimestamp`
-
-### Added
-
-- `researcher models pack -o archive.tar.gz` command to bundle model cache directories into a portable archive for offline transfer
-- `researcher models unpack archive.tar.gz` command to restore model caches from an archive onto a new machine
-- Model registry mapping VLM presets to HuggingFace cache directories, with support for MLX variants
 
 ### Changed
 
