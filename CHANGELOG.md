@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated dependencies: `cachetools` 7.0.3 -> 7.0.4, `chromadb` 1.5.2 -> 1.5.4, `docling-core` 2.68.0 -> 2.69.0, `semchunk` 2.2.2 -> 3.2.5, `tabulate` 0.9.0 -> 0.10.0
+- Removed transitive dependencies no longer required: `backoff`, `distro`, `posthog`
+
 ## [0.4.0] - 2026-03-07
 
 ### Added
