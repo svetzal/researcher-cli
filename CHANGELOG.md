@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependencies: `chromadb` 1.5.4 -> 1.5.5, `cuda-pathfinder` 1.4.1 -> 1.4.2, `docling` 2.77.0 -> 2.78.0, `pandas` 2.3.3 -> 3.0.1
 - Removed transitive dependency no longer required: `pytz`
 - Updated dependencies: `cyclopts` 4.8.0 -> 4.9.0, `docling` 2.79.0 -> 2.80.0, `docling-core` 2.69.0 -> 2.70.0, `faker` 40.8.0 -> 40.11.0, `hf-xet` 1.4.1 -> 1.4.2, `pyjwt` 2.12.0 -> 2.12.1
+- Updated dependencies: `cyclopts` 4.9.0 -> 4.10.0, `fastmcp` 3.1.0 -> 3.1.1
 
 ## [0.4.0] - 2026-03-07
 
