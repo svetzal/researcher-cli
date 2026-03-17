@@ -26,3 +26,34 @@ To cut a release:
 4. Tag the commit: `git tag v<version>`
 5. Push both: `git push && git push --tags`
 6. Deploy locally: `uv tool install .`
+
+## Skill Distribution
+
+Researcher ships two Claude Code skills (`researcher-admin` and `researcher-find`). The authoritative source files live in `researcher/bundled_skills/`.
+
+### Install
+
+```bash
+researcher init [--global] [--force] [--json]
+```
+
+- `--global` / `-g` — install to `~/.claude/skills/` instead of `.claude/skills/` in the current directory
+- `--force` — overwrite regardless of version (bypasses version guard)
+- `--json` / `-j` — machine-readable JSON output
+
+### Version stamping
+
+At install time the package version (`importlib.metadata.version('researcher-cli')`) is written into each SKILL.md's YAML frontmatter as `researcher-version: <VERSION>`. The source files in `researcher/bundled_skills/` must **not** contain this field.
+
+### Version guard
+
+When a SKILL.md already exists at the destination:
+
+- **No version field** or **no existing file** — always install
+- **Installed version older** than running binary — overwrite automatically
+- **Installed version equal** — skip (up-to-date)
+- **Installed version newer** — refuse with a warning; `--force` overrides
+
+### Release checklist note
+
+When CLI interface or skill behavior changes, update the skill content in `researcher/bundled_skills/` as part of the same release.

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Version stamping: `researcher init` now writes `researcher-version` into SKILL.md frontmatter at install time
+- Version guard: `researcher init` compares installed vs running version — skips if same, upgrades if older, refuses if newer (use `--force` to override)
+
+### Removed
+
+- Orphaned `.claude/skills/deploy-skills/` meta-skill (replaced by `researcher init`)
+
 ### Changed
 
 - Updated dependencies: `cachetools` 7.0.3 -> 7.0.4, `chromadb` 1.5.2 -> 1.5.4, `docling-core` 2.68.0 -> 2.69.0, `semchunk` 2.2.2 -> 3.2.5, `tabulate` 0.9.0 -> 0.10.0
