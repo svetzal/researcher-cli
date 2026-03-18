@@ -33,7 +33,42 @@ def _stamp_version(source_text: str, version: str) -> str:
     match = re.match(r"^(---\s*\n)(.*?\n)(---)", source_text, re.DOTALL)
     if not match:
         return source_text
-    return f"{match.group(1)}{match.group(2)}researcher-version: {version}\n{match.group(3)}{source_text[match.end():]}"
+    return (
+        f"{match.group(1)}{match.group(2)}researcher-version: {version}\n{match.group(3)}{source_text[match.end() :]}"
+    )
+
+
+def _decide_skill_action(
+    dest: Path,
+    current_version: str,
+    *,
+    force: bool,
+) -> tuple[str, str | None]:
+    """Return (action, message) for a skill: action is 'install', 'skip', or 'refuse'."""
+    if not dest.exists():
+        return "install", None
+
+    existing_version = _parse_frontmatter_version(dest.read_text())
+
+    if existing_version and not force:
+        existing = Version(existing_version)
+        current = Version(current_version)
+        if existing > current:
+            return "refuse", (
+                f"Installed skill is from researcher v{existing_version} "
+                f"but this binary is v{current_version}. Use --force to downgrade."
+            )
+        if existing == current:
+            return "skip", f"up-to-date at v{current_version}"
+        return "install", None
+
+    if not force and existing_version is None:
+        return "install", None  # No version field → always install
+
+    if not force:
+        return "skip", "already exists, use --force to overwrite"
+
+    return "install", None
 
 
 def run_init(
@@ -56,45 +91,23 @@ def run_init(
         source = bundled.joinpath(skill_name, "SKILL.md")
         source_text = source.read_text()
 
-        if dest.exists():
-            existing_version = _parse_frontmatter_version(dest.read_text())
+        action, message = _decide_skill_action(dest, current_version, force=force)
 
-            if existing_version and not force:
-                existing = Version(existing_version)
-                current = Version(current_version)
-
-                if existing > current:
-                    msg = (
-                        f"Installed skill is from researcher v{existing_version} "
-                        f"but this binary is v{current_version}. Use --force to downgrade."
-                    )
-                    refused.append(skill_name)
-                    if not json_output:
-                        console.print(f"[red]Refused[/red] {skill_name}: {msg}")
-                    continue
-
-                if existing == current:
-                    skipped.append(skill_name)
-                    if not json_output:
-                        console.print(f"[yellow]Skipped[/yellow] {skill_name} (up-to-date at v{current_version})")
-                    continue
-
-            elif not force and existing_version is None:
-                pass  # No version field → always install
-            elif not force:
-                skipped.append(skill_name)
-                if not json_output:
-                    console.print(
-                        f"[yellow]Skipped[/yellow] {skill_name} (already exists, use --force to overwrite)"
-                    )
-                continue
-
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        stamped = _stamp_version(source_text, current_version)
-        dest.write_text(stamped)
-        installed.append(skill_name)
-        if not json_output:
-            console.print(f"[green]Installed[/green] {skill_name} (v{current_version})")
+        if action == "refuse":
+            refused.append(skill_name)
+            if not json_output:
+                console.print(f"[red]Refused[/red] {skill_name}: {message}")
+        elif action == "skip":
+            skipped.append(skill_name)
+            if not json_output:
+                console.print(f"[yellow]Skipped[/yellow] {skill_name} ({message})")
+        else:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            stamped = _stamp_version(source_text, current_version)
+            dest.write_text(stamped)
+            installed.append(skill_name)
+            if not json_output:
+                console.print(f"[green]Installed[/green] {skill_name} (v{current_version})")
 
     result = {
         "skills_installed": installed,
