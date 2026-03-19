@@ -1,6 +1,6 @@
 [project]
 name = "researcher-cli"
-version = "0.4.1"
+version = "0.5.0"
 description = "CLI tool for indexing and searching document repositories"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -8,7 +8,7 @@ authors = [{ name = "Stacey Vetzal" }]
 requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.5.0",
-    "docling>=2.0.0",
+    "docling[asr,vlm]>=2.0.0",
     "typer>=0.20.0",
     "rich>=14.0.0",
     "pydantic>=2.0.0",

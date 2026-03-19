@@ -24,10 +24,10 @@ class DescribeHfRepoIdToCacheDir:
 
 
 class DescribeResolveCacheBaseDirs:
-    def should_return_three_categories(self):
+    def should_return_four_categories(self):
         dirs = resolve_cache_base_dirs()
 
-        assert set(dirs.keys()) == {"docling", "huggingface", "chroma"}
+        assert set(dirs.keys()) == {"docling", "huggingface", "chroma", "whisper"}
 
     def should_point_to_home_cache(self):
         dirs = resolve_cache_base_dirs()
@@ -36,6 +36,7 @@ class DescribeResolveCacheBaseDirs:
         assert dirs["docling"] == home / ".cache" / "docling" / "models"
         assert dirs["huggingface"] == home / ".cache" / "huggingface" / "hub"
         assert dirs["chroma"] == home / ".cache" / "chroma"
+        assert dirs["whisper"] == home / ".cache" / "whisper"
 
 
 class DescribeResolveVlmPreset:
@@ -76,6 +77,7 @@ class DescribeResolveModelsForRepos:
             "docling": cache_root / "docling" / "models",
             "huggingface": cache_root / "huggingface" / "hub",
             "chroma": cache_root / "chroma",
+            "whisper": cache_root / "whisper",
         }
         return bases
 
@@ -108,21 +110,46 @@ class DescribeResolveModelsForRepos:
         docling_entries = [e for e in result if e.category == "docling"]
         assert docling_entries == []
 
-    def should_include_hf_models_for_vlm_pipeline(self, fake_bases):
+    def should_include_only_mlx_model_for_vlm_on_apple_silicon(self, fake_bases):
         hf_dir = fake_bases["huggingface"] / "models--ibm-granite--granite-docling-258M"
         hf_dir.mkdir(parents=True)
         mlx_dir = fake_bases["huggingface"] / "models--ibm-granite--granite-docling-258M-mlx"
         mlx_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_docling")
 
-        with self._patch_bases(fake_bases):
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=True):
             result = resolve_models_for_repos([repo])
 
         hf_entries = [e for e in result if e.category == "huggingface"]
-        assert len(hf_entries) == 2
-        archive_paths = {e.archive_path for e in hf_entries}
-        assert "huggingface/hub/models--ibm-granite--granite-docling-258M" in archive_paths
-        assert "huggingface/hub/models--ibm-granite--granite-docling-258M-mlx" in archive_paths
+        assert len(hf_entries) == 1
+        assert "granite-docling-258M-mlx" in hf_entries[0].archive_path
+
+    def should_include_only_default_model_for_vlm_on_non_apple(self, fake_bases):
+        hf_dir = fake_bases["huggingface"] / "models--ibm-granite--granite-docling-258M"
+        hf_dir.mkdir(parents=True)
+        mlx_dir = fake_bases["huggingface"] / "models--ibm-granite--granite-docling-258M-mlx"
+        mlx_dir.mkdir(parents=True)
+        repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_docling")
+
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=False):
+            result = resolve_models_for_repos([repo])
+
+        hf_entries = [e for e in result if e.category == "huggingface"]
+        assert len(hf_entries) == 1
+        assert "granite-docling-258M-mlx" not in hf_entries[0].archive_path
+        assert "granite-docling-258M" in hf_entries[0].archive_path
+
+    def should_include_default_model_when_no_mlx_variant_exists(self, fake_bases):
+        hf_dir = fake_bases["huggingface"] / "models--ibm-granite--granite-vision-3.3-2b"
+        hf_dir.mkdir(parents=True)
+        repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_vision")
+
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=True):
+            result = resolve_models_for_repos([repo])
+
+        hf_entries = [e for e in result if e.category == "huggingface"]
+        assert len(hf_entries) == 1
+        assert "granite-vision-3.3-2b" in hf_entries[0].archive_path
 
     def should_only_include_existing_hf_dirs(self, fake_bases):
         # Only create the default dir, not the MLX variant
@@ -130,7 +157,7 @@ class DescribeResolveModelsForRepos:
         hf_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_docling")
 
-        with self._patch_bases(fake_bases):
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=False):
             result = resolve_models_for_repos([repo])
 
         hf_entries = [e for e in result if e.category == "huggingface"]
@@ -184,12 +211,12 @@ class DescribeResolveModelsForRepos:
         hf_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm")
 
-        with self._patch_bases(fake_bases):
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=False):
             result = resolve_models_for_repos([repo])
 
         hf_entries = [e for e in result if e.category == "huggingface"]
-        assert len(hf_entries) >= 1
-        assert any("granite-docling-258M" in e.archive_path for e in hf_entries)
+        assert len(hf_entries) == 1
+        assert "granite-docling-258M" in hf_entries[0].archive_path
 
     def should_resolve_repo_id_fragment_as_vlm_model(self, fake_bases):
         hf_dir = fake_bases["huggingface"] / "models--ibm-granite--granite-vision-3.3-2b"
@@ -219,6 +246,52 @@ class DescribeResolveModelsForRepos:
         assert len(hf_entries) == 1
         assert "granite-vision-3.3-2b" in hf_entries[0].archive_path
 
+    def should_include_mlx_whisper_hf_model_on_apple_silicon(self, fake_bases):
+        hf_dir = fake_bases["huggingface"] / "models--mlx-community--whisper-turbo"
+        hf_dir.mkdir(parents=True)
+        repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="turbo")
+
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=True):
+            result = resolve_models_for_repos([repo])
+
+        hf_entries = [e for e in result if e.category == "huggingface"]
+        assert len(hf_entries) == 1
+        assert "whisper-turbo" in hf_entries[0].archive_path
+
+    def should_include_whisper_cache_file_on_non_apple(self, fake_bases):
+        fake_bases["whisper"].mkdir(parents=True)
+        (fake_bases["whisper"] / "turbo.pt").write_bytes(b"fake")
+        repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="turbo")
+
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=False):
+            result = resolve_models_for_repos([repo])
+
+        whisper_entries = [e for e in result if e.category == "whisper"]
+        assert len(whisper_entries) == 1
+        assert whisper_entries[0].archive_path == "whisper/turbo.pt"
+
+    def should_skip_whisper_when_asr_model_empty(self, fake_bases):
+        repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="")
+
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=False):
+            result = resolve_models_for_repos([repo])
+
+        whisper_entries = [e for e in result if e.category == "whisper"]
+        hf_entries = [e for e in result if e.category == "huggingface"]
+        assert whisper_entries == []
+        assert hf_entries == []
+
+    def should_not_include_whisper_cache_on_apple_silicon(self, fake_bases):
+        fake_bases["whisper"].mkdir(parents=True)
+        (fake_bases["whisper"] / "turbo.pt").write_bytes(b"fake")
+        repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="turbo")
+
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=True):
+            result = resolve_models_for_repos([repo])
+
+        whisper_entries = [e for e in result if e.category == "whisper"]
+        assert whisper_entries == []
+
     def should_combine_all_categories(self, fake_bases):
         fake_bases["docling"].mkdir(parents=True)
         hf_dir = fake_bases["huggingface"] / "models--docling-project--SmolDocling-256M-preview"
@@ -231,7 +304,7 @@ class DescribeResolveModelsForRepos:
             name="r2", path="/tmp/r2", image_pipeline="vlm", image_vlm_model="smoldocling", embedding_provider="ollama"
         )
 
-        with self._patch_bases(fake_bases):
+        with self._patch_bases(fake_bases), patch("researcher.model_registry.is_apple_silicon", return_value=False):
             result = resolve_models_for_repos([repo1, repo2])
 
         categories = {e.category for e in result}

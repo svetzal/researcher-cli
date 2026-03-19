@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-19
+
+### Added
+
+- MLX acceleration on Apple Silicon: ASR (Whisper) models now automatically select GPU-accelerated MLX variants on macOS arm64
+- Platform detection utility (`researcher/platform.py`) for Apple Silicon branching
+- Optional docling extras (`asr`, `vlm`) for MLX package installation on Apple Silicon
+
+### Changed
+
+- Model packing is now platform-aware: only packs MLX or default model variants based on current platform
+- ASR (Whisper) models are now included in `researcher models pack/unpack` — MLX variants via HuggingFace hub on Apple Silicon, `.pt` files via `~/.cache/whisper/` elsewhere
+
 ## [0.4.1] - 2026-03-17
 
 ### Added

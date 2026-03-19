@@ -59,10 +59,14 @@ class ModelArchiveService:
             info.size = len(manifest_bytes)
             tar.addfile(info, BytesIO(manifest_bytes))
 
-            # Add each model cache directory
+            # Add each model cache entry (directory or file)
             for entry in entries:
-                file_count = self._add_directory_to_tar(tar, entry.source_path, entry.archive_path)
-                total_files += file_count
+                if entry.source_path.is_file():
+                    tar.add(str(entry.source_path), arcname=entry.archive_path)
+                    total_files += 1
+                else:
+                    file_count = self._add_directory_to_tar(tar, entry.source_path, entry.archive_path)
+                    total_files += file_count
 
         return PackResult(archive_path=output_path, entries=entries, total_files=total_files)
 
@@ -89,6 +93,7 @@ class ModelArchiveService:
             "docling/models": bases["docling"],
             "huggingface/hub": bases["huggingface"],
             "chroma": bases["chroma"],
+            "whisper": bases["whisper"],
         }
 
         entries_restored = 0

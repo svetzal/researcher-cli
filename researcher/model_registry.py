@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from researcher.config import RepositoryConfig
+from researcher.platform import is_apple_silicon
 
 # VLM preset → (default HF repo_id, optional MLX repo_id)
 VLM_PRESET_REPOS: dict[str, tuple[str, str | None]] = {
@@ -23,6 +24,27 @@ VLM_PRESET_REPOS: dict[str, tuple[str, str | None]] = {
     "gemma_12b": ("google/gemma-3-12b-it", "mlx-community/gemma-3-12b-it-bf16"),
     "gemma_27b": ("google/gemma-3-27b-it", "mlx-community/gemma-3-27b-it-bf16"),
     "dolphin": ("ByteDance/Dolphin", None),
+}
+
+# ASR model name → MLX HuggingFace repo ID (Apple Silicon only)
+ASR_MLX_REPO_IDS: dict[str, str] = {
+    "tiny": "mlx-community/whisper-tiny-mlx",
+    "base": "mlx-community/whisper-base-mlx",
+    "small": "mlx-community/whisper-small-mlx",
+    "medium": "mlx-community/whisper-medium-mlx-8bit",
+    "large": "mlx-community/whisper-large-mlx-8bit",
+    "turbo": "mlx-community/whisper-turbo",
+}
+
+# ASR model name → openai-whisper cache filename (non-Apple platforms)
+# These live in ~/.cache/whisper/<name>.pt, not in the HuggingFace hub
+ASR_WHISPER_CACHE_FILES: dict[str, str] = {
+    "tiny": "tiny.pt",
+    "base": "base.pt",
+    "small": "small.pt",
+    "medium": "medium.pt",
+    "large": "large-v3.pt",
+    "turbo": "turbo.pt",
 }
 
 # Presets that are API-only and have no local cache
@@ -58,6 +80,7 @@ def resolve_cache_base_dirs() -> dict[str, Path]:
         "docling": home / ".cache" / "docling" / "models",
         "huggingface": home / ".cache" / "huggingface" / "hub",
         "chroma": home / ".cache" / "chroma",
+        "whisper": home / ".cache" / "whisper",
     }
 
 
@@ -104,34 +127,63 @@ def resolve_vlm_preset(vlm_model_value: str | None) -> str:
     return vlm_model_value
 
 
-def _collect_requirements(repos: list[RepositoryConfig]) -> tuple[bool, set[str], bool]:
-    """Scan repos to determine which model categories are needed."""
+def _collect_requirements(repos: list[RepositoryConfig]) -> tuple[bool, set[str], set[str], bool]:
+    """Scan repos to determine which model categories are needed.
+
+    Returns:
+        (need_docling, hf_repo_ids, whisper_cache_files, need_chroma)
+    """
     need_docling = False
     need_chroma = False
     hf_repo_ids: set[str] = set()
+    whisper_cache_files: set[str] = set()
 
     for repo in repos:
         if repo.image_pipeline == "standard":
             need_docling = True
         if repo.image_pipeline == "vlm":
             _collect_vlm_repo_ids(repo, hf_repo_ids)
+        if repo.audio_asr_model:
+            _collect_asr_cache_ids(repo, hf_repo_ids, whisper_cache_files)
         if repo.embedding_provider == "chromadb":
             need_chroma = True
 
-    return need_docling, hf_repo_ids, need_chroma
+    return need_docling, hf_repo_ids, whisper_cache_files, need_chroma
 
 
 def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str]) -> None:
-    """Add HuggingFace repo IDs for a VLM pipeline repo."""
+    """Add HuggingFace repo IDs for a VLM pipeline repo.
+
+    On Apple Silicon, only packs the MLX variant (what docling will use).
+    On other platforms, only packs the default (Transformers) variant.
+    """
     preset = resolve_vlm_preset(repo.image_vlm_model)
     if preset in API_ONLY_PRESETS:
         return
     repo_ids = VLM_PRESET_REPOS.get(preset)
     if repo_ids:
         default_id, mlx_id = repo_ids
-        hf_repo_ids.add(default_id)
-        if mlx_id:
+        if is_apple_silicon() and mlx_id:
             hf_repo_ids.add(mlx_id)
+        else:
+            hf_repo_ids.add(default_id)
+
+
+def _collect_asr_cache_ids(repo: RepositoryConfig, hf_repo_ids: set[str], whisper_cache_files: set[str]) -> None:
+    """Add cache identifiers for ASR (Whisper) models.
+
+    On Apple Silicon, MLX Whisper models are cached in HuggingFace hub.
+    On other platforms, openai-whisper caches .pt files in ~/.cache/whisper/.
+    """
+    model_name = repo.audio_asr_model
+    if is_apple_silicon():
+        repo_id = ASR_MLX_REPO_IDS.get(model_name)
+        if repo_id:
+            hf_repo_ids.add(repo_id)
+    else:
+        cache_file = ASR_WHISPER_CACHE_FILES.get(model_name)
+        if cache_file:
+            whisper_cache_files.add(cache_file)
 
 
 def resolve_models_for_repos(repos: list[RepositoryConfig]) -> list[ModelCacheEntry]:
@@ -141,7 +193,7 @@ def resolve_models_for_repos(repos: list[RepositoryConfig]) -> list[ModelCacheEn
     """
     bases = resolve_cache_base_dirs()
     entries: list[ModelCacheEntry] = []
-    need_docling, hf_repo_ids, need_chroma = _collect_requirements(repos)
+    need_docling, hf_repo_ids, whisper_cache_files, need_chroma = _collect_requirements(repos)
 
     docling_dir = bases["docling"]
     if need_docling and docling_dir.is_dir():
@@ -156,6 +208,17 @@ def resolve_models_for_repos(repos: list[RepositoryConfig]) -> list[ModelCacheEn
                     category="huggingface",
                     source_path=hf_path,
                     archive_path=f"huggingface/hub/{cache_dir_name}",
+                )
+            )
+
+    for cache_file in sorted(whisper_cache_files):
+        whisper_path = bases["whisper"] / cache_file
+        if whisper_path.is_file():
+            entries.append(
+                ModelCacheEntry(
+                    category="whisper",
+                    source_path=whisper_path,
+                    archive_path=f"whisper/{cache_file}",
                 )
             )
 

@@ -31,6 +31,7 @@ class DescribeModelArchiveServicePack:
             "docling": cache_root / "docling" / "models",
             "huggingface": cache_root / "huggingface" / "hub",
             "chroma": cache_root / "chroma",
+            "whisper": cache_root / "whisper",
         }
 
     def _populate_docling(self, fake_bases):
@@ -87,7 +88,10 @@ class DescribeModelArchiveServicePack:
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_docling")
         archive_path = output_dir / "models.tar.gz"
 
-        with patch("researcher.model_registry.resolve_cache_base_dirs", return_value=fake_bases):
+        with (
+            patch("researcher.model_registry.resolve_cache_base_dirs", return_value=fake_bases),
+            patch("researcher.model_registry.is_apple_silicon", return_value=False),
+        ):
             result = service.pack([repo], archive_path)
 
         assert result.total_files >= 1
@@ -158,6 +162,7 @@ class DescribeModelArchiveServiceUnpack:
             "docling": cache_root / "docling" / "models",
             "huggingface": cache_root / "huggingface" / "hub",
             "chroma": cache_root / "chroma",
+            "whisper": cache_root / "whisper",
         }
 
     def _create_archive(self, archive_path):
@@ -229,6 +234,7 @@ class DescribeModelArchiveServiceUnpack:
             "docling": src_root / "docling" / "models",
             "huggingface": src_root / "huggingface" / "hub",
             "chroma": src_root / "chroma",
+            "whisper": src_root / "whisper",
         }
         src_bases["docling"].mkdir(parents=True)
         (src_bases["docling"] / "layout").mkdir()
@@ -247,6 +253,7 @@ class DescribeModelArchiveServiceUnpack:
             "docling": dst_root / "docling" / "models",
             "huggingface": dst_root / "huggingface" / "hub",
             "chroma": dst_root / "chroma",
+            "whisper": dst_root / "whisper",
         }
 
         with patch("researcher.services.model_archive_service.resolve_cache_base_dirs", return_value=dst_bases):
