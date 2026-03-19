@@ -66,6 +66,20 @@ class DescribeIndexService:
         assert result.documents_indexed == 0
         mock_docling.convert.assert_not_called()
 
+    def should_reindex_unchanged_files_when_force_is_true(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
+    ):
+        file_path = Path("/tmp/docs/doc.md")
+        mock_filesystem.list_files.return_value = [file_path]
+        mock_filesystem.compute_checksum.return_value = "abc123"
+        mock_filesystem.read_file.return_value = "Some text"
+        mock_checksums.load.return_value = {str(file_path): "abc123"}
+
+        result = service.index_repository(repo_config, force=True)
+
+        assert result.documents_skipped == 0
+        assert result.documents_indexed == 1
+
     def should_pass_exclude_patterns_to_list_files(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
     ):

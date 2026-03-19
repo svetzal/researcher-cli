@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-03-19
+
+### Added
+
+- `researcher index --force` flag to re-index all files, ignoring checksums
+
 ## [0.5.0] - 2026-03-19
 
 ### Added

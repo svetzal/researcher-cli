@@ -42,7 +42,7 @@ class IndexService:
         self._repo_name = repo_name
         self._checksums = checksum_gateway
 
-    def index_repository(self, config: RepositoryConfig) -> IndexingResult:
+    def index_repository(self, config: RepositoryConfig, *, force: bool = False) -> IndexingResult:
         """Index all documents in the repository, skipping unchanged files."""
         purged = self.purge_excluded_documents(config)
         result = IndexingResult(
@@ -53,6 +53,8 @@ class IndexService:
             fragments_created=0,
         )
         checksums = self._checksums.load()
+        if force:
+            checksums.clear()
         files = self._filesystem.list_files(config.file_types, config.exclude_patterns)
 
         for file_path in files:

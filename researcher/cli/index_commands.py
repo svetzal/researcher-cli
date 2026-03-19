@@ -11,21 +11,21 @@ from researcher.service_factory import ServiceFactory
 console = Console()
 
 
-def run_index(factory: ServiceFactory, repo: RepositoryConfig, json_output: bool = False) -> dict:
+def run_index(factory: ServiceFactory, repo: RepositoryConfig, json_output: bool = False, force: bool = False) -> dict:
     """Index a single repository with progress display.
 
     Returns a dict describing the indexing result for the repository.
     """
     if json_output:
         service = factory.index_service(repo)
-        result = service.index_repository(repo)
+        result = service.index_repository(repo, force=force)
     else:
         with Progress(
             SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
         ) as progress:
             task = progress.add_task(f"Indexing [bold]{repo.name}[/bold]...", total=None)
             service = factory.index_service(repo)
-            result = service.index_repository(repo)
+            result = service.index_repository(repo, force=force)
             progress.remove_task(task)
 
         console.print(

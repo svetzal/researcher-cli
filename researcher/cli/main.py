@@ -35,6 +35,7 @@ def index_command(
     ctx: typer.Context,
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    force: bool = typer.Option(False, "--force", help="Re-index all files, ignoring checksums"),
 ) -> None:
     """Index a repository (or all repositories)."""
     factory: ServiceFactory = ctx.obj
@@ -58,7 +59,7 @@ def index_command(
                 console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(1) from None
 
-    repo_results = [run_index(factory, repo, json_output=json_output) for repo in repos]
+    repo_results = [run_index(factory, repo, json_output=json_output, force=force) for repo in repos]
 
     if json_output:
         emit_json_index_results(repo_results)
