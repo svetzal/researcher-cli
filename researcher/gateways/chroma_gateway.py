@@ -2,6 +2,7 @@ from pathlib import Path
 
 import chromadb
 
+from researcher.chroma_parsing import collect_document_paths, parse_query_results
 from researcher.models import FragmentForStorage, FragmentWithEmbedding, SearchResult
 
 
@@ -89,32 +90,14 @@ class ChromaGateway:
         if total == 0:
             return []
         batch_size = 500
-        paths: set[str] = set()
+        all_batches: list[list[dict | None]] = []
         offset = 0
         while offset < total:
             results = collection.get(include=["metadatas"], limit=batch_size, offset=offset)
-            for metadata in results.get("metadatas", []):
-                if metadata and "document_path" in metadata:
-                    paths.add(metadata["document_path"])
+            all_batches.append(results.get("metadatas", []))
             offset += batch_size
-        return sorted(paths)
+        return collect_document_paths(all_batches)
 
     def _parse_query_results(self, results: dict) -> list[SearchResult]:
         """Parse ChromaDB query results into SearchResult models."""
-        search_results = []
-        ids = results.get("ids", [[]])[0]
-        documents = results.get("documents", [[]])[0]
-        metadatas = results.get("metadatas", [[]])[0]
-        distances = results.get("distances", [[]])[0]
-
-        for fid, doc, meta, dist in zip(ids, documents, metadatas, distances, strict=True):
-            search_results.append(
-                SearchResult(
-                    fragment_id=fid,
-                    text=doc,
-                    document_path=meta.get("document_path", ""),
-                    fragment_index=meta.get("fragment_index", 0),
-                    distance=dist,
-                )
-            )
-        return search_results
+        return parse_query_results(results)
