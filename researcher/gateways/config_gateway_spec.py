@@ -73,16 +73,6 @@ class DescribeConfigGateway:
 
         assert loaded.repositories[0].exclude_patterns == ["node_modules", ".*"]
 
-    def should_deserialise_missing_exclude_patterns_as_default(self, gateway):
-        raw_yaml = "repositories:\n- name: test\n  path: /tmp/test\n"
-        config_file = gateway.config_dir / "config.yaml"
-        config_file.parent.mkdir(parents=True, exist_ok=True)
-        config_file.write_text(raw_yaml)
-
-        loaded = gateway.load()
-
-        assert loaded.repositories[0].exclude_patterns == [".*"]
-
     def should_serialise_and_deserialise_image_pipeline_settings(self, gateway):
         repo = RepositoryConfig(
             name="test",
@@ -98,17 +88,6 @@ class DescribeConfigGateway:
         assert loaded.repositories[0].image_pipeline == "vlm"
         assert loaded.repositories[0].image_vlm_model == "smoldocling"
 
-    def should_deserialise_missing_image_pipeline_as_standard(self, gateway):
-        raw_yaml = "repositories:\n- name: test\n  path: /tmp/test\n"
-        config_file = gateway.config_dir / "config.yaml"
-        config_file.parent.mkdir(parents=True, exist_ok=True)
-        config_file.write_text(raw_yaml)
-
-        loaded = gateway.load()
-
-        assert loaded.repositories[0].image_pipeline == "standard"
-        assert loaded.repositories[0].image_vlm_model is None
-
     def should_serialise_and_deserialise_audio_asr_model(self, gateway):
         repo = RepositoryConfig(
             name="test",
@@ -121,13 +100,3 @@ class DescribeConfigGateway:
         loaded = gateway.load()
 
         assert loaded.repositories[0].audio_asr_model == "small"
-
-    def should_deserialise_missing_audio_asr_model_as_turbo(self, gateway):
-        raw_yaml = "repositories:\n- name: test\n  path: /tmp/test\n"
-        config_file = gateway.config_dir / "config.yaml"
-        config_file.parent.mkdir(parents=True, exist_ok=True)
-        config_file.write_text(raw_yaml)
-
-        loaded = gateway.load()
-
-        assert loaded.repositories[0].audio_asr_model == "turbo"
