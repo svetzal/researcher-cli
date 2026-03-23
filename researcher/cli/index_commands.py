@@ -75,11 +75,6 @@ def run_status(factory: ServiceFactory, repo: RepositoryConfig, json_output: boo
     }
 
 
-def emit_json_index_results(repo_results: list[dict]) -> None:
-    """Write collected index results as a JSON object to stdout."""
-    typer.echo(json.dumps({"repositories": repo_results}, default=str))
-
-
-def emit_json_status_results(repo_stats: list[dict]) -> None:
-    """Write collected status results as a JSON object to stdout."""
-    typer.echo(json.dumps({"repositories": repo_stats}, default=str))
+def emit_json_results(results: list[dict]) -> None:
+    """Write collected results as a JSON object to stdout."""
+    typer.echo(json.dumps({"repositories": results}, default=str))

@@ -360,6 +360,28 @@ class DescribeRepoListJsonOutput:
         assert repo["file_types"] == ["md", "txt"]
         assert repo["embedding_provider"] == "chromadb"
         assert repo["embedding_model"] is None
+        assert repo["image_pipeline"] == "standard"
+        assert repo["image_vlm_model"] is None
+        assert repo["audio_asr_model"] == "turbo"
+
+    def should_include_image_and_audio_fields_with_non_default_values(self, mock_factory):
+        mock_factory.repository_service.list_repositories.return_value = [
+            RepositoryConfig(
+                name="my-notes",
+                path="/tmp/notes",
+                image_pipeline="vlm",
+                image_vlm_model="phi4",
+                audio_asr_model="large",
+            )
+        ]
+
+        result = runner.invoke(repo_app, ["list", "--json"], obj=mock_factory)
+
+        data = json.loads(result.output)
+        repo = data["repositories"][0]
+        assert repo["image_pipeline"] == "vlm"
+        assert repo["image_vlm_model"] == "phi4"
+        assert repo["audio_asr_model"] == "large"
 
     def should_include_exclude_patterns_in_list_json_output(self, mock_factory):
         mock_factory.repository_service.list_repositories.return_value = [

@@ -4,7 +4,7 @@ import typer
 from rich.console import Console
 
 from researcher.cli.config_commands import config_app
-from researcher.cli.index_commands import emit_json_index_results, emit_json_status_results, run_index, run_status
+from researcher.cli.index_commands import emit_json_results, run_index, run_status
 from researcher.cli.init_commands import init_command
 from researcher.cli.model_commands import models_app
 from researcher.cli.repo_commands import repo_app
@@ -62,7 +62,7 @@ def index_command(
     repo_results = [run_index(factory, repo, json_output=json_output, force=force) for repo in repos]
 
     if json_output:
-        emit_json_index_results(repo_results)
+        emit_json_results(repo_results)
 
 
 @app.command("remove")
@@ -123,7 +123,7 @@ def status_command(
     repo_stats = [run_status(factory, repo, json_output=json_output) for repo in repos]
 
     if json_output:
-        emit_json_status_results(repo_stats)
+        emit_json_results(repo_stats)
 
 
 @app.command("search")

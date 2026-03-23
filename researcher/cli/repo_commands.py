@@ -4,7 +4,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from researcher.config import RepositoryConfig
+from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
+
+_DEFAULTS = RepositoryConfig(name="", path="")
+_vlm_names = ", ".join(sorted(set(VLM_PRESET_REPOS.keys()) | API_ONLY_PRESETS))
 
 repo_app = typer.Typer(help="Manage document repositories.")
 console = Console()
@@ -21,8 +26,12 @@ def add_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
     path: str = typer.Argument(..., help="Path to the document directory"),
-    file_types: str = typer.Option("md,txt,pdf,docx,html", "--file-types", help="Comma-separated file extensions"),
-    embedding_provider: str = typer.Option("chromadb", "--embedding-provider", help="Embedding provider"),
+    file_types: str = typer.Option(
+        ",".join(_DEFAULTS.file_types), "--file-types", help="Comma-separated file extensions"
+    ),
+    embedding_provider: str = typer.Option(
+        _DEFAULTS.embedding_provider, "--embedding-provider", help="Embedding provider"
+    ),
     embedding_model: str = typer.Option(None, "--embedding-model", help="Embedding model name"),
     exclude: list[str] = typer.Option(
         None,
@@ -31,7 +40,7 @@ def add_repo(
         help="Glob pattern to exclude (repeatable, e.g. --exclude node_modules --exclude '.*')",
     ),
     image_pipeline: str = typer.Option(
-        "standard",
+        _DEFAULTS.image_pipeline,
         "--image-pipeline",
         help="Image processing pipeline: 'standard' (OCR) or 'vlm' (Vision Language Model)",
     ),
@@ -39,9 +48,7 @@ def add_repo(
         None,
         "--image-vlm-model",
         help=(
-            "VLM preset name (only used when --image-pipeline=vlm). "
-            "Available: smoldocling, granite_docling, deepseek_ocr, granite_vision, pixtral, "
-            "got_ocr, phi4, qwen, gemma_12b, gemma_27b, dolphin. Default: granite_docling"
+            f"VLM preset name (only used when --image-pipeline=vlm). Available: {_vlm_names}. Default: granite_docling"
         ),
     ),
     audio_asr_model: str = typer.Option(
@@ -64,21 +71,10 @@ def add_repo(
             exclude_patterns=exclude or [],
             image_pipeline=image_pipeline,
             image_vlm_model=image_vlm_model,
-            audio_asr_model=audio_asr_model or "turbo",
+            audio_asr_model=audio_asr_model or _DEFAULTS.audio_asr_model,
         )
         if json_output:
-            data = {
-                "name": repo.name,
-                "path": repo.path,
-                "file_types": repo.file_types,
-                "embedding_provider": repo.embedding_provider,
-                "embedding_model": repo.embedding_model,
-                "exclude_patterns": repo.exclude_patterns,
-                "image_pipeline": repo.image_pipeline,
-                "image_vlm_model": repo.image_vlm_model,
-                "audio_asr_model": repo.audio_asr_model,
-            }
-            typer.echo(json.dumps(data, default=str))
+            typer.echo(json.dumps(repo.model_dump(), default=str))
         else:
             console.print(f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}")
     except ValueError as e:
@@ -138,9 +134,7 @@ def update_repo(
         None,
         "--image-vlm-model",
         help=(
-            "VLM preset name (only used when --image-pipeline=vlm). "
-            "Available: smoldocling, granite_docling, deepseek_ocr, granite_vision, pixtral, "
-            "got_ocr, phi4, qwen, gemma_12b, gemma_27b, dolphin. Default: granite_docling"
+            f"VLM preset name (only used when --image-pipeline=vlm). Available: {_vlm_names}. Default: granite_docling"
         ),
     ),
     audio_asr_model: str = typer.Option(
@@ -170,19 +164,7 @@ def update_repo(
             purged = index_svc.purge_excluded_documents(repo)
 
         if json_output:
-            data = {
-                "name": repo.name,
-                "path": repo.path,
-                "file_types": repo.file_types,
-                "embedding_provider": repo.embedding_provider,
-                "embedding_model": repo.embedding_model,
-                "exclude_patterns": repo.exclude_patterns,
-                "image_pipeline": repo.image_pipeline,
-                "image_vlm_model": repo.image_vlm_model,
-                "audio_asr_model": repo.audio_asr_model,
-                "purged_documents": purged,
-            }
-            typer.echo(json.dumps(data, default=str))
+            typer.echo(json.dumps(repo.model_dump() | {"purged_documents": purged}, default=str))
         else:
             console.print(f"[green]✓[/green] Updated repository '[bold]{repo.name}[/bold]'")
             if added_patterns:
@@ -209,20 +191,7 @@ def list_repos(
     repos = factory.repository_service.list_repositories()
 
     if json_output:
-        data = {
-            "repositories": [
-                {
-                    "name": repo.name,
-                    "path": repo.path,
-                    "file_types": repo.file_types,
-                    "embedding_provider": repo.embedding_provider,
-                    "embedding_model": repo.embedding_model,
-                    "exclude_patterns": repo.exclude_patterns,
-                }
-                for repo in repos
-            ]
-        }
-        typer.echo(json.dumps(data, default=str))
+        typer.echo(json.dumps({"repositories": [repo.model_dump() for repo in repos]}, default=str))
         return
 
     if not repos:

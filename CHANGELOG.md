@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `repo list --json` now includes `image_pipeline`, `image_vlm_model`, and `audio_asr_model` fields (previously silently dropped)
+
 ### Changed
 
 - Refactored `EmbeddingGateway` from a monolithic class into three thin provider-specific gateways (`ChromaDbEmbeddingGateway`, `OllamaEmbeddingGateway`, `OpenAIEmbeddingGateway`) with a shared Protocol, moving provider routing to the composition root
 - Extracted ChromaDB result parsing into pure functions (`parse_query_results`, `collect_document_paths`) in `chroma_parsing.py` for direct unit-testability without a database
 - Removed redundant gateway tests that duplicated pure-function and model specs (exclusion-pattern tests in `filesystem_gateway_spec.py`, default-value roundtrip tests in `config_gateway_spec.py`, and all of `chroma_gateway_spec.py`)
+- CLI repo commands now use Pydantic `model_dump()` for consistent, complete JSON output — eliminates per-command manual field lists
+- VLM preset help text is now generated from the model registry (`VLM_PRESET_REPOS`, `API_ONLY_PRESETS`) instead of being hardcoded in two places
+- CLI default values for `--file-types`, `--embedding-provider`, `--image-pipeline`, and `--audio-asr-model` in `repo add` are now derived from `RepositoryConfig` model defaults
+- Collapsed identical `emit_json_index_results` / `emit_json_status_results` functions into a single `emit_json_results`
 
 ## [0.5.1] - 2026-03-19
 
