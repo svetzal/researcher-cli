@@ -2,12 +2,16 @@ from functools import cached_property
 from pathlib import Path
 
 from researcher.config import RepositoryConfig, ResearcherConfig
+from researcher.embedding_providers import resolve_embedding_config
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
+from researcher.gateways.chromadb_embedding_gateway import ChromaDbEmbeddingGateway
 from researcher.gateways.config_gateway import ConfigGateway
 from researcher.gateways.docling_gateway import DoclingGateway, is_docling_available
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
+from researcher.gateways.ollama_embedding_gateway import OllamaEmbeddingGateway
+from researcher.gateways.openai_embedding_gateway import OpenAIEmbeddingGateway
 from researcher.services.index_service import IndexService
 from researcher.services.model_archive_service import ModelArchiveService
 from researcher.services.repository_service import RepositoryService
@@ -32,6 +36,18 @@ class ServiceFactory:
     def repository_service(self) -> RepositoryService:
         return RepositoryService(config_gateway=self.config_gateway)
 
+    def _create_embedding_gateway(self, repo: RepositoryConfig) -> EmbeddingGateway:
+        config = resolve_embedding_config(repo.embedding_provider, repo.embedding_model)
+        match config.provider:
+            case "chromadb":
+                return ChromaDbEmbeddingGateway()
+            case "ollama":
+                return OllamaEmbeddingGateway(model=config.model)
+            case "openai":
+                return OpenAIEmbeddingGateway(model=config.model)
+            case _:
+                raise ValueError(f"Unsupported embedding provider: {config.provider}")
+
     def index_service(self, repo: RepositoryConfig) -> IndexService:
         """Create a fresh IndexService for the given repository."""
         repo_data_dir = self._config_dir / "repositories" / repo.name
@@ -49,10 +65,7 @@ class ServiceFactory:
         return IndexService(
             filesystem_gateway=FilesystemGateway(base_path=Path(repo.path)),
             docling_gateway=docling_gw,
-            embedding_gateway=EmbeddingGateway(
-                provider=repo.embedding_provider,
-                model=repo.embedding_model,
-            ),
+            embedding_gateway=self._create_embedding_gateway(repo),
             chroma_gateway=ChromaGateway(persist_directory=chroma_dir),
             repo_name=repo.name,
             checksum_gateway=ChecksumGateway(checksums_path=checksums_path),
@@ -69,8 +82,5 @@ class ServiceFactory:
 
         return SearchService(
             chroma_gateway=ChromaGateway(persist_directory=chroma_dir),
-            embedding_gateway=EmbeddingGateway(
-                provider=repo.embedding_provider,
-                model=repo.embedding_model,
-            ),
+            embedding_gateway=self._create_embedding_gateway(repo),
         )
