@@ -5,8 +5,11 @@ from rich.console import Console
 from rich.panel import Panel
 
 from researcher.config import RepositoryConfig
-from researcher.models import DocumentSearchResult, SearchResult
 from researcher.service_factory import ServiceFactory
+from researcher.services.multi_repo_search import (
+    search_documents_across_repos,
+    search_fragments_across_repos,
+)
 
 console = Console()
 
@@ -19,14 +22,7 @@ def run_search_fragments(
     json_output: bool = False,
 ) -> None:
     """Search for fragments across one or more repositories."""
-    all_results: list[SearchResult] = []
-    for repo in repos:
-        service = factory.search_service(repo)
-        results = service.search_fragments(query, n_results=n_results)
-        all_results.extend(results)
-
-    all_results.sort(key=lambda r: r.distance)
-    all_results = all_results[:n_results]
+    all_results = search_fragments_across_repos(factory, repos, query, n_results)
 
     if json_output:
         data = {
@@ -71,14 +67,7 @@ def run_search_documents(
     json_output: bool = False,
 ) -> None:
     """Search for documents across one or more repositories."""
-    all_results: list[DocumentSearchResult] = []
-    for repo in repos:
-        service = factory.search_service(repo)
-        results = service.search_documents(query, n_results=n_results)
-        all_results.extend(results)
-
-    all_results.sort(key=lambda r: r.best_distance)
-    all_results = all_results[:n_results]
+    all_results = search_documents_across_repos(factory, repos, query, n_results)
 
     if json_output:
         results_data = []

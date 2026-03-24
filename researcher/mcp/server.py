@@ -3,6 +3,10 @@ from pathlib import Path
 import fastmcp
 
 from researcher.service_factory import ServiceFactory
+from researcher.services.multi_repo_search import (
+    search_documents_across_repos,
+    search_fragments_across_repos,
+)
 
 mcp = fastmcp.FastMCP("researcher")
 
@@ -46,28 +50,16 @@ def remove_from_index(repository: str, document_path: str) -> str:
 def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[dict]:
     """Search for text fragments across indexed repositories."""
     repos = _get_repos(repository)
-    all_results = []
-    for repo in repos:
-        service = _get_factory().search_service(repo)
-        results = service.search_fragments(query, n_results=n_results)
-        all_results.extend(r.model_dump() for r in results)
-
-    all_results.sort(key=lambda r: r["distance"])
-    return all_results[:n_results]
+    results = search_fragments_across_repos(_get_factory(), repos, query, n_results)
+    return [r.model_dump() for r in results]
 
 
 @mcp.tool
 def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[dict]:
     """Search for documents across indexed repositories, returning top fragments per document."""
     repos = _get_repos(repository)
-    all_results = []
-    for repo in repos:
-        service = _get_factory().search_service(repo)
-        results = service.search_documents(query, n_results=n_results)
-        all_results.extend(r.model_dump() for r in results)
-
-    all_results.sort(key=lambda r: r["best_distance"])
-    return all_results[:n_results]
+    results = search_documents_across_repos(_get_factory(), repos, query, n_results)
+    return [r.model_dump() for r in results]
 
 
 @mcp.tool

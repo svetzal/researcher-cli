@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Extracted cross-repository search aggregation into `multi_repo_search` service functions, eliminating duplication between CLI and MCP layers
 - Refactored `EmbeddingGateway` from a monolithic class into three thin provider-specific gateways (`ChromaDbEmbeddingGateway`, `OllamaEmbeddingGateway`, `OpenAIEmbeddingGateway`) with a shared Protocol, moving provider routing to the composition root
 - Extracted ChromaDB result parsing into pure functions (`parse_query_results`, `collect_document_paths`) in `chroma_parsing.py` for direct unit-testability without a database
 - Removed redundant gateway tests that duplicated pure-function and model specs (exclusion-pattern tests in `filesystem_gateway_spec.py`, default-value roundtrip tests in `config_gateway_spec.py`, and all of `chroma_gateway_spec.py`)

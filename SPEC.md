@@ -40,7 +40,8 @@ researcher/
         __init__.py
         repository_service.py  # Repository CRUD and management
         index_service.py       # Document indexing pipeline
-        search_service.py      # Fragment and document search
+        search_service.py      # Fragment and document search (single repo)
+        multi_repo_search.py   # Cross-repository search aggregation
 
     service_factory.py     # Composition root, wires dependencies
 
@@ -322,7 +323,7 @@ class SearchService:
     def search_documents(self, query: str, n_results: int = 5) -> list[DocumentSearchResult]: ...
 ```
 
-Cross-repository search is handled at the CLI/MCP layer by iterating over repositories and merging results.
+Cross-repository search is handled by `multi_repo_search` functions in the services layer (`search_fragments_across_repos`, `search_documents_across_repos`). These functions iterate over repositories, merge results sorted by distance (or best distance for documents), and truncate to the requested count. The CLI and MCP layers are thin callers that delegate to these functions.
 
 ---
 
