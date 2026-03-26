@@ -29,4 +29,6 @@ jobs:
         run: uv run pytest
 
       - name: Security audit
-        run: uv run pip-audit
+        # CVE-2026-4539: ReDoS in pygments AdlLexer (archetype.py), local-access only,
+        # no upstream fix available yet. Remove --ignore-vuln when pygments >2.19.2 ships a fix.
+        run: uv run pip-audit --ignore-vuln CVE-2026-4539
