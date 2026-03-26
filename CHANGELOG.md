@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `repo list --json` now includes `image_pipeline`, `image_vlm_model`, and `audio_asr_model` fields (previously silently dropped)
+- Added missing spec for `model_commands.py` CLI module (pack/unpack commands)
 
 ### Changed
 
