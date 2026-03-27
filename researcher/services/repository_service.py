@@ -17,12 +17,12 @@ class RepositoryService:
         name: str,
         path: str,
         file_types: list[str] | None = None,
-        embedding_provider: str = "chromadb",
+        embedding_provider: str | None = None,
         embedding_model: str | None = None,
         exclude_patterns: list[str] | None = None,
-        image_pipeline: str = "standard",
+        image_pipeline: str | None = None,
         image_vlm_model: str | None = None,
-        audio_asr_model: str = "turbo",
+        audio_asr_model: str | None = None,
     ) -> RepositoryConfig:
         """Add a new repository to the configuration."""
         config = self._config_gateway.load()
@@ -30,17 +30,23 @@ class RepositoryService:
         if any(r.name == name for r in config.repositories):
             raise ValueError(f"Repository '{name}' already exists")
 
-        repo = RepositoryConfig(
-            name=name,
-            path=path,
-            file_types=file_types or ["md", "txt", "pdf", "docx", "html"],
-            embedding_provider=embedding_provider,
-            embedding_model=embedding_model,
-            exclude_patterns=exclude_patterns or [],
-            image_pipeline=image_pipeline,
-            image_vlm_model=image_vlm_model,
-            audio_asr_model=audio_asr_model,
-        )
+        fields: dict = {"name": name, "path": path}
+        if file_types is not None:
+            fields["file_types"] = file_types
+        if embedding_provider is not None:
+            fields["embedding_provider"] = embedding_provider
+        if embedding_model is not None:
+            fields["embedding_model"] = embedding_model
+        if exclude_patterns is not None:
+            fields["exclude_patterns"] = exclude_patterns
+        if image_pipeline is not None:
+            fields["image_pipeline"] = image_pipeline
+        if image_vlm_model is not None:
+            fields["image_vlm_model"] = image_vlm_model
+        if audio_asr_model is not None:
+            fields["audio_asr_model"] = audio_asr_model
+
+        repo = RepositoryConfig(**fields)
         config.repositories.append(repo)
         self._config_gateway.save(config)
         logger.info("Repository added", name=name, path=path)

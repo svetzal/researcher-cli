@@ -62,9 +62,13 @@ class ServiceFactory:
             case _:
                 raise ValueError(f"Unsupported embedding provider: {config.provider}")
 
+    def _repo_data_dir(self, repo: RepositoryConfig) -> Path:
+        """Return the data directory for a repository."""
+        return self._config_dir / "repositories" / repo.name
+
     def index_service(self, repo: RepositoryConfig) -> IndexService:
         """Create a fresh IndexService for the given repository."""
-        repo_data_dir = self._config_dir / "repositories" / repo.name
+        repo_data_dir = self._repo_data_dir(repo)
         chroma_dir = repo_data_dir / "chroma"
         checksums_path = repo_data_dir / "checksums.json"
 
@@ -91,8 +95,7 @@ class ServiceFactory:
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:
         """Create a fresh SearchService for the given repository."""
-        repo_data_dir = self._config_dir / "repositories" / repo.name
-        chroma_dir = repo_data_dir / "chroma"
+        chroma_dir = self._repo_data_dir(repo) / "chroma"
 
         return SearchService(
             chroma_gateway=ChromaGateway(persist_directory=chroma_dir),

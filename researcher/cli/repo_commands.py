@@ -71,7 +71,7 @@ def add_repo(
             exclude_patterns=exclude or [],
             image_pipeline=image_pipeline,
             image_vlm_model=image_vlm_model,
-            audio_asr_model=audio_asr_model or _DEFAULTS.audio_asr_model,
+            audio_asr_model=audio_asr_model,
         )
         if json_output:
             typer.echo(json.dumps(repo.model_dump(), default=str))
