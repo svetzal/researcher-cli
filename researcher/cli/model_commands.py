@@ -5,6 +5,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from researcher.cli.output import cli_error
 from researcher.service_factory import ServiceFactory
 
 models_app = typer.Typer(help="Manage model caches for offline use.")
@@ -39,10 +40,7 @@ def pack_command(
     try:
         result = service.pack(repos, output)
     except FileNotFoundError as e:
-        if json_output:
-            typer.echo(json.dumps({"error": str(e)}))
-        else:
-            console.print(f"[red]Error:[/red] {e}")
+        cli_error(str(e), json_output=json_output)
         raise typer.Exit(1) from None
 
     if json_output:
@@ -75,10 +73,7 @@ def unpack_command(
     try:
         result = service.unpack(archive)
     except (FileNotFoundError, ValueError) as e:
-        if json_output:
-            typer.echo(json.dumps({"error": str(e)}))
-        else:
-            console.print(f"[red]Error:[/red] {e}")
+        cli_error(str(e), json_output=json_output)
         raise typer.Exit(1) from None
 
     if json_output:

@@ -7,7 +7,7 @@ from researcher.embedding_providers import resolve_embedding_config
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.chromadb_embedding_gateway import ChromaDbEmbeddingGateway
-from researcher.gateways.config_gateway import ConfigGateway
+from researcher.gateways.config_gateway import DEFAULT_CONFIG_DIR, ConfigGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
@@ -23,7 +23,7 @@ class ServiceFactory:
     """Composition root — wires all service and gateway dependencies."""
 
     def __init__(self, config_dir: Path | None = None):
-        self._config_dir = config_dir or Path.home() / ".researcher"
+        self._config_dir = config_dir or DEFAULT_CONFIG_DIR
 
     @cached_property
     def config_gateway(self) -> ConfigGateway:

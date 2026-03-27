@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from researcher.cli.output import cli_error
 from researcher.config import RepositoryConfig
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
@@ -78,10 +79,7 @@ def add_repo(
         else:
             console.print(f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}")
     except ValueError as e:
-        if json_output:
-            typer.echo(json.dumps({"error": str(e)}))
-        else:
-            console.print(f"[red]Error:[/red] {e}")
+        cli_error(str(e), json_output=json_output)
         raise typer.Exit(1) from None
 
 
@@ -100,10 +98,7 @@ def remove_repo(
         else:
             console.print(f"[green]✓[/green] Removed repository '[bold]{name}[/bold]'")
     except ValueError as e:
-        if json_output:
-            typer.echo(json.dumps({"error": str(e)}))
-        else:
-            console.print(f"[red]Error:[/red] {e}")
+        cli_error(str(e), json_output=json_output)
         raise typer.Exit(1) from None
 
 
@@ -174,10 +169,7 @@ def update_repo(
             elif added_patterns and not no_purge:
                 console.print("  [dim]No previously-indexed documents matched the new exclusions[/dim]")
     except ValueError as e:
-        if json_output:
-            typer.echo(json.dumps({"error": str(e)}))
-        else:
-            console.print(f"[red]Error:[/red] {e}")
+        cli_error(str(e), json_output=json_output)
         raise typer.Exit(1) from None
 
 

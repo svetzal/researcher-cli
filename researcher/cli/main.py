@@ -7,8 +7,10 @@ from researcher.cli.config_commands import config_app
 from researcher.cli.index_commands import emit_json_results, run_index, run_status
 from researcher.cli.init_commands import init_command
 from researcher.cli.model_commands import models_app
+from researcher.cli.output import cli_error
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
+from researcher.config import RepositoryConfig
 from researcher.service_factory import ServiceFactory
 
 app = typer.Typer(
@@ -22,6 +24,20 @@ app.add_typer(models_app, name="models")
 app.command("init")(init_command)
 
 console = Console()
+
+
+def _resolve_repos(
+    factory: ServiceFactory,
+    repo_name: str | None,
+    all_repos: list[RepositoryConfig],
+) -> list[RepositoryConfig]:
+    """Return [named_repo] if repo_name given, else all_repos.
+
+    Raises ValueError if repo_name is given but not found.
+    """
+    if repo_name:
+        return [factory.repository_service.get_repository(repo_name)]
+    return all_repos
 
 
 @app.callback()
@@ -50,13 +66,9 @@ def index_command(
 
     if repo_name:
         try:
-            target = factory.repository_service.get_repository(repo_name)
-            repos = [target]
+            repos = _resolve_repos(factory, repo_name, repos)
         except ValueError as e:
-            if json_output:
-                typer.echo(json.dumps({"error": str(e)}))
-            else:
-                console.print(f"[red]Error:[/red] {e}")
+            cli_error(str(e), json_output=json_output)
             raise typer.Exit(1) from None
 
     repo_results = [run_index(factory, repo, json_output=json_output, force=force) for repo in repos]
@@ -77,10 +89,7 @@ def remove_command(
     try:
         repo = factory.repository_service.get_repository(repo_name)
     except ValueError as e:
-        if json_output:
-            typer.echo(json.dumps({"error": str(e)}))
-        else:
-            console.print(f"[red]Error:[/red] {e}")
+        cli_error(str(e), json_output=json_output)
         raise typer.Exit(1) from None
 
     service = factory.index_service(repo)
@@ -111,13 +120,9 @@ def status_command(
 
     if repo_name:
         try:
-            target = factory.repository_service.get_repository(repo_name)
-            repos = [target]
+            repos = _resolve_repos(factory, repo_name, repos)
         except ValueError as e:
-            if json_output:
-                typer.echo(json.dumps({"error": str(e)}))
-            else:
-                console.print(f"[red]Error:[/red] {e}")
+            cli_error(str(e), json_output=json_output)
             raise typer.Exit(1) from None
 
     repo_stats = [run_status(factory, repo, json_output=json_output) for repo in repos]
@@ -155,18 +160,11 @@ def search_command(
             console.print("[yellow]No repositories configured.[/yellow]")
         raise typer.Exit(0)
 
-    if repo:
-        try:
-            target = factory.repository_service.get_repository(repo)
-            search_repos = [target]
-        except ValueError as e:
-            if json_output:
-                typer.echo(json.dumps({"error": str(e)}))
-            else:
-                console.print(f"[red]Error:[/red] {e}")
-            raise typer.Exit(1) from None
-    else:
-        search_repos = all_repos
+    try:
+        search_repos = _resolve_repos(factory, repo, all_repos)
+    except ValueError as e:
+        cli_error(str(e), json_output=json_output)
+        raise typer.Exit(1) from None
 
     if mode == "fragments":
         run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)
