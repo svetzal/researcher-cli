@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VLM preset help text is now generated from the model registry (`VLM_PRESET_REPOS`, `API_ONLY_PRESETS`) instead of being hardcoded in two places
 - CLI default values for `--file-types`, `--embedding-provider`, `--image-pipeline`, and `--audio-asr-model` in `repo add` are now derived from `RepositoryConfig` model defaults
 - Collapsed identical `emit_json_index_results` / `emit_json_status_results` functions into a single `emit_json_results`
+- Repository configuration defaults are now owned exclusively by `RepositoryConfig` (Pydantic model), eliminating duplicated default values in the service layer
+- Extracted `_repo_data_dir` helper in `ServiceFactory` to eliminate duplicated path construction
+- Extracted `_resolve_repos` helper in CLI commands to deduplicate repository resolution logic
+- Extracted `cli_error` helper in `researcher/cli/output.py` for consistent error formatting across all CLI modules
+- Consolidated `DEFAULT_CONFIG_DIR` into a single constant in `config_gateway.py`, eliminating the duplicate `Path.home() / ".researcher"` expression
 
 ## [0.5.1] - 2026-03-19
 
