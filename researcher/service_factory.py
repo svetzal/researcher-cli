@@ -11,6 +11,7 @@ from researcher.gateways.config_gateway import DEFAULT_CONFIG_DIR, ConfigGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
+from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.gateways.ollama_embedding_gateway import OllamaEmbeddingGateway
 from researcher.gateways.openai_embedding_gateway import OpenAIEmbeddingGateway
 from researcher.services.index_service import IndexService
@@ -91,7 +92,7 @@ class ServiceFactory:
 
     def model_archive_service(self) -> ModelArchiveService:
         """Create a ModelArchiveService."""
-        return ModelArchiveService()
+        return ModelArchiveService(model_cache_gateway=ModelCacheGateway())
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:
         """Create a fresh SearchService for the given repository."""

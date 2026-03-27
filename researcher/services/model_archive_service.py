@@ -1,29 +1,36 @@
 """Service for packing and unpacking model cache directories into portable archives."""
 
-from __future__ import annotations
-
 import json
 import tarfile
-from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 
+from pydantic import BaseModel, ConfigDict
+
 from researcher.config import RepositoryConfig
-from researcher.model_registry import ModelCacheEntry, resolve_cache_base_dirs, resolve_models_for_repos
+from researcher.gateways.model_cache_gateway import ModelCacheGateway
+from researcher.model_registry import (
+    ModelCacheEntry,
+    _candidate_paths,
+    _collect_requirements,
+    build_model_entries,
+)
 
 
-@dataclass(frozen=True)
-class PackResult:
+class PackResult(BaseModel):
     """Result of a pack operation."""
+
+    model_config = ConfigDict(frozen=True)
 
     archive_path: Path
     entries: list[ModelCacheEntry]
     total_files: int
 
 
-@dataclass(frozen=True)
-class UnpackResult:
+class UnpackResult(BaseModel):
     """Result of an unpack operation."""
+
+    model_config = ConfigDict(frozen=True)
 
     entries_restored: int
     files_extracted: int
@@ -31,6 +38,9 @@ class UnpackResult:
 
 class ModelArchiveService:
     """Packs and unpacks model cache directories into portable tar.gz archives."""
+
+    def __init__(self, model_cache_gateway: ModelCacheGateway) -> None:
+        self._cache = model_cache_gateway
 
     def pack(self, repos: list[RepositoryConfig], output_path: Path) -> PackResult:
         """Pack model cache directories into a tar.gz archive.
@@ -45,13 +55,17 @@ class ModelArchiveService:
         Raises:
             FileNotFoundError: If no model cache directories are found on disk.
         """
-        entries = resolve_models_for_repos(repos)
+        bases = self._cache.resolve_cache_base_dirs()
+        requirements = _collect_requirements(repos)
+        candidates = _candidate_paths(requirements, bases)
+        existing = self._cache.existing_paths(candidates)
+        entries = build_model_entries(requirements, bases, existing)
 
         if not entries:
             raise FileNotFoundError("No model cache directories found on disk to pack.")
 
         total_files = 0
-        with tarfile.open(output_path, "w:gz") as tar:
+        with self._cache.create_archive(output_path) as tar:
             # Write manifest
             manifest = self._build_manifest(repos, entries)
             manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
@@ -61,7 +75,7 @@ class ModelArchiveService:
 
             # Add each model cache entry (directory or file)
             for entry in entries:
-                if entry.source_path.is_file():
+                if self._cache.is_file(entry.source_path):
                     tar.add(str(entry.source_path), arcname=entry.archive_path)
                     total_files += 1
                 else:
@@ -83,10 +97,10 @@ class ModelArchiveService:
             FileNotFoundError: If the archive does not exist.
             ValueError: If the archive is missing a manifest.
         """
-        if not archive_path.is_file():
+        if not self._cache.archive_exists(archive_path):
             raise FileNotFoundError(f"Archive not found: {archive_path}")
 
-        bases = resolve_cache_base_dirs()
+        bases = self._cache.resolve_cache_base_dirs()
 
         # Category prefixes → cache base directories
         category_roots = {
@@ -96,16 +110,19 @@ class ModelArchiveService:
             "whisper": bases["whisper"],
         }
 
-        entries_restored = 0
         files_extracted = 0
         has_manifest = False
+        manifest_data: dict | None = None
 
-        with tarfile.open(archive_path, "r:gz") as tar:
+        with self._cache.open_archive(archive_path) as tar:
             members = tar.getmembers()
 
             for member in members:
                 if member.name == "manifest.json":
                     has_manifest = True
+                    f = tar.extractfile(member)
+                    if f:
+                        manifest_data = json.loads(f.read().decode("utf-8"))
                     continue
 
                 # Find which category this member belongs to
@@ -121,10 +138,7 @@ class ModelArchiveService:
             if not has_manifest:
                 raise ValueError("Archive is missing manifest.json — not a valid model archive.")
 
-        # Count distinct top-level entries from manifest
-        manifest_data = self._read_manifest(archive_path)
-        if manifest_data:
-            entries_restored = len(manifest_data.get("entries", []))
+        entries_restored = len(manifest_data.get("entries", [])) if manifest_data else 0
 
         return UnpackResult(entries_restored=entries_restored, files_extracted=files_extracted)
 
@@ -165,21 +179,8 @@ class ModelArchiveService:
     def _extract_member(self, tar: tarfile.TarFile, member: tarfile.TarInfo, dest_path: Path) -> None:
         """Extract a single tar member to dest_path."""
         if member.isdir():
-            dest_path.mkdir(parents=True, exist_ok=True)
+            self._cache.make_dirs(dest_path)
         elif member.isfile():
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
             source = tar.extractfile(member)
             if source is not None:
-                dest_path.write_bytes(source.read())
-
-    def _read_manifest(self, archive_path: Path) -> dict | None:
-        """Read the manifest from an archive."""
-        with tarfile.open(archive_path, "r:gz") as tar:
-            try:
-                member = tar.getmember("manifest.json")
-                f = tar.extractfile(member)
-                if f:
-                    return json.loads(f.read().decode("utf-8"))
-            except KeyError:
-                pass
-        return None
+                self._cache.write_file(dest_path, source.read())
