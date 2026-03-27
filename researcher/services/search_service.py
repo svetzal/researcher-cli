@@ -17,8 +17,12 @@ class SearchService:
 
     def search_fragments(self, query: str, n_results: int = 10) -> list[SearchResult]:
         """Search for text fragments matching the query."""
+        count = self._chroma.count(COLLECTION_NAME)
+        if count == 0:
+            return []
+        actual_n = min(n_results, count)
         embedding = self._embedding.embed_query(query)
-        return self._chroma.query_with_embedding(COLLECTION_NAME, embedding, n_results=n_results)
+        return self._chroma.query_with_embedding(COLLECTION_NAME, embedding, n_results=actual_n)
 
     def search_documents(self, query: str, n_results: int = 5) -> list[DocumentSearchResult]:
         """Search for documents, grouped and ranked by best fragment match."""

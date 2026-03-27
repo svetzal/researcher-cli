@@ -22,6 +22,7 @@ class DescribeSearchService:
         return SearchService(chroma_gateway=mock_chroma, embedding_gateway=mock_embedding)
 
     def should_return_fragments_matching_query(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 100
         mock_embedding.embed_query.return_value = [0.1, 0.2, 0.3]
         mock_chroma.query_with_embedding.return_value = [
             SearchResult(
@@ -40,6 +41,7 @@ class DescribeSearchService:
         mock_embedding.embed_query.assert_called_once_with("test query")
 
     def should_group_fragments_by_document(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 100
         mock_embedding.embed_query.return_value = [0.1, 0.2, 0.3]
         mock_chroma.query_with_embedding.return_value = [
             SearchResult(fragment_id="f1", text="text1", document_path="doc1.md", fragment_index=0, distance=0.1),
@@ -52,6 +54,7 @@ class DescribeSearchService:
         assert len(results) == 2
 
     def should_sort_documents_by_best_distance(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 100
         mock_embedding.embed_query.return_value = [0.1, 0.2, 0.3]
         mock_chroma.query_with_embedding.return_value = [
             SearchResult(fragment_id="f1", text="text1", document_path="doc2.md", fragment_index=0, distance=0.5),
@@ -64,6 +67,7 @@ class DescribeSearchService:
         assert results[1].document_path == "doc2.md"
 
     def should_select_best_distance_per_document(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 100
         mock_embedding.embed_query.return_value = [0.1, 0.2, 0.3]
         mock_chroma.query_with_embedding.return_value = [
             SearchResult(fragment_id="f1", text="text1", document_path="doc1.md", fragment_index=0, distance=0.5),
@@ -75,6 +79,7 @@ class DescribeSearchService:
         assert results[0].best_distance == 0.1
 
     def should_truncate_to_n_results(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 100
         mock_embedding.embed_query.return_value = [0.1, 0.2, 0.3]
         mock_chroma.query_with_embedding.return_value = [
             SearchResult(
@@ -88,9 +93,27 @@ class DescribeSearchService:
         assert len(results) == 3
 
     def should_return_empty_list_when_no_results(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 100
         mock_embedding.embed_query.return_value = [0.1, 0.2, 0.3]
         mock_chroma.query_with_embedding.return_value = []
 
         results = service.search_fragments("query")
 
         assert results == []
+
+    def should_return_empty_list_when_collection_is_empty(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 0
+
+        results = service.search_fragments("query")
+
+        assert results == []
+        mock_embedding.embed_query.assert_not_called()
+
+    def should_clamp_n_results_to_collection_count(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.return_value = 3
+        mock_embedding.embed_query.return_value = [0.1, 0.2, 0.3]
+        mock_chroma.query_with_embedding.return_value = []
+
+        service.search_fragments("query", n_results=10)
+
+        mock_chroma.query_with_embedding.assert_called_once_with("documents", [0.1, 0.2, 0.3], n_results=3)

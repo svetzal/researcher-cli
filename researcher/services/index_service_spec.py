@@ -10,8 +10,12 @@ from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
-from researcher.models import Fragment
 from researcher.services.index_service import IndexService
+
+
+class _FakeChunk:
+    def __init__(self, text: str):
+        self.text = text
 
 
 class DescribeIndexService:
@@ -30,7 +34,7 @@ class DescribeIndexService:
     @pytest.fixture
     def mock_chroma(self):
         m = Mock(spec=ChromaGateway)
-        m.get_all_document_paths.return_value = []
+        m.count.return_value = 0
         return m
 
     @pytest.fixture
@@ -90,7 +94,6 @@ class DescribeIndexService:
             exclude_patterns=["node_modules", ".*"],
         )
         mock_filesystem.list_files.return_value = []
-        mock_chroma.get_all_document_paths.return_value = []
         mock_checksums.load.return_value = {}
 
         service.index_repository(repo_config)
@@ -112,7 +115,7 @@ class DescribeIndexService:
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_docling.convert.return_value = "mock_document"
-        mock_docling.chunk.return_value = [Fragment(text="Hello world", document_path=str(file_path), fragment_index=0)]
+        mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
         mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)
@@ -128,9 +131,7 @@ class DescribeIndexService:
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_docling.convert.return_value = "mock_document"
-        mock_docling.chunk.return_value = [
-            Fragment(text="Updated text", document_path=str(file_path), fragment_index=0)
-        ]
+        mock_docling.chunk.return_value = [_FakeChunk("Updated text")]
         mock_checksums.load.return_value = {str(file_path): "old_checksum"}
 
         service.index_repository(repo_config)
@@ -175,7 +176,7 @@ class DescribeIndexService:
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_docling.convert.return_value = "mock_document"
-        mock_docling.chunk.return_value = [Fragment(text="PDF content", document_path=str(file_path), fragment_index=0)]
+        mock_docling.chunk.return_value = [_FakeChunk("PDF content")]
         mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)
@@ -207,7 +208,7 @@ class DescribeIndexService:
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "checksum"
         mock_docling.convert.return_value = "mock_document"
-        mock_docling.chunk.return_value = [Fragment(text="Hello world", document_path=str(file_path), fragment_index=0)]
+        mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
         mock_embedding.embed_texts.return_value = [[0.1, 0.2, 0.3]]
         mock_checksums.load.return_value = {}
 
@@ -230,9 +231,10 @@ class DescribeIndexService:
             "/tmp/docs/readme.md": "aaa",
             "/tmp/docs/node_modules/dep.md": "bbb",
         }
-        mock_chroma.get_all_document_paths.return_value = [
-            "/tmp/docs/readme.md",
-            "/tmp/docs/node_modules/dep.md",
+        mock_chroma.count.return_value = 2
+        mock_chroma.get_metadata_batch.return_value = [
+            {"document_path": "/tmp/docs/readme.md"},
+            {"document_path": "/tmp/docs/node_modules/dep.md"},
         ]
         mock_filesystem.list_files.return_value = [Path("/tmp/docs/readme.md")]
         mock_filesystem.compute_checksum.return_value = "aaa"
@@ -298,7 +300,8 @@ class DescribeIndexService:
             )
 
         def should_purge_documents_matching_exclude_patterns(self, service, mock_chroma, mock_checksums):
-            mock_chroma.get_all_document_paths.return_value = ["/tmp/docs/node_modules/dep.md"]
+            mock_chroma.count.return_value = 1
+            mock_chroma.get_metadata_batch.return_value = [{"document_path": "/tmp/docs/node_modules/dep.md"}]
             mock_checksums.load.return_value = {"/tmp/docs/node_modules/dep.md": "abc"}
             config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
 
@@ -307,10 +310,11 @@ class DescribeIndexService:
             mock_chroma.delete_by_document.assert_called_once_with("documents", "/tmp/docs/node_modules/dep.md")
 
         def should_return_count_of_purged_documents(self, service, mock_chroma, mock_checksums):
-            mock_chroma.get_all_document_paths.return_value = [
-                "/tmp/docs/node_modules/a.md",
-                "/tmp/docs/node_modules/b.md",
-                "/tmp/docs/readme.md",
+            mock_chroma.count.return_value = 3
+            mock_chroma.get_metadata_batch.return_value = [
+                {"document_path": "/tmp/docs/node_modules/a.md"},
+                {"document_path": "/tmp/docs/node_modules/b.md"},
+                {"document_path": "/tmp/docs/readme.md"},
             ]
             mock_checksums.load.return_value = {
                 "/tmp/docs/node_modules/a.md": "a",
@@ -329,11 +333,12 @@ class DescribeIndexService:
             count = service.purge_excluded_documents(config)
 
             assert count == 0
-            mock_chroma.get_all_document_paths.assert_not_called()
+            mock_chroma.count.assert_not_called()
 
         def should_skip_documents_not_under_repo_base(self, service, mock_chroma, mock_checksums):
-            mock_chroma.get_all_document_paths.return_value = [
-                "/other/place/node_modules/file.md",
+            mock_chroma.count.return_value = 1
+            mock_chroma.get_metadata_batch.return_value = [
+                {"document_path": "/other/place/node_modules/file.md"},
             ]
             mock_checksums.load.return_value = {}
             config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
@@ -344,9 +349,10 @@ class DescribeIndexService:
             mock_chroma.delete_by_document.assert_not_called()
 
         def should_not_purge_documents_that_do_not_match(self, service, mock_chroma, mock_checksums):
-            mock_chroma.get_all_document_paths.return_value = [
-                "/tmp/docs/src/main.md",
-                "/tmp/docs/README.md",
+            mock_chroma.count.return_value = 2
+            mock_chroma.get_metadata_batch.return_value = [
+                {"document_path": "/tmp/docs/src/main.md"},
+                {"document_path": "/tmp/docs/README.md"},
             ]
             mock_checksums.load.return_value = {
                 "/tmp/docs/src/main.md": "a",
@@ -358,6 +364,22 @@ class DescribeIndexService:
 
             assert count == 0
             mock_chroma.delete_by_document.assert_not_called()
+
+        def should_paginate_through_large_collections(self, service, mock_chroma, mock_checksums):
+            mock_chroma.count.return_value = 1200
+            batch_500 = [{"document_path": f"/tmp/docs/file{i}.md"} for i in range(500)]
+            batch_200 = [{"document_path": f"/tmp/docs/file{i}.md"} for i in range(500, 700)]
+            mock_chroma.get_metadata_batch.side_effect = [batch_500, batch_500, batch_200]
+            mock_checksums.load.return_value = {}
+            config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
+
+            service.purge_excluded_documents(config)
+
+            assert mock_chroma.get_metadata_batch.call_count == 3
+            calls = mock_chroma.get_metadata_batch.call_args_list
+            assert calls[0].kwargs["offset"] == 0
+            assert calls[1].kwargs["offset"] == 500
+            assert calls[2].kwargs["offset"] == 1000
 
     class DescribeWithoutDocling:
         """Tests for degraded mode when docling is unavailable."""
@@ -373,7 +395,7 @@ class DescribeIndexService:
         @pytest.fixture
         def mock_chroma(self):
             m = Mock(spec=ChromaGateway)
-            m.get_all_document_paths.return_value = []
+            m.count.return_value = 0
             return m
 
         @pytest.fixture

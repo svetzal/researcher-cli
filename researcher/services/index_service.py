@@ -2,7 +2,8 @@ from pathlib import Path
 
 import structlog
 
-from researcher.chunking import PLAIN_TEXT_EXTENSIONS, chunk_plain_text
+from researcher.chroma_parsing import collect_document_paths
+from researcher.chunking import PLAIN_TEXT_EXTENSIONS, chunk_plain_text, fragments_from_chunks
 from researcher.config import RepositoryConfig
 from researcher.constants import COLLECTION_NAME
 from researcher.gateways.checksum_gateway import ChecksumGateway
@@ -102,7 +103,8 @@ class IndexService:
             fragments = chunk_plain_text(text, path_key)
         elif self._docling is not None:
             document = self._docling.convert(file_path)
-            fragments = self._docling.chunk(document, path_key)
+            raw_chunks = self._docling.chunk(document)
+            fragments = fragments_from_chunks(raw_chunks, path_key)
         else:
             logger.warning("Skipping non-plain-text file (docling unavailable)", path=path_key)
             return None
@@ -150,6 +152,20 @@ class IndexService:
         self._checksums.save(checksums)
         logger.info("Removed document", path=document_path)
 
+    def _get_all_document_paths(self, collection_name: str) -> list[str]:
+        """Retrieve all unique document paths from the collection, paginating in batches."""
+        total = self._chroma.count(collection_name)
+        if total == 0:
+            return []
+        batch_size = 500
+        all_batches: list[list[dict | None]] = []
+        offset = 0
+        while offset < total:
+            batch = self._chroma.get_metadata_batch(collection_name, limit=batch_size, offset=offset)
+            all_batches.append(batch)
+            offset += batch_size
+        return collect_document_paths(all_batches)
+
     def purge_excluded_documents(self, config: RepositoryConfig) -> int:
         """Remove all indexed documents that now match the repository's exclude patterns.
 
@@ -164,7 +180,7 @@ class IndexService:
             return 0
 
         base_path = Path(config.path)
-        all_paths = self._chroma.get_all_document_paths(COLLECTION_NAME)
+        all_paths = self._get_all_document_paths(COLLECTION_NAME)
         count = 0
         for path_str in all_paths:
             path = Path(path_str)

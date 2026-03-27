@@ -2,7 +2,7 @@ from pathlib import Path
 
 import chromadb
 
-from researcher.chroma_parsing import collect_document_paths, parse_query_results
+from researcher.chroma_parsing import parse_query_results
 from researcher.models import FragmentForStorage, FragmentWithEmbedding, SearchResult
 
 
@@ -48,10 +48,7 @@ class ChromaGateway:
     def query(self, collection_name: str, query_text: str, n_results: int = 10) -> list[SearchResult]:
         """Query the collection using text (ChromaDB handles embedding)."""
         collection = self._client.get_or_create_collection(name=collection_name)
-        actual_n = min(n_results, collection.count())
-        if actual_n == 0:
-            return []
-        results = collection.query(query_texts=[query_text], n_results=actual_n)
+        results = collection.query(query_texts=[query_text], n_results=n_results)
         return self._parse_query_results(results)
 
     def query_with_embedding(
@@ -59,10 +56,7 @@ class ChromaGateway:
     ) -> list[SearchResult]:
         """Query the collection using a pre-computed embedding vector."""
         collection = self._client.get_or_create_collection(name=collection_name, embedding_function=None)
-        actual_n = min(n_results, collection.count())
-        if actual_n == 0:
-            return []
-        results = collection.query(query_embeddings=[query_embedding], n_results=actual_n)
+        results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
         return self._parse_query_results(results)
 
     def delete_by_document(self, collection_name: str, document_path: str) -> None:
@@ -79,24 +73,11 @@ class ChromaGateway:
         collection = self._client.get_or_create_collection(name=collection_name)
         return collection.count()
 
-    def get_all_document_paths(self, collection_name: str) -> list[str]:
-        """Return all unique document paths stored in the collection.
-
-        Paginates through results in batches to avoid SQLite's variable limit
-        on large collections.
-        """
+    def get_metadata_batch(self, collection_name: str, limit: int, offset: int) -> list[dict | None]:
+        """Return a batch of fragment metadata from the collection."""
         collection = self._client.get_or_create_collection(name=collection_name)
-        total = collection.count()
-        if total == 0:
-            return []
-        batch_size = 500
-        all_batches: list[list[dict | None]] = []
-        offset = 0
-        while offset < total:
-            results = collection.get(include=["metadatas"], limit=batch_size, offset=offset)
-            all_batches.append(results.get("metadatas", []))
-            offset += batch_size
-        return collect_document_paths(all_batches)
+        results = collection.get(include=["metadatas"], limit=limit, offset=offset)
+        return results.get("metadatas", [])
 
     def _parse_query_results(self, results: dict) -> list[SearchResult]:
         """Parse ChromaDB query results into SearchResult models."""

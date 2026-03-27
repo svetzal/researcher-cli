@@ -1,6 +1,5 @@
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -86,24 +85,24 @@ class DescribeServiceFactory:
 
         assert service1 is not service2
 
-    @patch("researcher.service_factory.is_docling_available", return_value=True)
-    def should_create_index_service_with_vlm_pipeline(self, _mock, factory, temp_dir):
+    def should_create_index_service_with_vlm_pipeline(self, factory, temp_dir):
+        factory.__dict__["_docling_available"] = True
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir), image_pipeline="vlm", image_vlm_model="smoldocling")
 
         service = factory.index_service(repo)
 
         assert isinstance(service, IndexService)
 
-    @patch("researcher.service_factory.is_docling_available", return_value=True)
-    def should_create_index_service_with_default_pipeline(self, _mock, factory, temp_dir):
+    def should_create_index_service_with_default_pipeline(self, factory, temp_dir):
+        factory.__dict__["_docling_available"] = True
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
 
         service = factory.index_service(repo)
 
         assert isinstance(service, IndexService)
 
-    @patch("researcher.service_factory.is_docling_available", return_value=False)
-    def should_create_index_service_without_docling_when_unavailable(self, _mock, factory, temp_dir):
+    def should_create_index_service_without_docling_when_unavailable(self, factory, temp_dir):
+        factory.__dict__["_docling_available"] = False
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
 
         service = factory.index_service(repo)

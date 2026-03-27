@@ -1,3 +1,4 @@
+import logging
 from functools import cached_property
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.chromadb_embedding_gateway import ChromaDbEmbeddingGateway
 from researcher.gateways.config_gateway import ConfigGateway
-from researcher.gateways.docling_gateway import DoclingGateway, is_docling_available
+from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
 from researcher.gateways.ollama_embedding_gateway import OllamaEmbeddingGateway
@@ -36,6 +37,19 @@ class ServiceFactory:
     def repository_service(self) -> RepositoryService:
         return RepositoryService(config_gateway=self.config_gateway)
 
+    @cached_property
+    def _docling_available(self) -> bool:
+        """Check whether the docling library can be imported."""
+        try:
+            import docling.document_converter  # noqa: F401
+
+            return True
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "docling unavailable — only plain text files (.md, .txt) will be indexed"
+            )
+            return False
+
     def _create_embedding_gateway(self, repo: RepositoryConfig) -> EmbeddingGateway:
         config = resolve_embedding_config(repo.embedding_provider, repo.embedding_model)
         match config.provider:
@@ -55,7 +69,7 @@ class ServiceFactory:
         checksums_path = repo_data_dir / "checksums.json"
 
         docling_gw: DoclingGateway | None = None
-        if is_docling_available():
+        if self._docling_available:
             docling_gw = DoclingGateway(
                 image_pipeline=repo.image_pipeline,
                 image_vlm_model=repo.image_vlm_model,

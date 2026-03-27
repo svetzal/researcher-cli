@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Extracted business logic from `ChromaGateway` and `DoclingGateway` into services and core functions, restoring gateway pattern purity
+- Moved empty-collection guard and result-count clamping from `ChromaGateway` into `SearchService`
+- Moved document-path pagination from `ChromaGateway.get_all_document_paths()` into `IndexService._get_all_document_paths()`
+- Moved docling availability check from module-level `is_docling_available()` into `ServiceFactory._docling_available` cached property
+- Moved `DocumentConverter` assembly from `DoclingGateway._get_converter()` into `docling_config.build_document_converter()`
+- Moved `fragments_from_chunks()` call from `DoclingGateway.chunk()` into `IndexService.index_file()`
 - Updated project dependencies to latest compatible versions.
 - Extracted cross-repository search aggregation into `multi_repo_search` service functions, eliminating duplication between CLI and MCP layers
 - Refactored `EmbeddingGateway` from a monolithic class into three thin provider-specific gateways (`ChromaDbEmbeddingGateway`, `OllamaEmbeddingGateway`, `OpenAIEmbeddingGateway`) with a shared Protocol, moving provider routing to the composition root

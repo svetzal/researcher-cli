@@ -1,5 +1,7 @@
 """Docling converter configuration resolution for DoclingGateway."""
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict
 
 from researcher.asr_config import resolve_asr_spec_name, resolve_vlm_preset
@@ -28,6 +30,46 @@ class ConverterConfig(BaseModel):
 
     vlm: VlmFormatConfig | None
     asr: AsrFormatConfig | None
+
+
+def build_document_converter(config: ConverterConfig) -> Any:
+    """Build a DocumentConverter from a ConverterConfig.
+
+    All docling imports happen inside this function so they are loaded lazily.
+
+    Args:
+        config: The resolved converter configuration.
+
+    Returns:
+        A configured DocumentConverter instance.
+    """
+    from docling.datamodel.base_models import InputFormat
+    from docling.document_converter import AudioFormatOption, DocumentConverter, ImageFormatOption
+
+    format_options = {}
+    if config.vlm is not None:
+        from docling.datamodel.pipeline_options import VlmConvertOptions, VlmPipelineOptions
+        from docling.pipeline.vlm_pipeline import VlmPipeline
+
+        vlm_opts = VlmConvertOptions.from_preset(config.vlm.preset)
+        pipeline_options = VlmPipelineOptions(vlm_options=vlm_opts)
+        format_options[InputFormat.IMAGE] = ImageFormatOption(
+            pipeline_cls=VlmPipeline,
+            pipeline_options=pipeline_options,
+        )
+
+    if config.asr is not None:
+        import docling.datamodel.asr_model_specs as asr_specs
+        from docling.pipeline.asr_pipeline import AsrPipeline, AsrPipelineOptions
+
+        asr_model_spec = getattr(asr_specs, config.asr.spec_name)
+        asr_pipeline_options = AsrPipelineOptions(asr_options=asr_model_spec)
+        format_options[InputFormat.AUDIO] = AudioFormatOption(
+            pipeline_cls=AsrPipeline,
+            pipeline_options=asr_pipeline_options,
+        )
+
+    return DocumentConverter(format_options=format_options if format_options else None)
 
 
 def build_converter_config(
