@@ -11,8 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `repo list --json` now includes `image_pipeline`, `image_vlm_model`, and `audio_asr_model` fields (previously silently dropped)
 - Added missing spec for `model_commands.py` CLI module (pack/unpack commands)
+- `ModelArchiveService.unpack()` no longer re-opens the archive to read the manifest — manifest data is now captured during the first pass, eliminating the redundant I/O
+- Added `--cov-fail-under=90` to pytest configuration to prevent silent coverage regression
 
 ### Changed
+
+- `ModelArchiveService` now receives a `ModelCacheGateway` via constructor injection, aligning with the gateway pattern used by all other services
+- Separated pure model-entry resolution logic from filesystem probes in `model_registry.py`; `build_model_entries()` and `_candidate_paths()` are now pure functions suitable for direct unit testing
+- Replaced `@dataclass` with Pydantic `BaseModel` in `model_registry.py` and `model_archive_service.py` for consistency with the rest of the codebase
+- Removed unnecessary `from __future__ import annotations` from `model_registry.py` and `model_archive_service.py`
 
 - Extracted business logic from `ChromaGateway` and `DoclingGateway` into services and core functions, restoring gateway pattern purity
 - Moved empty-collection guard and result-count clamping from `ChromaGateway` into `SearchService`

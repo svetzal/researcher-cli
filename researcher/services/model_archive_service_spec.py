@@ -142,7 +142,7 @@ class DescribeModelArchiveServicePack:
         docling_path = _FAKE_BASES["docling"]
         mock_cache.existing_paths.return_value = {docling_path}
         mock_cache.is_file.return_value = False
-        ctx, mock_tar = _make_create_archive_mock()
+        ctx, _ = _make_create_archive_mock()
         mock_cache.create_archive.return_value = ctx
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="standard")
 
@@ -246,9 +246,7 @@ class DescribeModelArchiveServiceUnpack:
         manifest_info, manifest_bytes = self._make_manifest_member([])
         unknown_info = tarfile.TarInfo(name="unknown_category/something.bin")
         unknown_info.type = tarfile.REGTYPE
-        ctx, _ = _make_open_archive_mock(
-            [manifest_info, unknown_info], {"manifest.json": manifest_bytes}
-        )
+        ctx, _ = _make_open_archive_mock([manifest_info, unknown_info], {"manifest.json": manifest_bytes})
         mock_cache.open_archive.return_value = ctx
 
         result = service.unpack(archive_path)
