@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from researcher.config import RepositoryConfig
+from researcher.models import DocumentSearchResult, SearchResult
 from researcher.service_factory import ServiceFactory
 from researcher.services.multi_repo_search import (
     search_documents_across_repos,
@@ -12,6 +13,63 @@ from researcher.services.multi_repo_search import (
 )
 
 console = Console()
+
+
+def build_fragment_search_result(
+    repos: list[RepositoryConfig],
+    query: str,
+    results: list[SearchResult],
+) -> dict:
+    """Build the JSON-serializable result dict for a fragment search."""
+    return {
+        "query": query,
+        "mode": "fragments",
+        "repository": repos[0].name if len(repos) == 1 else None,
+        "repos_searched": [r.name for r in repos],
+        "result_count": len(results),
+        "results": [
+            {
+                "document_path": r.document_path,
+                "fragment_index": r.fragment_index,
+                "distance": r.distance,
+                "text": r.text,
+            }
+            for r in results
+        ],
+    }
+
+
+def build_document_search_result(
+    repos: list[RepositoryConfig],
+    query: str,
+    results: list[DocumentSearchResult],
+) -> dict:
+    """Build the JSON-serializable result dict for a document search."""
+    results_data = []
+    for doc_result in results:
+        top = doc_result.top_fragments[0] if doc_result.top_fragments else None
+        results_data.append(
+            {
+                "document_path": doc_result.document_path,
+                "best_distance": doc_result.best_distance,
+                "fragment_count": len(doc_result.top_fragments),
+                "top_fragment": {
+                    "text": top.text,
+                    "fragment_index": top.fragment_index,
+                    "distance": top.distance,
+                }
+                if top
+                else None,
+            }
+        )
+    return {
+        "query": query,
+        "mode": "documents",
+        "repository": repos[0].name if len(repos) == 1 else None,
+        "repos_searched": [r.name for r in repos],
+        "result_count": len(results),
+        "results": results_data,
+    }
 
 
 def run_search_fragments(
@@ -25,22 +83,7 @@ def run_search_fragments(
     all_results = search_fragments_across_repos(factory, repos, query, n_results)
 
     if json_output:
-        data = {
-            "query": query,
-            "mode": "fragments",
-            "repository": repos[0].name if len(repos) == 1 else None,
-            "repos_searched": [r.name for r in repos],
-            "result_count": len(all_results),
-            "results": [
-                {
-                    "document_path": r.document_path,
-                    "fragment_index": r.fragment_index,
-                    "distance": r.distance,
-                    "text": r.text,
-                }
-                for r in all_results
-            ],
-        }
+        data = build_fragment_search_result(repos, query, all_results)
         typer.echo(json.dumps(data, default=str))
         return
 
@@ -70,31 +113,7 @@ def run_search_documents(
     all_results = search_documents_across_repos(factory, repos, query, n_results)
 
     if json_output:
-        results_data = []
-        for doc_result in all_results:
-            top = doc_result.top_fragments[0] if doc_result.top_fragments else None
-            results_data.append(
-                {
-                    "document_path": doc_result.document_path,
-                    "best_distance": doc_result.best_distance,
-                    "fragment_count": len(doc_result.top_fragments),
-                    "top_fragment": {
-                        "text": top.text,
-                        "fragment_index": top.fragment_index,
-                        "distance": top.distance,
-                    }
-                    if top
-                    else None,
-                }
-            )
-        data = {
-            "query": query,
-            "mode": "documents",
-            "repository": repos[0].name if len(repos) == 1 else None,
-            "repos_searched": [r.name for r in repos],
-            "result_count": len(all_results),
-            "results": results_data,
-        }
+        data = build_document_search_result(repos, query, all_results)
         typer.echo(json.dumps(data, default=str))
         return
 

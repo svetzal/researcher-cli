@@ -75,6 +75,11 @@ def run_status(factory: ServiceFactory, repo: RepositoryConfig, json_output: boo
     }
 
 
+def build_json_results_wrapper(results: list[dict]) -> dict:
+    """Build the JSON-serializable wrapper dict for multi-repo results."""
+    return {"repositories": results}
+
+
 def emit_json_results(results: list[dict]) -> None:
     """Write collected results as a JSON object to stdout."""
-    typer.echo(json.dumps({"repositories": results}, default=str))
+    typer.echo(json.dumps(build_json_results_wrapper(results), default=str))

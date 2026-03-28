@@ -1,10 +1,7 @@
-import json
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-import typer
-
-from researcher.cli.index_commands import emit_json_results, run_index, run_status
+from researcher.cli.index_commands import build_json_results_wrapper, run_index, run_status
 from researcher.config import RepositoryConfig
 from researcher.models import IndexingResult, IndexStats
 from researcher.service_factory import ServiceFactory
@@ -158,8 +155,8 @@ class DescribeRunStatus:
             assert result["repository_name"] == "my-notes"
 
 
-class DescribeEmitJsonResults:
-    def should_write_repositories_wrapper_to_stdout(self):
+class DescribeBuildJsonResultsWrapper:
+    def should_wrap_results_in_repositories_key(self):
         results = [
             {
                 "repository": "my-notes",
@@ -171,11 +168,8 @@ class DescribeEmitJsonResults:
             }
         ]
 
-        captured = {}
-        with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-            emit_json_results(results)
+        data = build_json_results_wrapper(results)
 
-        data = json.loads(captured["out"])
         assert "repositories" in data
         assert len(data["repositories"]) == 1
         assert data["repositories"][0]["repository"] == "my-notes"
@@ -190,10 +184,7 @@ class DescribeEmitJsonResults:
             }
         ]
 
-        captured = {}
-        with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-            emit_json_results(results)
+        data = build_json_results_wrapper(results)
 
-        data = json.loads(captured["out"])
         assert "repositories" in data
         assert data["repositories"][0]["repository_name"] == "my-notes"

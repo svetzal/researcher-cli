@@ -1,14 +1,9 @@
-import json
-from unittest.mock import Mock, patch
-
-from typer.testing import CliRunner
-
-from researcher.cli.search_commands import run_search_documents, run_search_fragments
+from researcher.cli.search_commands import (
+    build_document_search_result,
+    build_fragment_search_result,
+)
 from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, SearchResult
-from researcher.service_factory import ServiceFactory
-
-runner = CliRunner()
 
 
 def _make_repo(name: str = "my-notes") -> RepositoryConfig:
@@ -39,168 +34,92 @@ def _make_doc_result(
     return DocumentSearchResult(document_path=doc_path, top_fragments=[fr], best_distance=best_distance)
 
 
-class DescribeRunSearchFragments:
-    class DescribeJsonOutput:
-        def should_write_valid_json_to_stdout(self):
-            repo = _make_repo()
-            sr = _make_search_result()
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_search = mock_factory.search_service.return_value
-            mock_search.search_fragments.return_value = [sr]
+class DescribeBuildFragmentSearchResult:
+    def should_write_valid_json_structure(self):
+        repo = _make_repo()
+        sr = _make_search_result()
 
-            from io import StringIO
+        data = build_fragment_search_result([repo], "test query", [sr])
 
-            import typer
+        assert data["query"] == "test query"
+        assert data["mode"] == "fragments"
+        assert data["result_count"] == 1
 
-            output = StringIO()
-            with patch.object(typer, "echo", side_effect=lambda s: output.write(s + "\n")):
-                run_search_fragments(mock_factory, [repo], "test query", n_results=5, json_output=True)
+    def should_include_correct_result_fields(self):
+        repo = _make_repo()
+        sr = _make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.234, text="JWT tokens")
 
-            data = json.loads(output.getvalue())
-            assert data["query"] == "test query"
-            assert data["mode"] == "fragments"
-            assert data["result_count"] == 1
+        data = build_fragment_search_result([repo], "auth", [sr])
 
-        def should_include_correct_result_fields(self):
-            repo = _make_repo()
-            sr = _make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.234, text="JWT tokens")
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_fragments.return_value = [sr]
+        assert len(data["results"]) == 1
+        result = data["results"][0]
+        assert result["document_path"] == "/notes/auth.md"
+        assert result["fragment_index"] == 2
+        assert result["distance"] == 0.234
+        assert result["text"] == "JWT tokens"
 
-            captured = {}
+    def should_set_repository_to_repo_name_when_single_repo(self):
+        repo = _make_repo("my-notes")
 
-            import typer
+        data = build_fragment_search_result([repo], "query", [])
 
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_fragments(mock_factory, [repo], "auth", n_results=5, json_output=True)
+        assert data["repository"] == "my-notes"
 
-            data = json.loads(captured["out"])
-            assert len(data["results"]) == 1
-            result = data["results"][0]
-            assert result["document_path"] == "/notes/auth.md"
-            assert result["fragment_index"] == 2
-            assert result["distance"] == 0.234
-            assert result["text"] == "JWT tokens"
+    def should_set_repository_to_null_when_multiple_repos(self):
+        repos = [_make_repo("repo-a"), _make_repo("repo-b")]
 
-        def should_set_repository_to_repo_name_when_single_repo(self):
-            repo = _make_repo("my-notes")
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_fragments.return_value = []
+        data = build_fragment_search_result(repos, "query", [])
 
-            captured = {}
+        assert data["repository"] is None
+        assert data["repos_searched"] == ["repo-a", "repo-b"]
 
-            import typer
+    def should_return_empty_results_when_no_matches(self):
+        repo = _make_repo()
 
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_fragments(mock_factory, [repo], "query", n_results=5, json_output=True)
+        data = build_fragment_search_result([repo], "query", [])
 
-            data = json.loads(captured["out"])
-            assert data["repository"] == "my-notes"
-
-        def should_set_repository_to_null_when_multiple_repos(self):
-            repos = [_make_repo("repo-a"), _make_repo("repo-b")]
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_fragments.return_value = []
-
-            captured = {}
-
-            import typer
-
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_fragments(mock_factory, repos, "query", n_results=5, json_output=True)
-
-            data = json.loads(captured["out"])
-            assert data["repository"] is None
-            assert data["repos_searched"] == ["repo-a", "repo-b"]
-
-        def should_return_empty_results_when_no_matches(self):
-            repo = _make_repo()
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_fragments.return_value = []
-
-            captured = {}
-
-            import typer
-
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_fragments(mock_factory, [repo], "query", n_results=5, json_output=True)
-
-            data = json.loads(captured["out"])
-            assert data["result_count"] == 0
-            assert data["results"] == []
+        assert data["result_count"] == 0
+        assert data["results"] == []
 
 
-class DescribeRunSearchDocuments:
-    class DescribeJsonOutput:
-        def should_write_valid_json_to_stdout(self):
-            repo = _make_repo()
-            doc = _make_doc_result()
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_documents.return_value = [doc]
+class DescribeBuildDocumentSearchResult:
+    def should_write_valid_json_structure(self):
+        repo = _make_repo()
+        doc = _make_doc_result()
 
-            captured = {}
+        data = build_document_search_result([repo], "test query", [doc])
 
-            import typer
+        assert data["query"] == "test query"
+        assert data["mode"] == "documents"
+        assert data["result_count"] == 1
 
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_documents(mock_factory, [repo], "test query", n_results=5, json_output=True)
+    def should_include_correct_result_fields(self):
+        repo = _make_repo()
+        sr = _make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.123, text="JWT tokens")
+        doc = _make_doc_result(doc_path="/notes/auth.md", best_distance=0.123, fragment=sr)
 
-            data = json.loads(captured["out"])
-            assert data["query"] == "test query"
-            assert data["mode"] == "documents"
-            assert data["result_count"] == 1
+        data = build_document_search_result([repo], "auth", [doc])
 
-        def should_include_correct_result_fields(self):
-            repo = _make_repo()
-            sr = _make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.123, text="JWT tokens")
-            doc = _make_doc_result(doc_path="/notes/auth.md", best_distance=0.123, fragment=sr)
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_documents.return_value = [doc]
+        result = data["results"][0]
+        assert result["document_path"] == "/notes/auth.md"
+        assert result["best_distance"] == 0.123
+        assert result["fragment_count"] == 1
+        assert result["top_fragment"]["text"] == "JWT tokens"
+        assert result["top_fragment"]["fragment_index"] == 2
+        assert result["top_fragment"]["distance"] == 0.123
 
-            captured = {}
+    def should_set_top_fragment_to_null_when_no_fragments(self):
+        repo = _make_repo()
+        doc = DocumentSearchResult(document_path="doc.md", top_fragments=[], best_distance=0.5)
 
-            import typer
+        data = build_document_search_result([repo], "query", [doc])
 
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_documents(mock_factory, [repo], "auth", n_results=5, json_output=True)
+        assert data["results"][0]["top_fragment"] is None
 
-            data = json.loads(captured["out"])
-            result = data["results"][0]
-            assert result["document_path"] == "/notes/auth.md"
-            assert result["best_distance"] == 0.123
-            assert result["fragment_count"] == 1
-            assert result["top_fragment"]["text"] == "JWT tokens"
-            assert result["top_fragment"]["fragment_index"] == 2
-            assert result["top_fragment"]["distance"] == 0.123
+    def should_return_empty_results_when_no_matches(self):
+        repo = _make_repo()
 
-        def should_set_top_fragment_to_null_when_no_fragments(self):
-            repo = _make_repo()
-            doc = DocumentSearchResult(document_path="doc.md", top_fragments=[], best_distance=0.5)
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_documents.return_value = [doc]
+        data = build_document_search_result([repo], "query", [])
 
-            captured = {}
-
-            import typer
-
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_documents(mock_factory, [repo], "query", n_results=5, json_output=True)
-
-            data = json.loads(captured["out"])
-            assert data["results"][0]["top_fragment"] is None
-
-        def should_return_empty_results_when_no_matches(self):
-            repo = _make_repo()
-            mock_factory = Mock(spec=ServiceFactory)
-            mock_factory.search_service.return_value.search_documents.return_value = []
-
-            captured = {}
-
-            import typer
-
-            with patch.object(typer, "echo", side_effect=lambda s: captured.update({"out": s})):
-                run_search_documents(mock_factory, [repo], "query", n_results=5, json_output=True)
-
-            data = json.loads(captured["out"])
-            assert data["result_count"] == 0
-            assert data["results"] == []
+        assert data["result_count"] == 0
+        assert data["results"] == []

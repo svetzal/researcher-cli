@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Extracted pure data-building functions (`build_fragment_search_result`, `build_document_search_result`, `build_json_results_wrapper`) from CLI output functions, decoupling tests from typer internals
 - `ModelArchiveService` now receives a `ModelCacheGateway` via constructor injection, aligning with the gateway pattern used by all other services
 - Separated pure model-entry resolution logic from filesystem probes in `model_registry.py`; `build_model_entries()` and `_candidate_paths()` are now pure functions suitable for direct unit testing
 - Replaced `@dataclass` with Pydantic `BaseModel` in `model_registry.py` and `model_archive_service.py` for consistency with the rest of the codebase
