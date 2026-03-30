@@ -2,7 +2,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from researcher.cli.init_commands import run_init
+from researcher.cli.init_commands import _parse_frontmatter_version, run_init
 
 
 class DescribeRunInit:
@@ -23,6 +23,14 @@ class DescribeRunInit:
 
             content = (target / ".claude" / "skills" / "researcher-admin" / "SKILL.md").read_text()
             assert "researcher-version: 0.4.0" in content
+
+    def should_stamp_metadata_version_in_frontmatter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            run_init(target, json_output=True, _version="0.4.0")
+
+            content = (target / ".claude" / "skills" / "researcher-admin" / "SKILL.md").read_text()
+            assert 'version: "0.4.0"' in content
 
     def should_overwrite_older_version(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -128,3 +136,23 @@ class DescribeRunInit:
             assert "version" in parsed
             assert parsed["version"] == "0.4.0"
             assert parsed["target_dir"] == str(target)
+
+
+class DescribeParseFrontmatterVersion:
+    def should_extract_researcher_version(self):
+        text = "---\nname: test\nresearcher-version: 1.2.3\n---\ncontent"
+        assert _parse_frontmatter_version(text) == "1.2.3"
+
+    def should_fallback_to_metadata_version(self):
+        text = '---\nname: test\nmetadata:\n  version: "1.2.3"\n  author: Test\n---\ncontent'
+        assert _parse_frontmatter_version(text) == "1.2.3"
+
+    def should_prefer_researcher_version_over_metadata(self):
+        text = '---\nname: test\nmetadata:\n  version: "1.0.0"\nresearcher-version: 2.0.0\n---\ncontent'
+        assert _parse_frontmatter_version(text) == "2.0.0"
+
+    def should_return_none_without_frontmatter(self):
+        assert _parse_frontmatter_version("no frontmatter here") is None
+
+    def should_return_none_for_empty_frontmatter(self):
+        assert _parse_frontmatter_version("---\nname: test\n---\ncontent") is None

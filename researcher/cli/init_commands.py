@@ -18,24 +18,37 @@ def _get_package_version() -> str:
 
 
 def _parse_frontmatter_version(text: str) -> str | None:
-    """Extract researcher-version from YAML frontmatter."""
+    """Extract version from YAML frontmatter (researcher-version or metadata.version)."""
     match = re.match(r"^---\s*\n(.*?\n)---", text, re.DOTALL)
     if not match:
         return None
-    for line in match.group(1).splitlines():
+    frontmatter = match.group(1)
+    for line in frontmatter.splitlines():
         if line.startswith("researcher-version:"):
             return line.split(":", 1)[1].strip()
+    # Fallback: check metadata.version
+    meta_match = re.search(r"^metadata:\s*\n((?:[ \t]+\S.*\n)*)", frontmatter, re.MULTILINE)
+    if meta_match:
+        for line in meta_match.group(1).splitlines():
+            stripped = line.strip()
+            if stripped.startswith("version:"):
+                return stripped.split(":", 1)[1].strip().strip('"').strip("'")
     return None
 
 
 def _stamp_version(source_text: str, version: str) -> str:
-    """Insert researcher-version into YAML frontmatter."""
+    """Insert researcher-version and update metadata.version in YAML frontmatter."""
     match = re.match(r"^(---\s*\n)(.*?\n)(---)", source_text, re.DOTALL)
     if not match:
         return source_text
-    return (
-        f"{match.group(1)}{match.group(2)}researcher-version: {version}\n{match.group(3)}{source_text[match.end() :]}"
+    frontmatter = match.group(2)
+    # Update metadata.version if present
+    frontmatter = re.sub(
+        r'(metadata:\s*\n(?:[ \t]+\S.*\n)*?[ \t]+version:\s*)("[^"]*"|\'[^\']*\'|\S+)',
+        rf'\g<1>"{version}"',
+        frontmatter,
     )
+    return f"{match.group(1)}{frontmatter}researcher-version: {version}\n{match.group(3)}{source_text[match.end() :]}"
 
 
 def _decide_skill_action(

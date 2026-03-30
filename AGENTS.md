@@ -45,7 +45,7 @@ researcher init [--global] [--force] [--json]
 
 ### Version stamping
 
-At install time the package version (`importlib.metadata.version('researcher-cli')`) is written into each SKILL.md's YAML frontmatter as `researcher-version: <VERSION>`. The source files in `researcher/bundled_skills/` must **not** contain this field.
+At install time the package version (`importlib.metadata.version('researcher-cli')`) is written into each SKILL.md's YAML frontmatter as `researcher-version: <VERSION>` and updates `metadata.version` to match. The `metadata.version` field in `researcher/bundled_skills/` source files must always match the version in `pyproject.toml`. The source files must **not** contain the `researcher-version` field (it is added dynamically at install time).
 
 ### Version guard
 

@@ -1,6 +1,9 @@
 ---
 name: researcher-admin
 description: Set up and manage researcher document repositories; use when adding repos, indexing documents, checking status, configuring embedding providers, or running the MCP server
+metadata:
+  version: "0.5.2"
+  author: Stacey Vetzal
 ---
 
 # researcher-admin: Set Up and Maintain Repositories

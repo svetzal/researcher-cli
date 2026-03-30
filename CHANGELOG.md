@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-30
+
+### Added
+
+- Agent Skills spec-compliant `metadata` blocks (`version`, `author`) in bundled skill frontmatters
+- `researcher init` now stamps/updates `metadata.version` alongside `researcher-version` at install time
+- `_parse_frontmatter_version` falls back to `metadata.version` when `researcher-version` is absent
+
 ### Changed
 
 - Updated `aiohttp` to 3.13.4, `regex` to 2026.3.32
