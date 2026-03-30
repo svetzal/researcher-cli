@@ -5,17 +5,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from researcher.cli.output import cli_error
+from researcher.cli.output import cli_exit_on_error, make_service_factory_callback
 from researcher.service_factory import ServiceFactory
 
 models_app = typer.Typer(help="Manage model caches for offline use.")
 console = Console()
 
 
-@models_app.callback()
-def models_callback(ctx: typer.Context) -> None:
-    if ctx.obj is None:
-        ctx.obj = ServiceFactory()
+make_service_factory_callback(models_app)
 
 
 @models_app.command("pack")
@@ -37,11 +34,8 @@ def pack_command(
 
     service = factory.model_archive_service()
 
-    try:
+    with cli_exit_on_error(FileNotFoundError, json_output=json_output):
         result = service.pack(repos, output)
-    except FileNotFoundError as e:
-        cli_error(str(e), json_output=json_output)
-        raise typer.Exit(1) from None
 
     if json_output:
         data = {
@@ -70,11 +64,8 @@ def unpack_command(
     factory: ServiceFactory = ctx.obj
     service = factory.model_archive_service()
 
-    try:
+    with cli_exit_on_error(FileNotFoundError, ValueError, json_output=json_output):
         result = service.unpack(archive)
-    except (FileNotFoundError, ValueError) as e:
-        cli_error(str(e), json_output=json_output)
-        raise typer.Exit(1) from None
 
     if json_output:
         data = {

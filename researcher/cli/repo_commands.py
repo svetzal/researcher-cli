@@ -4,7 +4,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from researcher.cli.output import cli_error
+from researcher.cli.output import cli_exit_on_error, make_service_factory_callback
 from researcher.config import RepositoryConfig
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
@@ -16,10 +16,7 @@ repo_app = typer.Typer(help="Manage document repositories.")
 console = Console()
 
 
-@repo_app.callback()
-def repo_callback(ctx: typer.Context) -> None:
-    if ctx.obj is None:
-        ctx.obj = ServiceFactory()
+make_service_factory_callback(repo_app)
 
 
 @repo_app.command("add")
@@ -62,7 +59,7 @@ def add_repo(
     """Add a new document repository."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")]
-    try:
+    with cli_exit_on_error(ValueError, json_output=json_output):
         repo = factory.repository_service.add_repository(
             name=name,
             path=path,
@@ -78,9 +75,6 @@ def add_repo(
             typer.echo(json.dumps(repo.model_dump(), default=str))
         else:
             console.print(f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}")
-    except ValueError as e:
-        cli_error(str(e), json_output=json_output)
-        raise typer.Exit(1) from None
 
 
 @repo_app.command("remove")
@@ -91,15 +85,12 @@ def remove_repo(
 ) -> None:
     """Remove a document repository."""
     factory: ServiceFactory = ctx.obj
-    try:
+    with cli_exit_on_error(ValueError, json_output=json_output):
         factory.repository_service.remove_repository(name)
         if json_output:
             typer.echo(json.dumps({"name": name, "removed": True}))
         else:
             console.print(f"[green]✓[/green] Removed repository '[bold]{name}[/bold]'")
-    except ValueError as e:
-        cli_error(str(e), json_output=json_output)
-        raise typer.Exit(1) from None
 
 
 @repo_app.command("update")
@@ -142,7 +133,7 @@ def update_repo(
     """Update an existing repository's configuration."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")] if file_types else None
-    try:
+    with cli_exit_on_error(ValueError, json_output=json_output):
         repo, added_patterns = factory.repository_service.update_repository(
             name=name,
             file_types=types,
@@ -168,9 +159,6 @@ def update_repo(
                 console.print(f"  Purged [bold]{purged}[/bold] previously-indexed document(s) matching new exclusions")
             elif added_patterns and not no_purge:
                 console.print("  [dim]No previously-indexed documents matched the new exclusions[/dim]")
-    except ValueError as e:
-        cli_error(str(e), json_output=json_output)
-        raise typer.Exit(1) from None
 
 
 @repo_app.command("list")

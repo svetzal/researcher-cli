@@ -7,7 +7,7 @@ from researcher.cli.config_commands import config_app
 from researcher.cli.index_commands import emit_json_results, run_index, run_status
 from researcher.cli.init_commands import init_command
 from researcher.cli.model_commands import models_app
-from researcher.cli.output import cli_error
+from researcher.cli.output import cli_exit_on_error, make_service_factory_callback
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
 from researcher.config import RepositoryConfig
@@ -40,10 +40,7 @@ def _resolve_repos(
     return all_repos
 
 
-@app.callback()
-def main_callback(ctx: typer.Context) -> None:
-    if ctx.obj is None:
-        ctx.obj = ServiceFactory()
+make_service_factory_callback(app)
 
 
 @app.command("index")
@@ -65,11 +62,8 @@ def index_command(
         raise typer.Exit(0)
 
     if repo_name:
-        try:
+        with cli_exit_on_error(ValueError, json_output=json_output):
             repos = _resolve_repos(factory, repo_name, repos)
-        except ValueError as e:
-            cli_error(str(e), json_output=json_output)
-            raise typer.Exit(1) from None
 
     repo_results = [run_index(factory, repo, json_output=json_output, force=force) for repo in repos]
 
@@ -86,11 +80,8 @@ def remove_command(
 ) -> None:
     """Remove a specific document from the index."""
     factory: ServiceFactory = ctx.obj
-    try:
+    with cli_exit_on_error(ValueError, json_output=json_output):
         repo = factory.repository_service.get_repository(repo_name)
-    except ValueError as e:
-        cli_error(str(e), json_output=json_output)
-        raise typer.Exit(1) from None
 
     service = factory.index_service(repo)
     service.remove_document(document_path)
@@ -119,11 +110,8 @@ def status_command(
         return
 
     if repo_name:
-        try:
+        with cli_exit_on_error(ValueError, json_output=json_output):
             repos = _resolve_repos(factory, repo_name, repos)
-        except ValueError as e:
-            cli_error(str(e), json_output=json_output)
-            raise typer.Exit(1) from None
 
     repo_stats = [run_status(factory, repo, json_output=json_output) for repo in repos]
 
@@ -160,11 +148,8 @@ def search_command(
             console.print("[yellow]No repositories configured.[/yellow]")
         raise typer.Exit(0)
 
-    try:
+    with cli_exit_on_error(ValueError, json_output=json_output):
         search_repos = _resolve_repos(factory, repo, all_repos)
-    except ValueError as e:
-        cli_error(str(e), json_output=json_output)
-        raise typer.Exit(1) from None
 
     if mode == "fragments":
         run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)
