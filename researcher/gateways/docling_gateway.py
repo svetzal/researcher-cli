@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 from researcher.docling_config import build_converter_config, build_document_converter
+from researcher.exceptions import DocumentConversionError
 
 
 class DoclingGateway:
@@ -23,23 +24,43 @@ class DoclingGateway:
 
     def _get_converter(self):
         if self._converter is None:
-            self._converter = build_document_converter(self._converter_config)
+            try:
+                self._converter = build_document_converter(self._converter_config)
+            except ImportError as e:
+                raise DocumentConversionError(
+                    "docling is not installed. Install the 'docling' optional dependency to convert non-text documents."
+                ) from e
+            except Exception as e:
+                raise DocumentConversionError(f"Failed to initialize docling converter: {e}") from e
         return self._converter
 
     def _get_chunker(self):
         if self._chunker is None:
-            from docling.chunking import HybridChunker
+            try:
+                from docling.chunking import HybridChunker
 
-            self._chunker = HybridChunker()
+                self._chunker = HybridChunker()
+            except ImportError as e:
+                raise DocumentConversionError(
+                    "docling is not installed. Install the 'docling' optional dependency to chunk documents."
+                ) from e
+            except Exception as e:
+                raise DocumentConversionError(f"Failed to initialize docling chunker: {e}") from e
         return self._chunker
 
     def convert(self, file_path: Path) -> Any:
         """Convert a document file to a DoclingDocument."""
         converter = self._get_converter()
-        result = converter.convert(str(file_path))
-        return result.document
+        try:
+            result = converter.convert(str(file_path))
+            return result.document
+        except Exception as e:
+            raise DocumentConversionError(f"Failed to convert '{file_path}': {e}") from e
 
     def chunk(self, document: Any) -> list[Any]:
         """Chunk a DoclingDocument into raw chunks."""
         chunker = self._get_chunker()
-        return list(chunker.chunk(document))
+        try:
+            return list(chunker.chunk(document))
+        except Exception as e:
+            raise DocumentConversionError(f"Failed to chunk document: {e}") from e

@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 from researcher.config import RepositoryConfig
+from researcher.exceptions import DocumentConversionError
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
@@ -191,7 +192,7 @@ class DescribeIndexService:
         file_path = Path("/tmp/docs/bad.pdf")
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "checksum"
-        mock_docling.convert.side_effect = RuntimeError("Conversion failed")
+        mock_docling.convert.side_effect = DocumentConversionError("Conversion failed")
         mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)

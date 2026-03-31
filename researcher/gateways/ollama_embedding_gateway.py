@@ -1,3 +1,6 @@
+from researcher.exceptions import EmbeddingError
+
+
 class OllamaEmbeddingGateway:
     """Thin wrapper around the ollama embeddings API."""
 
@@ -9,8 +12,11 @@ class OllamaEmbeddingGateway:
 
         embeddings = []
         for text in texts:
-            response = ollama.embeddings(model=self._model, prompt=text)
-            embeddings.append(response["embedding"])
+            try:
+                response = ollama.embeddings(model=self._model, prompt=text)
+                embeddings.append(response["embedding"])
+            except Exception as e:
+                raise EmbeddingError(f"Ollama embedding failed for model '{self._model}': {e}") from e
         return embeddings
 
     def embed_query(self, query: str) -> list[float]:

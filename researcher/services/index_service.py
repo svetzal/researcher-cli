@@ -6,6 +6,7 @@ from researcher.chroma_parsing import collect_document_paths
 from researcher.chunking import PLAIN_TEXT_EXTENSIONS, chunk_plain_text, fragments_from_chunks
 from researcher.config import RepositoryConfig
 from researcher.constants import COLLECTION_NAME
+from researcher.exceptions import DocumentConversionError, EmbeddingError, StorageError
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
@@ -79,7 +80,7 @@ class IndexService:
                 result.fragments_created += len(chunk_result.fragments)
                 logger.info("Indexed file", path=path_key, fragments=len(chunk_result.fragments))
 
-            except Exception as e:
+            except (StorageError, EmbeddingError, DocumentConversionError, OSError, UnicodeDecodeError) as e:
                 result.documents_failed += 1
                 result.errors.append(f"{path_key}: {e}")
                 logger.error("Failed to index file", path=path_key, error=str(e))

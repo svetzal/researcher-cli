@@ -11,6 +11,7 @@ from researcher.cli.output import cli_exit_on_error, make_service_factory_callba
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
 from researcher.config import RepositoryConfig
+from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 
 app = typer.Typer(
@@ -62,7 +63,7 @@ def index_command(
         raise typer.Exit(0)
 
     if repo_name:
-        with cli_exit_on_error(ValueError, json_output=json_output):
+        with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
             repos = _resolve_repos(factory, repo_name, repos)
 
     repo_results = [run_index(factory, repo, json_output=json_output, force=force) for repo in repos]
@@ -80,11 +81,12 @@ def remove_command(
 ) -> None:
     """Remove a specific document from the index."""
     factory: ServiceFactory = ctx.obj
-    with cli_exit_on_error(ValueError, json_output=json_output):
+    with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
         repo = factory.repository_service.get_repository(repo_name)
 
-    service = factory.index_service(repo)
-    service.remove_document(document_path)
+    with cli_exit_on_error(ResearcherError, json_output=json_output):
+        service = factory.index_service(repo)
+        service.remove_document(document_path)
 
     if json_output:
         typer.echo(json.dumps({"repository": repo_name, "document_path": document_path, "removed": True}))
@@ -110,7 +112,7 @@ def status_command(
         return
 
     if repo_name:
-        with cli_exit_on_error(ValueError, json_output=json_output):
+        with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
             repos = _resolve_repos(factory, repo_name, repos)
 
     repo_stats = [run_status(factory, repo, json_output=json_output) for repo in repos]
@@ -148,13 +150,14 @@ def search_command(
             console.print("[yellow]No repositories configured.[/yellow]")
         raise typer.Exit(0)
 
-    with cli_exit_on_error(ValueError, json_output=json_output):
+    with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
         search_repos = _resolve_repos(factory, repo, all_repos)
 
-    if mode == "fragments":
-        run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)
-    else:
-        run_search_documents(factory, search_repos, query, n_results=documents, json_output=json_output)
+    with cli_exit_on_error(ResearcherError, json_output=json_output):
+        if mode == "fragments":
+            run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)
+        else:
+            run_search_documents(factory, search_repos, query, n_results=documents, json_output=json_output)
 
 
 @app.command("serve")

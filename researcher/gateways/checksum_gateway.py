@@ -3,6 +3,8 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 
+from researcher.exceptions import StorageError
+
 
 class ChecksumGateway:
     """Persists document checksums to the filesystem."""
@@ -14,14 +16,22 @@ class ChecksumGateway:
         """Load checksums from disk, returning empty dict if absent."""
         if not self._path.exists():
             return {}
-        with open(self._path) as f:
-            return json.load(f)
+        try:
+            with open(self._path) as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            raise StorageError(f"Failed to parse checksum file '{self._path}': {e}") from e
+        except OSError as e:
+            raise StorageError(f"Failed to read checksum file '{self._path}': {e}") from e
 
     def save(self, checksums: dict[str, str]) -> None:
         """Save checksums to disk, creating parent directories as needed."""
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self._path, "w") as f:
-            json.dump(checksums, f, indent=2)
+        try:
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._path, "w") as f:
+                json.dump(checksums, f, indent=2)
+        except OSError as e:
+            raise StorageError(f"Failed to write checksum file '{self._path}': {e}") from e
 
     def last_modified(self) -> datetime | None:
         """Return the last-modified timestamp of the checksums file, or None if absent."""
