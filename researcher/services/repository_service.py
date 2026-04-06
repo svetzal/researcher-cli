@@ -30,23 +30,20 @@ class RepositoryService:
         if any(r.name == name for r in config.repositories):
             raise ValueError(f"Repository '{name}' already exists")
 
-        fields: dict = {"name": name, "path": path}
-        if file_types is not None:
-            fields["file_types"] = file_types
-        if embedding_provider is not None:
-            fields["embedding_provider"] = embedding_provider
-        if embedding_model is not None:
-            fields["embedding_model"] = embedding_model
-        if exclude_patterns is not None:
-            fields["exclude_patterns"] = exclude_patterns
-        if image_pipeline is not None:
-            fields["image_pipeline"] = image_pipeline
-        if image_vlm_model is not None:
-            fields["image_vlm_model"] = image_vlm_model
-        if audio_asr_model is not None:
-            fields["audio_asr_model"] = audio_asr_model
-
-        repo = RepositoryConfig(**fields)
+        optional = {
+            k: v
+            for k, v in {
+                "file_types": file_types,
+                "embedding_provider": embedding_provider,
+                "embedding_model": embedding_model,
+                "exclude_patterns": exclude_patterns,
+                "image_pipeline": image_pipeline,
+                "image_vlm_model": image_vlm_model,
+                "audio_asr_model": audio_asr_model,
+            }.items()
+            if v is not None
+        }
+        repo = RepositoryConfig(name=name, path=path, **optional)
         config.repositories.append(repo)
         self._config_gateway.save(config)
         logger.info("Repository added", name=name, path=path)
@@ -112,28 +109,24 @@ class RepositoryService:
         if repo is None:
             raise ValueError(f"Repository '{name}' not found")
 
-        new_file_types = file_types if file_types is not None else repo.file_types
-        new_embedding_provider = embedding_provider if embedding_provider is not None else repo.embedding_provider
-        new_embedding_model = embedding_model if embedding_model is not None else repo.embedding_model
-        new_image_pipeline = image_pipeline if image_pipeline is not None else repo.image_pipeline
-        new_image_vlm_model = image_vlm_model if image_vlm_model is not None else repo.image_vlm_model
-        new_audio_asr_model = audio_asr_model if audio_asr_model is not None else repo.audio_asr_model
+        updates = {
+            k: v
+            for k, v in {
+                "file_types": file_types,
+                "embedding_provider": embedding_provider,
+                "embedding_model": embedding_model,
+                "image_pipeline": image_pipeline,
+                "image_vlm_model": image_vlm_model,
+                "audio_asr_model": audio_asr_model,
+            }.items()
+            if v is not None
+        }
 
         existing = repo.exclude_patterns
         added = [p for p in (add_exclude_patterns or []) if p not in existing]
-        new_exclude_patterns = existing + added
+        updates["exclude_patterns"] = existing + added
 
-        updated = RepositoryConfig(
-            name=name,
-            path=repo.path,
-            file_types=new_file_types,
-            embedding_provider=new_embedding_provider,
-            embedding_model=new_embedding_model,
-            exclude_patterns=new_exclude_patterns,
-            image_pipeline=new_image_pipeline,
-            image_vlm_model=new_image_vlm_model,
-            audio_asr_model=new_audio_asr_model,
-        )
+        updated = repo.model_copy(update=updates)
         config.repositories = [updated if r.name == name else r for r in config.repositories]
         self._config_gateway.save(config)
         logger.info("Repository updated", name=name)

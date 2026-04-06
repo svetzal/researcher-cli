@@ -3,4 +3,6 @@ from typing import Protocol
 
 class EmbeddingGateway(Protocol):
     def embed_texts(self, texts: list[str]) -> list[list[float]]: ...
-    def embed_query(self, query: str) -> list[float]: ...
+
+    def embed_query(self, query: str) -> list[float]:
+        return self.embed_texts([query])[0]
