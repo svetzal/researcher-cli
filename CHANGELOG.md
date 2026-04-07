@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated dependencies: docling-core 2.70.2→2.71.0, fastmcp 3.1.1→3.2.0, grpcio 1.78.0→1.80.0, pandas 3.0.1→3.0.2, requests 2.33.0→2.33.1, faker 40.11.1→40.12.0
 - Updated dependencies: aiohttp 3.13.4→3.13.5, charset-normalizer 3.4.6→3.4.7, click 8.3.1→8.3.2, docling 2.82.0→2.84.0, docling-parse 5.6.2→5.7.0, fastapi 0.135.2→0.135.3, huggingface-hub 0.36.2→1.9.0, llvmlite 0.46.0→0.47.0, mcp 1.26.0→1.27.0, mlx-lm 0.29.1→0.31.1, mlx-vlm 0.3.9→0.4.4, more-itertools 10.8.0→11.0.1, numba 0.64.0→0.65.0, orjson 3.11.7→3.11.8, pillow 12.1.1→12.2.0, python-multipart 0.0.22→0.0.24, regex 2026.3.32→2026.4.4, ruff 0.15.8→0.15.9, transformers 4.57.6→5.5.0, tzdata 2025.3→2026.1, uvicorn 0.42.0→0.44.0
+- Updated dependencies: chromadb 1.5.5→1.5.6
 
 ## [0.5.2] - 2026-03-30
 

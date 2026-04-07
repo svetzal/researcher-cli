@@ -1,5 +1,6 @@
 import contextlib
 import json
+from collections.abc import Callable
 
 import typer
 from rich.console import Console
@@ -7,6 +8,24 @@ from rich.console import Console
 from researcher.service_factory import ServiceFactory
 
 console = Console()
+
+
+def cli_output(data: dict, text: str | Callable[[], None], *, json_output: bool, default=str) -> None:
+    """Emit output in the appropriate format.
+
+    Args:
+        data: Dict to serialize when json_output is True.
+        text: Plain string to print via console, or a callable that performs
+            rich multi-line output (tables, panels, etc.) when json_output is False.
+        json_output: When True, emit JSON; otherwise emit rich text.
+        default: JSON serializer for non-serializable objects (default: str).
+    """
+    if json_output:
+        typer.echo(json.dumps(data, default=default))
+    elif callable(text):
+        text()
+    else:
+        console.print(text)
 
 
 def cli_error(message: str, *, json_output: bool) -> None:

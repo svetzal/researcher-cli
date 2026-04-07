@@ -7,7 +7,7 @@ license = { file = "LICENSE" }
 authors = [{ name = "Stacey Vetzal" }]
 requires-python = ">=3.12"
 dependencies = [
-    "chromadb>=1.5.0",
+    "chromadb>=1.5.6",
     "docling[asr,vlm]>=2.0.0",
     "typer>=0.20.0",
     "rich>=14.0.0",

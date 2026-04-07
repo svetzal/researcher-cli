@@ -9,7 +9,7 @@ class DescribeRunInit:
     def should_install_skills_to_target_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            result = run_init(target, json_output=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             assert "researcher-admin" in result["skills_installed"]
             assert "researcher-find" in result["skills_installed"]
@@ -19,7 +19,7 @@ class DescribeRunInit:
     def should_stamp_version_in_frontmatter(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.4.0")
+            run_init(target, _version="0.4.0")
 
             content = (target / ".claude" / "skills" / "researcher-admin" / "SKILL.md").read_text()
             assert "researcher-version: 0.4.0" in content
@@ -27,7 +27,7 @@ class DescribeRunInit:
     def should_stamp_metadata_version_in_frontmatter(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.4.0")
+            run_init(target, _version="0.4.0")
 
             content = (target / ".claude" / "skills" / "researcher-admin" / "SKILL.md").read_text()
             assert 'version: "0.4.0"' in content
@@ -35,9 +35,9 @@ class DescribeRunInit:
     def should_overwrite_older_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.3.0")
+            run_init(target, _version="0.3.0")
 
-            result = run_init(target, json_output=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             assert "researcher-admin" in result["skills_installed"]
             assert "researcher-find" in result["skills_installed"]
@@ -47,9 +47,9 @@ class DescribeRunInit:
     def should_skip_same_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.4.0")
+            run_init(target, _version="0.4.0")
 
-            result = run_init(target, json_output=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             assert result["skills_installed"] == []
             assert "researcher-admin" in result["skills_skipped"]
@@ -58,9 +58,9 @@ class DescribeRunInit:
     def should_refuse_newer_version_without_force(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.5.0")
+            run_init(target, _version="0.5.0")
 
-            result = run_init(target, json_output=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             assert result["skills_installed"] == []
             assert "researcher-admin" in result["skills_refused"]
@@ -69,9 +69,9 @@ class DescribeRunInit:
     def should_force_bypass_version_guard(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.5.0")
+            run_init(target, _version="0.5.0")
 
-            result = run_init(target, force=True, json_output=True, _version="0.4.0")
+            result = run_init(target, force=True, _version="0.4.0")
 
             assert "researcher-admin" in result["skills_installed"]
             assert "researcher-find" in result["skills_installed"]
@@ -82,25 +82,25 @@ class DescribeRunInit:
         """Files with no version field are always overwritten (treated as legacy)."""
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.4.0")
+            run_init(target, _version="0.4.0")
 
             # Simulate a legacy file with no version field
             skill_path = target / ".claude" / "skills" / "researcher-admin" / "SKILL.md"
             skill_path.write_text("---\nname: researcher-admin\n---\nold content")
 
-            result = run_init(target, json_output=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             assert "researcher-admin" in result["skills_installed"]
 
     def should_overwrite_existing_skills_with_force(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.4.0")
+            run_init(target, _version="0.4.0")
 
             skill_path = target / ".claude" / "skills" / "researcher-admin" / "SKILL.md"
             skill_path.write_text("old content")
 
-            result = run_init(target, force=True, json_output=True, _version="0.4.0")
+            result = run_init(target, force=True, _version="0.4.0")
 
             assert "researcher-admin" in result["skills_installed"]
             assert skill_path.read_text() != "old content"
@@ -108,7 +108,7 @@ class DescribeRunInit:
     def should_create_claude_skills_directories(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            run_init(target, json_output=True, _version="0.4.0")
+            run_init(target, _version="0.4.0")
 
             assert (target / ".claude" / "skills" / "researcher-admin").is_dir()
             assert (target / ".claude" / "skills" / "researcher-find").is_dir()
@@ -116,7 +116,7 @@ class DescribeRunInit:
     def should_install_skills_to_home_directory_for_global(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            result = run_init(target, json_output=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             assert (target / ".claude" / "skills" / "researcher-admin" / "SKILL.md").exists()
             assert (target / ".claude" / "skills" / "researcher-find" / "SKILL.md").exists()
@@ -125,7 +125,7 @@ class DescribeRunInit:
     def should_output_json_results_with_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            result = run_init(target, json_output=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             serialized = json.dumps(result)
             parsed = json.loads(serialized)

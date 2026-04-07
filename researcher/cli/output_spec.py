@@ -4,7 +4,47 @@ from unittest.mock import patch
 import typer
 from typer.testing import CliRunner
 
-from researcher.cli.output import cli_error, cli_exit_on_error, make_service_factory_callback
+from researcher.cli.output import cli_error, cli_exit_on_error, cli_output, make_service_factory_callback
+
+
+class DescribeCliOutput:
+    def should_emit_json_when_json_output_true(self):
+        app = typer.Typer()
+
+        @app.command()
+        def cmd():
+            cli_output({"key": "value"}, "some text", json_output=True)
+
+        runner = CliRunner()
+        result = runner.invoke(app, [])
+
+        data = json_module.loads(result.output)
+        assert data == {"key": "value"}
+
+    def should_print_text_when_json_output_false(self):
+        app = typer.Typer()
+
+        @app.command()
+        def cmd():
+            cli_output({"key": "value"}, "some text", json_output=False)
+
+        runner = CliRunner()
+        result = runner.invoke(app, [])
+
+        assert "some text" in result.output
+
+    def should_call_callable_text_when_json_output_false(self):
+        app = typer.Typer()
+        called = []
+
+        @app.command()
+        def cmd():
+            cli_output({"key": "value"}, lambda: called.append(True), json_output=False)
+
+        runner = CliRunner()
+        runner.invoke(app, [])
+
+        assert called == [True]
 
 
 class DescribeCliError:

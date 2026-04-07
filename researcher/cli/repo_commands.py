@@ -1,10 +1,8 @@
-import json
-
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from researcher.cli.output import cli_exit_on_error, make_service_factory_callback
+from researcher.cli.output import cli_exit_on_error, cli_output, make_service_factory_callback
 from researcher.config import RepositoryConfig
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
@@ -71,10 +69,11 @@ def add_repo(
             image_vlm_model=image_vlm_model,
             audio_asr_model=audio_asr_model,
         )
-        if json_output:
-            typer.echo(json.dumps(repo.model_dump(), default=str))
-        else:
-            console.print(f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}")
+        cli_output(
+            repo.model_dump(),
+            f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}",
+            json_output=json_output,
+        )
 
 
 @repo_app.command("remove")
@@ -87,10 +86,11 @@ def remove_repo(
     factory: ServiceFactory = ctx.obj
     with cli_exit_on_error(ValueError, json_output=json_output):
         factory.repository_service.remove_repository(name)
-        if json_output:
-            typer.echo(json.dumps({"name": name, "removed": True}))
-        else:
-            console.print(f"[green]✓[/green] Removed repository '[bold]{name}[/bold]'")
+        cli_output(
+            {"name": name, "removed": True},
+            f"[green]✓[/green] Removed repository '[bold]{name}[/bold]'",
+            json_output=json_output,
+        )
 
 
 @repo_app.command("update")
@@ -149,9 +149,7 @@ def update_repo(
             index_svc = factory.index_service(repo)
             purged = index_svc.purge_excluded_documents(repo)
 
-        if json_output:
-            typer.echo(json.dumps(repo.model_dump() | {"purged_documents": purged}, default=str))
-        else:
+        def _print_update():
             console.print(f"[green]✓[/green] Updated repository '[bold]{repo.name}[/bold]'")
             if added_patterns:
                 console.print(f"  Added exclusion patterns: {', '.join(added_patterns)}")
@@ -159,6 +157,12 @@ def update_repo(
                 console.print(f"  Purged [bold]{purged}[/bold] previously-indexed document(s) matching new exclusions")
             elif added_patterns and not no_purge:
                 console.print("  [dim]No previously-indexed documents matched the new exclusions[/dim]")
+
+        cli_output(
+            repo.model_dump() | {"purged_documents": purged},
+            _print_update,
+            json_output=json_output,
+        )
 
 
 @repo_app.command("list")
@@ -170,38 +174,41 @@ def list_repos(
     factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
-    if json_output:
-        typer.echo(json.dumps({"repositories": [repo.model_dump() for repo in repos]}, default=str))
-        return
+    def _print_repos():
+        if not repos:
+            console.print("[dim]No repositories configured.[/dim]")
+            return
 
-    if not repos:
-        console.print("[dim]No repositories configured.[/dim]")
-        return
+        table = Table(title="Repositories", show_header=True, header_style="bold cyan", expand=True)
+        table.add_column("Name", style="bold", no_wrap=True)
+        table.add_column("Path")
+        table.add_column("File Types")
+        table.add_column("Embed", no_wrap=True)
+        table.add_column("Image", no_wrap=True)
+        table.add_column("Excludes")
 
-    table = Table(title="Repositories", show_header=True, header_style="bold cyan", expand=True)
-    table.add_column("Name", style="bold", no_wrap=True)
-    table.add_column("Path")
-    table.add_column("File Types")
-    table.add_column("Embed", no_wrap=True)
-    table.add_column("Image", no_wrap=True)
-    table.add_column("Excludes")
+        for repo in repos:
+            embed_info = repo.embedding_provider
+            if repo.embedding_model:
+                embed_info += f"\n{repo.embedding_model}"
 
-    for repo in repos:
-        embed_info = repo.embedding_provider
-        if repo.embedding_model:
-            embed_info += f"\n{repo.embedding_model}"
+            image_info = repo.image_pipeline
+            if repo.image_pipeline == "vlm" and repo.image_vlm_model:
+                image_info += f"\n{repo.image_vlm_model}"
 
-        image_info = repo.image_pipeline
-        if repo.image_pipeline == "vlm" and repo.image_vlm_model:
-            image_info += f"\n{repo.image_vlm_model}"
+            table.add_row(
+                repo.name,
+                repo.path,
+                ", ".join(repo.file_types),
+                embed_info,
+                image_info,
+                ", ".join(repo.exclude_patterns) if repo.exclude_patterns else "[dim]none[/dim]",
+            )
 
-        table.add_row(
-            repo.name,
-            repo.path,
-            ", ".join(repo.file_types),
-            embed_info,
-            image_info,
-            ", ".join(repo.exclude_patterns) if repo.exclude_patterns else "[dim]none[/dim]",
-        )
+        console.print(table)
 
-    console.print(table)
+    cli_output(
+        {"repositories": [repo.model_dump() for repo in repos]},
+        _print_repos,
+        json_output=json_output,
+    )

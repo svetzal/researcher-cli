@@ -1,9 +1,7 @@
-import json
-
-import typer
 from rich.console import Console
 from rich.panel import Panel
 
+from researcher.cli.output import cli_output
 from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, SearchResult
 from researcher.service_factory import ServiceFactory
@@ -82,24 +80,21 @@ def run_search_fragments(
     """Search for fragments across one or more repositories."""
     all_results = search_fragments_across_repos(factory, repos, query, n_results)
 
-    if json_output:
-        data = build_fragment_search_result(repos, query, all_results)
-        typer.echo(json.dumps(data, default=str))
-        return
-
-    if not all_results:
-        console.print("[dim]No results found.[/dim]")
-        return
-
-    for result in all_results:
-        console.print(
-            Panel(
-                result.text,
-                title=f"[bold]{result.document_path}[/bold] (fragment {result.fragment_index})",
-                subtitle=f"distance: {result.distance:.4f}",
-                border_style="cyan",
+    def _print_fragments():
+        if not all_results:
+            console.print("[dim]No results found.[/dim]")
+            return
+        for result in all_results:
+            console.print(
+                Panel(
+                    result.text,
+                    title=f"[bold]{result.document_path}[/bold] (fragment {result.fragment_index})",
+                    subtitle=f"distance: {result.distance:.4f}",
+                    border_style="cyan",
+                )
             )
-        )
+
+    cli_output(build_fragment_search_result(repos, query, all_results), _print_fragments, json_output=json_output)
 
 
 def run_search_documents(
@@ -112,26 +107,25 @@ def run_search_documents(
     """Search for documents across one or more repositories."""
     all_results = search_documents_across_repos(factory, repos, query, n_results)
 
-    if json_output:
-        data = build_document_search_result(repos, query, all_results)
-        typer.echo(json.dumps(data, default=str))
-        return
-
-    if not all_results:
-        console.print("[dim]No results found.[/dim]")
-        return
-
-    for doc_result in all_results:
-        top_fragment = doc_result.top_fragments[0] if doc_result.top_fragments else None
-        if top_fragment and len(top_fragment.text) > 200:
-            preview = top_fragment.text[:200] + "..."
-        else:
-            preview = top_fragment.text if top_fragment else ""
-        console.print(
-            Panel(
-                preview,
-                title=f"[bold]{doc_result.document_path}[/bold]",
-                subtitle=f"best distance: {doc_result.best_distance:.4f} | {len(doc_result.top_fragments)} fragments",
-                border_style="green",
+    def _print_documents():
+        if not all_results:
+            console.print("[dim]No results found.[/dim]")
+            return
+        for doc_result in all_results:
+            top_fragment = doc_result.top_fragments[0] if doc_result.top_fragments else None
+            if top_fragment and len(top_fragment.text) > 200:
+                preview = top_fragment.text[:200] + "..."
+            else:
+                preview = top_fragment.text if top_fragment else ""
+            console.print(
+                Panel(
+                    preview,
+                    title=f"[bold]{doc_result.document_path}[/bold]",
+                    subtitle=(
+                        f"best distance: {doc_result.best_distance:.4f} | {len(doc_result.top_fragments)} fragments"
+                    ),
+                    border_style="green",
+                )
             )
-        )
+
+    cli_output(build_document_search_result(repos, query, all_results), _print_documents, json_output=json_output)

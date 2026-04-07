@@ -1,4 +1,3 @@
-import json
 import re
 from importlib.metadata import version as pkg_version
 from importlib.resources import files
@@ -7,6 +6,8 @@ from pathlib import Path
 import typer
 from packaging.version import Version
 from rich.console import Console
+
+from researcher.cli.output import cli_output
 
 console = Console()
 
@@ -88,7 +89,6 @@ def run_init(
     target_dir: Path,
     *,
     force: bool = False,
-    json_output: bool = False,
     _version: str | None = None,
 ) -> dict:
     skills_dir = target_dir / ".claude" / "skills"
@@ -104,25 +104,19 @@ def run_init(
         source = bundled.joinpath(skill_name, "SKILL.md")
         source_text = source.read_text()
 
-        action, message = _decide_skill_action(dest, current_version, force=force)
+        action, _message = _decide_skill_action(dest, current_version, force=force)
 
         if action == "refuse":
             refused.append(skill_name)
-            if not json_output:
-                console.print(f"[red]Refused[/red] {skill_name}: {message}")
         elif action == "skip":
             skipped.append(skill_name)
-            if not json_output:
-                console.print(f"[yellow]Skipped[/yellow] {skill_name} ({message})")
         else:
             dest.parent.mkdir(parents=True, exist_ok=True)
             stamped = _stamp_version(source_text, current_version)
             dest.write_text(stamped)
             installed.append(skill_name)
-            if not json_output:
-                console.print(f"[green]Installed[/green] {skill_name} (v{current_version})")
 
-    result = {
+    return {
         "skills_installed": installed,
         "skills_skipped": skipped,
         "skills_refused": refused,
@@ -130,19 +124,29 @@ def run_init(
         "target_dir": str(target_dir),
     }
 
-    if not json_output and refused:
-        console.print("\n[dim]Use --force to override version guard.[/dim]")
 
-    if not json_output and skipped and not refused:
+def _print_init_results(result: dict) -> None:
+    """Print human-readable init results to the console."""
+    current_version = result["version"]
+
+    for skill_name in result["skills_refused"]:
+        console.print(f"[red]Refused[/red] {skill_name}: Installed skill is newer. Use --force to downgrade.")
+
+    for skill_name in result["skills_skipped"]:
+        console.print(f"[yellow]Skipped[/yellow] {skill_name} (up-to-date at v{current_version})")
+
+    for skill_name in result["skills_installed"]:
+        console.print(f"[green]Installed[/green] {skill_name} (v{current_version})")
+
+    if result["skills_refused"]:
+        console.print("\n[dim]Use --force to override version guard.[/dim]")
+    elif result["skills_skipped"] and not result["skills_refused"]:
         console.print("\n[dim]Use --force to overwrite existing skills.[/dim]")
 
-    if not json_output:
-        console.print(
-            "\n[dim]Hint: configure the MCP server in .claude/settings.json:[/dim]\n"
-            '[dim]  {"mcpServers": {"researcher": {"command": "researcher", "args": ["serve"]}}}[/dim]'
-        )
-
-    return result
+    console.print(
+        "\n[dim]Hint: configure the MCP server in .claude/settings.json:[/dim]\n"
+        '[dim]  {"mcpServers": {"researcher": {"command": "researcher", "args": ["serve"]}}}[/dim]'
+    )
 
 
 def init_command(
@@ -152,6 +156,5 @@ def init_command(
 ) -> None:
     """Install researcher skills into the current project's .claude/skills/ directory."""
     target = Path.home() if global_install else Path.cwd()
-    result = run_init(target, force=force, json_output=json_output)
-    if json_output:
-        typer.echo(json.dumps(result))
+    result = run_init(target, force=force)
+    cli_output(result, lambda: _print_init_results(result), json_output=json_output)

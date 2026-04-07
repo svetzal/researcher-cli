@@ -1,5 +1,3 @@
-import json
-
 import typer
 from rich.console import Console
 
@@ -7,7 +5,7 @@ from researcher.cli.config_commands import config_app
 from researcher.cli.index_commands import emit_json_results, run_index, run_status
 from researcher.cli.init_commands import init_command
 from researcher.cli.model_commands import models_app
-from researcher.cli.output import cli_exit_on_error, make_service_factory_callback
+from researcher.cli.output import cli_exit_on_error, cli_output, make_service_factory_callback
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
 from researcher.config import RepositoryConfig
@@ -56,10 +54,11 @@ def index_command(
     repos = factory.repository_service.list_repositories()
 
     if not repos:
-        if json_output:
-            typer.echo(json.dumps({"repositories": []}))
-        else:
-            console.print("[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]")
+        cli_output(
+            {"repositories": []},
+            "[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]",
+            json_output=json_output,
+        )
         raise typer.Exit(0)
 
     if repo_name:
@@ -88,10 +87,11 @@ def remove_command(
         service = factory.index_service(repo)
         service.remove_document(document_path)
 
-    if json_output:
-        typer.echo(json.dumps({"repository": repo_name, "document_path": document_path, "removed": True}))
-    else:
-        console.print(f"[green]✓[/green] Removed '{document_path}' from '[bold]{repo_name}[/bold]'")
+    cli_output(
+        {"repository": repo_name, "document_path": document_path, "removed": True},
+        f"[green]✓[/green] Removed '{document_path}' from '[bold]{repo_name}[/bold]'",
+        json_output=json_output,
+    )
 
 
 @app.command("status")
@@ -105,10 +105,7 @@ def status_command(
     repos = factory.repository_service.list_repositories()
 
     if not repos:
-        if json_output:
-            typer.echo(json.dumps({"repositories": []}))
-        else:
-            console.print("[dim]No repositories configured.[/dim]")
+        cli_output({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
         return
 
     if repo_name:
@@ -136,18 +133,18 @@ def search_command(
     all_repos = factory.repository_service.list_repositories()
 
     if not all_repos:
-        if json_output:
-            empty: dict = {
+        cli_output(
+            {
                 "query": query,
                 "mode": mode,
                 "repository": repo,
                 "repos_searched": [],
                 "result_count": 0,
                 "results": [],
-            }
-            typer.echo(json.dumps(empty))
-        else:
-            console.print("[yellow]No repositories configured.[/yellow]")
+            },
+            "[yellow]No repositories configured.[/yellow]",
+            json_output=json_output,
+        )
         raise typer.Exit(0)
 
     with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
