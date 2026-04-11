@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-04-11
+
+### Security
+
+- Updated `cryptography` 46.0.6→46.0.7 to fix CVE-2026-39892
+
 ### Changed
 
 - Updated dependencies: docling-core 2.70.2→2.71.0, fastmcp 3.1.1→3.2.0, grpcio 1.78.0→1.80.0, pandas 3.0.1→3.0.2, requests 2.33.0→2.33.1, faker 40.11.1→40.12.0

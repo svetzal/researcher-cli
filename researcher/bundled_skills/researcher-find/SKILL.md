@@ -2,7 +2,7 @@
 name: researcher-find
 description: Search indexed document repositories with semantic search; use when looking up notes, documentation, or knowledge base content, or finding relevant context during coding
 metadata:
-  version: "0.5.2"
+  version: "0.5.3"
   author: Stacey Vetzal
 ---
 
