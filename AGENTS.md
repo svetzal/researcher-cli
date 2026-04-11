@@ -20,14 +20,17 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 Releases are driven by git tags. CI (`.github/workflows/ci.yml`) runs lint, format check, tests, and security audit on every push to `main` and on pull requests. The security audit suppresses CVE-2026-4539 (ReDoS in pygments AdlLexer, local-access only, no upstream fix yet — remove `--ignore-vuln CVE-2026-4539` once pygments ships a fix). When a `v*` tag is pushed, the release workflow (`.github/workflows/release.yml`) runs the same CI checks then creates a GitHub Release with notes extracted from CHANGELOG.md.
 
-To cut a release:
+To create a new release:
 
-1. Update CHANGELOG.md — rename `[Unreleased]` to the new version with today's date, add a fresh `[Unreleased]` section above it
-2. Bump the version in `pyproject.toml`
-3. Commit the version bump
-4. Tag the commit: `git tag v<version>`
-5. Push both: `git push && git push --tags`
-6. Deploy locally: `uv tool install .`
+1. Pre-flight: verify all quality gates pass — `uv run ruff check`, `uv run ruff format --check`, `uv run pytest`, `uv run pip-audit --ignore-vuln CVE-2026-4539`
+2. Update CHANGELOG.md — rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD` with today's date, add a fresh `[Unreleased]` section above it
+3. Bump the version in `pyproject.toml`
+4. Update skill files in `researcher/bundled_skills/` — ensure content reflects any CLI or behavior changes
+5. Commit: `git commit -m 'Release vX.Y.Z'`
+6. Tag: `git tag vX.Y.Z`
+7. Push: `git push origin main --tags`
+8. Deploy locally: `uv tool install . --force`
+9. Re-init skills: `researcher init --global --force`
 
 ## Skill Distribution
 
