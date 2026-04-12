@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed gateway unit tests that mocked library internals (ollama, openai, chromadb, docling) — thin wrappers are verified through service-level `Mock(spec=...)` gateway mocks instead
+
 ## [0.5.3] - 2026-04-11
 
 ### Security
