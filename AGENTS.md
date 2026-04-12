@@ -2,6 +2,10 @@
 
 To deploy this project locally on this computer, do `uv tool install .` from this folder. You must do this in order to make newer versions available across the system.
 
+## Branching and Merging
+
+This project follows trunk-based development. `main` is the only long-lived branch. All work lands on `main` via direct commit. Feature branches are not pushed to `origin`. Pull requests are not used. Short-lived local working branches (e.g. from hopper worktrees) are merged to `main` and deleted locally before work is considered complete.
+
 ## Changelog
 
 This project maintains a CHANGELOG.md in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. When making changes:
