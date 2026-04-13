@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 from researcher.config import RepositoryConfig
+from researcher.exceptions import ModelArchiveError
 from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import ModelCacheEntry
 from researcher.services.model_archive_service import ModelArchiveService, PackResult, UnpackResult
@@ -67,7 +68,7 @@ class DescribeModelArchiveServicePack:
         mock_cache.existing_paths.return_value = set()
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="standard")
 
-        with pytest.raises(FileNotFoundError, match="No model cache directories found"):
+        with pytest.raises(ModelArchiveError, match="No model cache directories found"):
             service.pack([repo], output_path)
 
     def should_return_pack_result_with_archive_path(self, service, mock_cache, output_path):
@@ -175,7 +176,7 @@ class DescribeModelArchiveServiceUnpack:
     def should_raise_for_missing_archive(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = False
 
-        with pytest.raises(FileNotFoundError, match="Archive not found"):
+        with pytest.raises(ModelArchiveError, match="Archive not found"):
             service.unpack(archive_path)
 
     def should_raise_for_missing_manifest(self, service, mock_cache, archive_path):
@@ -186,7 +187,7 @@ class DescribeModelArchiveServiceUnpack:
         ctx, _ = _make_open_archive_mock([file_info], {})
         mock_cache.open_archive.return_value = ctx
 
-        with pytest.raises(ValueError, match=r"missing manifest\.json"):
+        with pytest.raises(ModelArchiveError, match=r"missing manifest\.json"):
             service.unpack(archive_path)
 
     def should_return_unpack_result_with_entries_restored(self, service, mock_cache, archive_path):

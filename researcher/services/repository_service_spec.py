@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.gateways.config_gateway import ConfigGateway
 from researcher.services.repository_service import RepositoryService
 
@@ -38,7 +39,7 @@ class DescribeRepositoryService:
     def should_raise_when_adding_duplicate_name(self, service):
         service.add_repository("my-repo", "/tmp/docs")
 
-        with pytest.raises(ValueError, match="already exists"):
+        with pytest.raises(RepositoryAlreadyExistsError, match="already exists"):
             service.add_repository("my-repo", "/tmp/other")
 
     def should_remove_a_repository(self, service):
@@ -50,7 +51,7 @@ class DescribeRepositoryService:
         assert len(repos) == 0
 
     def should_raise_when_removing_nonexistent_repository(self, service):
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(RepositoryNotFoundError, match="not found"):
             service.remove_repository("nonexistent")
 
     def should_list_all_repositories(self, service):
@@ -69,7 +70,7 @@ class DescribeRepositoryService:
         assert repo.name == "my-repo"
 
     def should_raise_when_getting_nonexistent_repository(self, service):
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(RepositoryNotFoundError, match="not found"):
             service.get_repository("nonexistent")
 
     def should_add_repository_with_custom_file_types(self, service):
@@ -175,7 +176,7 @@ class DescribeRepositoryServiceUpdateRepository:
         assert updated.embedding_model == "nomic-embed-text"
 
     def should_raise_when_repo_not_found(self, service):
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(RepositoryNotFoundError, match="not found"):
             service.update_repository("nonexistent")
 
     def should_return_added_patterns(self, service, existing_repo):

@@ -9,6 +9,9 @@ from researcher.exceptions import (
     ConfigurationError,
     DocumentConversionError,
     EmbeddingError,
+    ModelArchiveError,
+    RepositoryAlreadyExistsError,
+    RepositoryNotFoundError,
     ResearcherError,
     StorageError,
 )
@@ -32,6 +35,18 @@ def should_document_conversion_error_be_researcher_error():
 
 def should_configuration_error_be_researcher_error():
     assert issubclass(ConfigurationError, ResearcherError)
+
+
+def should_repository_not_found_error_be_researcher_error():
+    assert issubclass(RepositoryNotFoundError, ResearcherError)
+
+
+def should_repository_already_exists_error_be_researcher_error():
+    assert issubclass(RepositoryAlreadyExistsError, ResearcherError)
+
+
+def should_model_archive_error_be_researcher_error():
+    assert issubclass(ModelArchiveError, ResearcherError)
 
 
 # ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 from researcher.config import RepositoryConfig
+from researcher.exceptions import ModelArchiveError
 from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import (
     ModelCacheEntry,
@@ -53,7 +54,7 @@ class ModelArchiveService:
             PackResult with archive details.
 
         Raises:
-            FileNotFoundError: If no model cache directories are found on disk.
+            ModelArchiveError: If no model cache directories are found on disk.
         """
         bases = self._cache.resolve_cache_base_dirs()
         requirements = _collect_requirements(repos)
@@ -62,7 +63,7 @@ class ModelArchiveService:
         entries = build_model_entries(requirements, bases, existing)
 
         if not entries:
-            raise FileNotFoundError("No model cache directories found on disk to pack.")
+            raise ModelArchiveError("No model cache directories found on disk to pack.")
 
         total_files = 0
         with self._cache.create_archive(output_path) as tar:
@@ -94,11 +95,10 @@ class ModelArchiveService:
             UnpackResult with extraction details.
 
         Raises:
-            FileNotFoundError: If the archive does not exist.
-            ValueError: If the archive is missing a manifest.
+            ModelArchiveError: If the archive does not exist or is missing a manifest.
         """
         if not self._cache.archive_exists(archive_path):
-            raise FileNotFoundError(f"Archive not found: {archive_path}")
+            raise ModelArchiveError(f"Archive not found: {archive_path}")
 
         bases = self._cache.resolve_cache_base_dirs()
 
@@ -136,7 +136,7 @@ class ModelArchiveService:
                     files_extracted += 1
 
             if not has_manifest:
-                raise ValueError("Archive is missing manifest.json — not a valid model archive.")
+                raise ModelArchiveError("Archive is missing manifest.json — not a valid model archive.")
 
         entries_restored = len(manifest_data.get("entries", [])) if manifest_data else 0
 

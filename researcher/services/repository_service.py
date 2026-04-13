@@ -1,6 +1,7 @@
 import structlog
 
 from researcher.config import RepositoryConfig
+from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.gateways.config_gateway import ConfigGateway
 
 logger = structlog.get_logger()
@@ -28,7 +29,7 @@ class RepositoryService:
         config = self._config_gateway.load()
 
         if any(r.name == name for r in config.repositories):
-            raise ValueError(f"Repository '{name}' already exists")
+            raise RepositoryAlreadyExistsError(f"Repository '{name}' already exists")
 
         optional = {
             k: v
@@ -54,7 +55,7 @@ class RepositoryService:
         config = self._config_gateway.load()
 
         if not any(r.name == name for r in config.repositories):
-            raise ValueError(f"Repository '{name}' not found")
+            raise RepositoryNotFoundError(f"Repository '{name}' not found")
 
         config.repositories = [r for r in config.repositories if r.name != name]
         self._config_gateway.save(config)
@@ -65,12 +66,12 @@ class RepositoryService:
         return self._config_gateway.load().repositories
 
     def get_repository(self, name: str) -> RepositoryConfig:
-        """Get a repository by name, raising ValueError if not found."""
+        """Get a repository by name, raising RepositoryNotFoundError if not found."""
         config = self._config_gateway.load()
         for repo in config.repositories:
             if repo.name == name:
                 return repo
-        raise ValueError(f"Repository '{name}' not found")
+        raise RepositoryNotFoundError(f"Repository '{name}' not found")
 
     def update_repository(
         self,
@@ -102,12 +103,12 @@ class RepositoryService:
             present in the repository's exclusion list.
 
         Raises:
-            ValueError: If no repository with the given name exists.
+            RepositoryNotFoundError: If no repository with the given name exists.
         """
         config = self._config_gateway.load()
         repo = next((r for r in config.repositories if r.name == name), None)
         if repo is None:
-            raise ValueError(f"Repository '{name}' not found")
+            raise RepositoryNotFoundError(f"Repository '{name}' not found")
 
         updates = {
             k: v

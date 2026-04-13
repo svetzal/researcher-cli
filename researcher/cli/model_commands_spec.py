@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.model_commands import models_app
 from researcher.config import RepositoryConfig
+from researcher.exceptions import ModelArchiveError
 from researcher.model_registry import ModelCacheEntry
 from researcher.services.model_archive_service import ModelArchiveService, PackResult, UnpackResult
 
@@ -108,7 +109,7 @@ class DescribePackCommand:
         def should_error_on_file_not_found(self, mock_factory):
             mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
             mock_service = Mock(spec=ModelArchiveService)
-            mock_service.pack.side_effect = FileNotFoundError("No model cache directories found on disk to pack.")
+            mock_service.pack.side_effect = ModelArchiveError("No model cache directories found on disk to pack.")
             mock_factory.model_archive_service.return_value = mock_service
 
             result = runner.invoke(models_app, ["pack", "--output", "/tmp/models.tar.gz"], obj=mock_factory)
@@ -164,7 +165,7 @@ class DescribePackCommand:
         def should_write_error_json_on_file_not_found(self, mock_factory):
             mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
             mock_service = Mock(spec=ModelArchiveService)
-            mock_service.pack.side_effect = FileNotFoundError("No model cache directories found on disk to pack.")
+            mock_service.pack.side_effect = ModelArchiveError("No model cache directories found on disk to pack.")
             mock_factory.model_archive_service.return_value = mock_service
 
             result = runner.invoke(models_app, ["pack", "--output", "/tmp/models.tar.gz", "--json"], obj=mock_factory)
@@ -200,7 +201,7 @@ class DescribeUnpackCommand:
 
         def should_error_on_file_not_found(self, mock_factory):
             mock_service = Mock(spec=ModelArchiveService)
-            mock_service.unpack.side_effect = FileNotFoundError("Archive not found: /tmp/missing.tar.gz")
+            mock_service.unpack.side_effect = ModelArchiveError("Archive not found: /tmp/missing.tar.gz")
             mock_factory.model_archive_service.return_value = mock_service
 
             result = runner.invoke(models_app, ["unpack", "/tmp/missing.tar.gz"], obj=mock_factory)
@@ -210,7 +211,7 @@ class DescribeUnpackCommand:
 
         def should_error_on_value_error(self, mock_factory):
             mock_service = Mock(spec=ModelArchiveService)
-            mock_service.unpack.side_effect = ValueError("Archive is missing manifest.json")
+            mock_service.unpack.side_effect = ModelArchiveError("Archive is missing manifest.json")
             mock_factory.model_archive_service.return_value = mock_service
 
             result = runner.invoke(models_app, ["unpack", "/tmp/bad.tar.gz"], obj=mock_factory)
@@ -245,7 +246,7 @@ class DescribeUnpackCommand:
 
         def should_write_error_json_on_file_not_found(self, mock_factory):
             mock_service = Mock(spec=ModelArchiveService)
-            mock_service.unpack.side_effect = FileNotFoundError("Archive not found: /tmp/missing.tar.gz")
+            mock_service.unpack.side_effect = ModelArchiveError("Archive not found: /tmp/missing.tar.gz")
             mock_factory.model_archive_service.return_value = mock_service
 
             result = runner.invoke(models_app, ["unpack", "/tmp/missing.tar.gz", "--json"], obj=mock_factory)
@@ -257,7 +258,7 @@ class DescribeUnpackCommand:
 
         def should_write_error_json_on_value_error(self, mock_factory):
             mock_service = Mock(spec=ModelArchiveService)
-            mock_service.unpack.side_effect = ValueError("Archive is missing manifest.json")
+            mock_service.unpack.side_effect = ModelArchiveError("Archive is missing manifest.json")
             mock_factory.model_archive_service.return_value = mock_service
 
             result = runner.invoke(models_app, ["unpack", "/tmp/bad.tar.gz", "--json"], obj=mock_factory)

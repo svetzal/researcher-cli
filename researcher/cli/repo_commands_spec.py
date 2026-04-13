@@ -5,6 +5,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.repo_commands import repo_app
 from researcher.config import RepositoryConfig
+from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.services.index_service import IndexService
 
 runner = CliRunner()
@@ -21,7 +22,9 @@ class DescribeRepoAddCommand:
         assert "my-repo" in result.output
 
     def should_error_on_duplicate_name(self, mock_factory):
-        mock_factory.repository_service.add_repository.side_effect = ValueError("Repository 'my-repo' already exists")
+        mock_factory.repository_service.add_repository.side_effect = RepositoryAlreadyExistsError(
+            "Repository 'my-repo' already exists"
+        )
 
         result = runner.invoke(repo_app, ["add", "my-repo", "/tmp/docs"], obj=mock_factory)
 
@@ -183,7 +186,7 @@ class DescribeRepoRemoveCommand:
         assert "Removed" in result.output
 
     def should_error_when_not_found(self, mock_factory):
-        mock_factory.repository_service.remove_repository.side_effect = ValueError("not found")
+        mock_factory.repository_service.remove_repository.side_effect = RepositoryNotFoundError("not found")
 
         result = runner.invoke(repo_app, ["remove", "missing"], obj=mock_factory)
 
@@ -246,7 +249,9 @@ class DescribeRepoAddJsonOutput:
         assert data["embedding_provider"] == "chromadb"
 
     def should_write_error_json_on_failure(self, mock_factory):
-        mock_factory.repository_service.add_repository.side_effect = ValueError("Repository 'my-notes' already exists")
+        mock_factory.repository_service.add_repository.side_effect = RepositoryAlreadyExistsError(
+            "Repository 'my-notes' already exists"
+        )
 
         result = runner.invoke(repo_app, ["add", "my-notes", "/tmp/notes", "--json"], obj=mock_factory)
 
@@ -306,7 +311,9 @@ class DescribeRepoRemoveJsonOutput:
         assert data["removed"] is True
 
     def should_write_error_json_on_failure(self, mock_factory):
-        mock_factory.repository_service.remove_repository.side_effect = ValueError("Repository 'my-notes' not found")
+        mock_factory.repository_service.remove_repository.side_effect = RepositoryNotFoundError(
+            "Repository 'my-notes' not found"
+        )
 
         result = runner.invoke(repo_app, ["remove", "my-notes", "--json"], obj=mock_factory)
 
@@ -484,7 +491,9 @@ class DescribeRepoUpdateCommand:
         assert "dist" in data["exclude_patterns"]
 
     def should_report_error_when_repo_not_found(self, mock_factory):
-        mock_factory.repository_service.update_repository.side_effect = ValueError("Repository 'missing' not found")
+        mock_factory.repository_service.update_repository.side_effect = RepositoryNotFoundError(
+            "Repository 'missing' not found"
+        )
 
         result = runner.invoke(repo_app, ["update", "missing"], obj=mock_factory)
 
@@ -492,7 +501,9 @@ class DescribeRepoUpdateCommand:
         assert "Error" in result.output
 
     def should_report_error_as_json_when_repo_not_found_with_json_flag(self, mock_factory):
-        mock_factory.repository_service.update_repository.side_effect = ValueError("Repository 'missing' not found")
+        mock_factory.repository_service.update_repository.side_effect = RepositoryNotFoundError(
+            "Repository 'missing' not found"
+        )
 
         result = runner.invoke(repo_app, ["update", "missing", "--json"], obj=mock_factory)
 

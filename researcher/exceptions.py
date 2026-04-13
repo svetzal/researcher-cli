@@ -16,3 +16,15 @@ class DocumentConversionError(ResearcherError):
 
 class ConfigurationError(ResearcherError):
     """Configuration file parse or write failure."""
+
+
+class RepositoryNotFoundError(ResearcherError):
+    """No repository with the given name exists."""
+
+
+class RepositoryAlreadyExistsError(ResearcherError):
+    """A repository with the given name already exists."""
+
+
+class ModelArchiveError(ResearcherError):
+    """Invalid archive or missing model cache condition."""

@@ -4,6 +4,7 @@ from rich.table import Table
 
 from researcher.cli.output import cli_exit_on_error, cli_output, make_service_factory_callback
 from researcher.config import RepositoryConfig
+from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
 
@@ -57,7 +58,7 @@ def add_repo(
     """Add a new document repository."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")]
-    with cli_exit_on_error(ValueError, json_output=json_output):
+    with cli_exit_on_error(RepositoryAlreadyExistsError, json_output=json_output):
         repo = factory.repository_service.add_repository(
             name=name,
             path=path,
@@ -84,7 +85,7 @@ def remove_repo(
 ) -> None:
     """Remove a document repository."""
     factory: ServiceFactory = ctx.obj
-    with cli_exit_on_error(ValueError, json_output=json_output):
+    with cli_exit_on_error(RepositoryNotFoundError, json_output=json_output):
         factory.repository_service.remove_repository(name)
         cli_output(
             {"name": name, "removed": True},
@@ -133,7 +134,7 @@ def update_repo(
     """Update an existing repository's configuration."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")] if file_types else None
-    with cli_exit_on_error(ValueError, json_output=json_output):
+    with cli_exit_on_error(RepositoryNotFoundError, json_output=json_output):
         repo, added_patterns = factory.repository_service.update_repository(
             name=name,
             file_types=types,
