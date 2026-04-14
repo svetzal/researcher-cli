@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Removed gateway unit tests that mocked library internals (ollama, openai, chromadb, docling) — thin wrappers are verified through service-level `Mock(spec=...)` gateway mocks instead
+- Parameterized `is_apple_silicon()` calls in `asr_config`, `model_registry`, and `docling_config` to support pure function testing without patching
 
 ## [0.5.3] - 2026-04-11
 

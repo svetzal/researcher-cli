@@ -1,6 +1,5 @@
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -257,8 +256,7 @@ class DescribeResolveModelsForRepos:
         mlx_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_docling")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=True):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=True)
 
         hf_entries = [e for e in result if e.category == "huggingface"]
         assert len(hf_entries) == 1
@@ -271,8 +269,7 @@ class DescribeResolveModelsForRepos:
         mlx_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_docling")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=False):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=False)
 
         hf_entries = [e for e in result if e.category == "huggingface"]
         assert len(hf_entries) == 1
@@ -284,8 +281,7 @@ class DescribeResolveModelsForRepos:
         hf_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_vision")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=True):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=True)
 
         hf_entries = [e for e in result if e.category == "huggingface"]
         assert len(hf_entries) == 1
@@ -297,8 +293,7 @@ class DescribeResolveModelsForRepos:
         hf_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm", image_vlm_model="granite_docling")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=False):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=False)
 
         hf_entries = [e for e in result if e.category == "huggingface"]
         assert len(hf_entries) == 1
@@ -347,8 +342,7 @@ class DescribeResolveModelsForRepos:
         hf_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="vlm")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=False):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=False)
 
         hf_entries = [e for e in result if e.category == "huggingface"]
         assert len(hf_entries) == 1
@@ -385,8 +379,7 @@ class DescribeResolveModelsForRepos:
         hf_dir.mkdir(parents=True)
         repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="turbo")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=True):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=True)
 
         hf_entries = [e for e in result if e.category == "huggingface"]
         assert len(hf_entries) == 1
@@ -397,8 +390,7 @@ class DescribeResolveModelsForRepos:
         (fake_bases["whisper"] / "turbo.pt").write_bytes(b"fake")
         repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="turbo")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=False):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=False)
 
         whisper_entries = [e for e in result if e.category == "whisper"]
         assert len(whisper_entries) == 1
@@ -407,8 +399,7 @@ class DescribeResolveModelsForRepos:
     def should_skip_whisper_when_asr_model_empty(self, fake_bases):
         repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=False):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=False)
 
         whisper_entries = [e for e in result if e.category == "whisper"]
         hf_entries = [e for e in result if e.category == "huggingface"]
@@ -420,8 +411,7 @@ class DescribeResolveModelsForRepos:
         (fake_bases["whisper"] / "turbo.pt").write_bytes(b"fake")
         repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="turbo")
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=True):
-            result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=True)
 
         whisper_entries = [e for e in result if e.category == "whisper"]
         assert whisper_entries == []
@@ -438,8 +428,7 @@ class DescribeResolveModelsForRepos:
             name="r2", path="/tmp/r2", image_pipeline="vlm", image_vlm_model="smoldocling", embedding_provider="ollama"
         )
 
-        with patch("researcher.model_registry.is_apple_silicon", return_value=False):
-            result = resolve_models_for_repos([repo1, repo2], cache_base_dirs=fake_bases)
+        result = resolve_models_for_repos([repo1, repo2], cache_base_dirs=fake_bases, apple_silicon=False)
 
         categories = {e.category for e in result}
         assert categories == {"docling", "huggingface", "chroma"}

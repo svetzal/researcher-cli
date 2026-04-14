@@ -76,6 +76,8 @@ def build_converter_config(
     image_pipeline: str,
     image_vlm_model: str | None,
     audio_asr_model: str,
+    *,
+    apple_silicon: bool | None = None,
 ) -> ConverterConfig:
     """Build a ConverterConfig from user-facing parameters.
 
@@ -83,6 +85,7 @@ def build_converter_config(
         image_pipeline: The image processing pipeline to use ("vlm" or "standard").
         image_vlm_model: An optional VLM model override. Falls back to default preset.
         audio_asr_model: The ASR model name for audio transcription. Empty string disables ASR.
+        apple_silicon: Override platform detection. If None, detects automatically.
 
     Returns:
         A fully resolved ConverterConfig.
@@ -93,6 +96,6 @@ def build_converter_config(
 
     asr = None
     if audio_asr_model:
-        asr = AsrFormatConfig(spec_name=resolve_asr_spec_name(audio_asr_model))
+        asr = AsrFormatConfig(spec_name=resolve_asr_spec_name(audio_asr_model, apple_silicon=apple_silicon))
 
     return ConverterConfig(vlm=vlm, asr=asr)

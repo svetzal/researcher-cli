@@ -23,7 +23,7 @@ ASR_MODEL_MAP_MLX: dict[str, str] = {
 DEFAULT_VLM_PRESET = "granite_docling"
 
 
-def resolve_asr_spec_name(model_name: str) -> str:
+def resolve_asr_spec_name(model_name: str, *, apple_silicon: bool | None = None) -> str:
     """Map a user-facing model name to the docling ASR spec constant name.
 
     On Apple Silicon, selects the MLX variant for GPU acceleration.
@@ -31,13 +31,16 @@ def resolve_asr_spec_name(model_name: str) -> str:
 
     Args:
         model_name: User-facing model name (e.g., "tiny", "base", "turbo").
+        apple_silicon: Override platform detection. If None, detects automatically.
 
     Returns:
         The docling ASR spec constant name (e.g., "WHISPER_TURBO" or "WHISPER_TURBO_MLX").
         Defaults to the turbo variant if the name is unrecognized.
     """
-    model_map = ASR_MODEL_MAP_MLX if is_apple_silicon() else ASR_MODEL_MAP
-    default = "WHISPER_TURBO_MLX" if is_apple_silicon() else "WHISPER_TURBO"
+    if apple_silicon is None:
+        apple_silicon = is_apple_silicon()
+    model_map = ASR_MODEL_MAP_MLX if apple_silicon else ASR_MODEL_MAP
+    default = "WHISPER_TURBO_MLX" if apple_silicon else "WHISPER_TURBO"
     return model_map.get(model_name, default)
 
 

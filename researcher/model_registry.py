@@ -127,7 +127,9 @@ def resolve_vlm_preset(vlm_model_value: str | None) -> str:
     return vlm_model_value
 
 
-def _collect_requirements(repos: list[RepositoryConfig]) -> tuple[bool, set[str], set[str], bool]:
+def _collect_requirements(
+    repos: list[RepositoryConfig], *, apple_silicon: bool | None = None
+) -> tuple[bool, set[str], set[str], bool]:
     """Scan repos to determine which model categories are needed.
 
     Returns:
@@ -142,16 +144,16 @@ def _collect_requirements(repos: list[RepositoryConfig]) -> tuple[bool, set[str]
         if repo.image_pipeline == "standard":
             need_docling = True
         if repo.image_pipeline == "vlm":
-            _collect_vlm_repo_ids(repo, hf_repo_ids)
+            _collect_vlm_repo_ids(repo, hf_repo_ids, apple_silicon=apple_silicon)
         if repo.audio_asr_model:
-            _collect_asr_cache_ids(repo, hf_repo_ids, whisper_cache_files)
+            _collect_asr_cache_ids(repo, hf_repo_ids, whisper_cache_files, apple_silicon=apple_silicon)
         if repo.embedding_provider == "chromadb":
             need_chroma = True
 
     return need_docling, hf_repo_ids, whisper_cache_files, need_chroma
 
 
-def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str]) -> None:
+def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str], *, apple_silicon: bool | None = None) -> None:
     """Add HuggingFace repo IDs for a VLM pipeline repo.
 
     On Apple Silicon, only packs the MLX variant (what docling will use).
@@ -163,20 +165,28 @@ def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str]) -> None
     repo_ids = VLM_PRESET_REPOS.get(preset)
     if repo_ids:
         default_id, mlx_id = repo_ids
-        if is_apple_silicon() and mlx_id:
+        _apple = apple_silicon if apple_silicon is not None else is_apple_silicon()
+        if _apple and mlx_id:
             hf_repo_ids.add(mlx_id)
         else:
             hf_repo_ids.add(default_id)
 
 
-def _collect_asr_cache_ids(repo: RepositoryConfig, hf_repo_ids: set[str], whisper_cache_files: set[str]) -> None:
+def _collect_asr_cache_ids(
+    repo: RepositoryConfig,
+    hf_repo_ids: set[str],
+    whisper_cache_files: set[str],
+    *,
+    apple_silicon: bool | None = None,
+) -> None:
     """Add cache identifiers for ASR (Whisper) models.
 
     On Apple Silicon, MLX Whisper models are cached in HuggingFace hub.
     On other platforms, openai-whisper caches .pt files in ~/.cache/whisper/.
     """
     model_name = repo.audio_asr_model
-    if is_apple_silicon():
+    _apple = apple_silicon if apple_silicon is not None else is_apple_silicon()
+    if _apple:
         repo_id = ASR_MLX_REPO_IDS.get(model_name)
         if repo_id:
             hf_repo_ids.add(repo_id)
@@ -266,13 +276,15 @@ def build_model_entries(
 def resolve_models_for_repos(
     repos: list[RepositoryConfig],
     cache_base_dirs: dict[str, Path] | None = None,
+    *,
+    apple_silicon: bool | None = None,
 ) -> list[ModelCacheEntry]:
     """Determine which model cache entries are needed for the given repos.
 
     Deduplicates across repos. Only includes entries that exist on disk.
     """
     bases = cache_base_dirs or resolve_cache_base_dirs()
-    requirements = _collect_requirements(repos)
+    requirements = _collect_requirements(repos, apple_silicon=apple_silicon)
     candidates = _candidate_paths(requirements, bases)
     existing = {p for p in candidates if p.is_dir() or p.is_file()}
     return build_model_entries(requirements, bases, existing)
