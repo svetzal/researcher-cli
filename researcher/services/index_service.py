@@ -120,21 +120,22 @@ class IndexService:
 
         return ChunkResult(document_path=path_key, fragments=fragments)
 
-    def _store_with_chroma_embeddings(self, path_key: str, fragments: list[Fragment]) -> None:
-        storage_fragments = [
-            FragmentForStorage(
-                id=f"{path_key}::{i}",
-                text=fragment.text,
-                metadata={"document_path": path_key, "fragment_index": fragment.fragment_index},
-            )
-            for i, fragment in enumerate(fragments)
-        ]
-        self._chroma.add_fragments(COLLECTION_NAME, storage_fragments)
-
-    def _store_with_external_embeddings(self, path_key: str, fragments: list[Fragment]) -> None:
-        texts = [f.text for f in fragments]
-        embeddings = self._embedding.embed_texts(texts)
-        storage_fragments = [
+    def _build_storage_fragments(
+        self,
+        path_key: str,
+        fragments: list[Fragment],
+        embeddings: list[list[float]] | None,
+    ) -> list[FragmentForStorage] | list[FragmentWithEmbedding]:
+        if embeddings is None:
+            return [
+                FragmentForStorage(
+                    id=f"{path_key}::{i}",
+                    text=fragment.text,
+                    metadata={"document_path": path_key, "fragment_index": fragment.fragment_index},
+                )
+                for i, fragment in enumerate(fragments)
+            ]
+        return [
             FragmentWithEmbedding(
                 id=f"{path_key}::{i}",
                 text=fragment.text,
@@ -143,6 +144,15 @@ class IndexService:
             )
             for i, (fragment, embedding) in enumerate(zip(fragments, embeddings, strict=True))
         ]
+
+    def _store_with_chroma_embeddings(self, path_key: str, fragments: list[Fragment]) -> None:
+        storage_fragments = self._build_storage_fragments(path_key, fragments, None)
+        self._chroma.add_fragments(COLLECTION_NAME, storage_fragments)
+
+    def _store_with_external_embeddings(self, path_key: str, fragments: list[Fragment]) -> None:
+        texts = [f.text for f in fragments]
+        embeddings = self._embedding.embed_texts(texts)
+        storage_fragments = self._build_storage_fragments(path_key, fragments, embeddings)
         self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
 
     def remove_document(self, document_path: str) -> None:

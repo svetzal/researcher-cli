@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -22,31 +23,30 @@ class DoclingGateway:
         self._chunker: Any = None
         self._converter_config = build_converter_config(image_pipeline, image_vlm_model, audio_asr_model)
 
-    def _get_converter(self):
-        if self._converter is None:
+    def _lazy_init(self, attr_name: str, subject: str, factory: Callable[[], Any]) -> Any:
+        if getattr(self, attr_name) is None:
             try:
-                self._converter = build_document_converter(self._converter_config)
+                setattr(self, attr_name, factory())
             except ImportError as e:
                 raise DocumentConversionError(
-                    "docling is not installed. Install the 'docling' optional dependency to convert non-text documents."
+                    f"docling is not installed. Install the 'docling' optional dependency to {subject}."
                 ) from e
             except Exception as e:
-                raise DocumentConversionError(f"Failed to initialize docling converter: {e}") from e
-        return self._converter
+                raise DocumentConversionError(f"Failed to initialize docling {subject}: {e}") from e
+        return getattr(self, attr_name)
+
+    def _get_converter(self):
+        return self._lazy_init(
+            "_converter", "convert non-text documents", lambda: build_document_converter(self._converter_config)
+        )
 
     def _get_chunker(self):
-        if self._chunker is None:
-            try:
-                from docling.chunking import HybridChunker
+        def _make_chunker():
+            from docling.chunking import HybridChunker
 
-                self._chunker = HybridChunker()
-            except ImportError as e:
-                raise DocumentConversionError(
-                    "docling is not installed. Install the 'docling' optional dependency to chunk documents."
-                ) from e
-            except Exception as e:
-                raise DocumentConversionError(f"Failed to initialize docling chunker: {e}") from e
-        return self._chunker
+            return HybridChunker()
+
+        return self._lazy_init("_chunker", "chunk documents", _make_chunker)
 
     def convert(self, file_path: Path) -> Any:
         """Convert a document file to a DoclingDocument."""

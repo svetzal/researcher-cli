@@ -11,6 +11,17 @@ from researcher.service_factory import ServiceFactory
 _DEFAULTS = RepositoryConfig(name="", path="")
 _vlm_names = ", ".join(sorted(set(VLM_PRESET_REPOS.keys()) | API_ONLY_PRESETS))
 
+_EMBEDDING_PROVIDER_HELP = "Embedding provider"
+_EMBEDDING_MODEL_HELP = "Embedding model name"
+_IMAGE_PIPELINE_HELP = "Image processing pipeline: 'standard' (OCR) or 'vlm' (Vision Language Model)"
+_IMAGE_VLM_MODEL_HELP = (
+    f"VLM preset name (only used when --image-pipeline=vlm). Available: {_vlm_names}. Default: granite_docling"
+)
+_AUDIO_ASR_MODEL_HELP = (
+    "Whisper ASR model for audio files. Options: tiny, base, small, medium, large, turbo. Default: turbo"
+)
+_JSON_OUTPUT_HELP = "Output as JSON"
+
 repo_app = typer.Typer(help="Manage document repositories.")
 console = Console()
 
@@ -27,9 +38,9 @@ def add_repo(
         ",".join(_DEFAULTS.file_types), "--file-types", help="Comma-separated file extensions"
     ),
     embedding_provider: str = typer.Option(
-        _DEFAULTS.embedding_provider, "--embedding-provider", help="Embedding provider"
+        _DEFAULTS.embedding_provider, "--embedding-provider", help=_EMBEDDING_PROVIDER_HELP
     ),
-    embedding_model: str = typer.Option(None, "--embedding-model", help="Embedding model name"),
+    embedding_model: str = typer.Option(None, "--embedding-model", help=_EMBEDDING_MODEL_HELP),
     exclude: list[str] = typer.Option(
         None,
         "--exclude",
@@ -39,21 +50,19 @@ def add_repo(
     image_pipeline: str = typer.Option(
         _DEFAULTS.image_pipeline,
         "--image-pipeline",
-        help="Image processing pipeline: 'standard' (OCR) or 'vlm' (Vision Language Model)",
+        help=_IMAGE_PIPELINE_HELP,
     ),
     image_vlm_model: str = typer.Option(
         None,
         "--image-vlm-model",
-        help=(
-            f"VLM preset name (only used when --image-pipeline=vlm). Available: {_vlm_names}. Default: granite_docling"
-        ),
+        help=_IMAGE_VLM_MODEL_HELP,
     ),
     audio_asr_model: str = typer.Option(
         None,
         "--audio-asr-model",
-        help="Whisper ASR model for audio files. Options: tiny, base, small, medium, large, turbo. Default: turbo",
+        help=_AUDIO_ASR_MODEL_HELP,
     ),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = typer.Option(False, "--json", "-j", help=_JSON_OUTPUT_HELP),
 ) -> None:
     """Add a new document repository."""
     factory: ServiceFactory = ctx.obj
@@ -99,8 +108,8 @@ def update_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
     file_types: str = typer.Option(None, "--file-types", help="Comma-separated file extensions (replaces existing)"),
-    embedding_provider: str = typer.Option(None, "--embedding-provider", help="Embedding provider"),
-    embedding_model: str = typer.Option(None, "--embedding-model", help="Embedding model name"),
+    embedding_provider: str = typer.Option(None, "--embedding-provider", help=_EMBEDDING_PROVIDER_HELP),
+    embedding_model: str = typer.Option(None, "--embedding-model", help=_EMBEDDING_MODEL_HELP),
     exclude: list[str] = typer.Option(
         None,
         "--exclude",
@@ -115,21 +124,19 @@ def update_repo(
     image_pipeline: str = typer.Option(
         None,
         "--image-pipeline",
-        help="Image processing pipeline: 'standard' (OCR) or 'vlm' (Vision Language Model)",
+        help=_IMAGE_PIPELINE_HELP,
     ),
     image_vlm_model: str = typer.Option(
         None,
         "--image-vlm-model",
-        help=(
-            f"VLM preset name (only used when --image-pipeline=vlm). Available: {_vlm_names}. Default: granite_docling"
-        ),
+        help=_IMAGE_VLM_MODEL_HELP,
     ),
     audio_asr_model: str = typer.Option(
         None,
         "--audio-asr-model",
-        help="Whisper ASR model for audio files. Options: tiny, base, small, medium, large, turbo. Default: turbo",
+        help=_AUDIO_ASR_MODEL_HELP,
     ),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = typer.Option(False, "--json", "-j", help=_JSON_OUTPUT_HELP),
 ) -> None:
     """Update an existing repository's configuration."""
     factory: ServiceFactory = ctx.obj
