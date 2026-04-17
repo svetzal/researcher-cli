@@ -4,8 +4,11 @@ import yaml
 
 from researcher.config import ResearcherConfig
 from researcher.exceptions import ConfigurationError
+from researcher.gateways.error_wrapper import wrap_gateway_error
 
 DEFAULT_CONFIG_DIR: Path = Path.home() / ".researcher"
+
+_wrap_config_error = wrap_gateway_error(ConfigurationError)
 
 
 class ConfigGateway:
@@ -19,26 +22,20 @@ class ConfigGateway:
     def config_dir(self) -> Path:
         return self._config_dir
 
+    @_wrap_config_error("Failed to load config file '{self._config_file}': {e}")
     def load(self) -> ResearcherConfig:
         """Load configuration from disk, returning defaults if file absent."""
         if not self._config_file.exists():
             return ResearcherConfig()
-        try:
-            with open(self._config_file) as f:
-                data = yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            raise ConfigurationError(f"Failed to parse config file '{self._config_file}': {e}") from e
-        except OSError as e:
-            raise ConfigurationError(f"Failed to read config file '{self._config_file}': {e}") from e
+        with open(self._config_file) as f:
+            data = yaml.safe_load(f)
         if data is None:
             return ResearcherConfig()
         return ResearcherConfig.model_validate(data)
 
+    @_wrap_config_error("Failed to write config file '{self._config_file}': {e}")
     def save(self, config: ResearcherConfig) -> None:
         """Save configuration to disk, creating directories as needed."""
-        try:
-            self._config_dir.mkdir(parents=True, exist_ok=True)
-            with open(self._config_file, "w") as f:
-                yaml.dump(config.model_dump(mode="json"), f, default_flow_style=False)
-        except OSError as e:
-            raise ConfigurationError(f"Failed to write config file '{self._config_file}': {e}") from e
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        with open(self._config_file, "w") as f:
+            yaml.dump(config.model_dump(mode="json"), f, default_flow_style=False)

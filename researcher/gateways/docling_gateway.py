@@ -4,6 +4,9 @@ from typing import Any
 
 from researcher.docling_config import build_converter_config, build_document_converter
 from researcher.exceptions import DocumentConversionError
+from researcher.gateways.error_wrapper import wrap_gateway_error
+
+_wrap_docling_error = wrap_gateway_error(DocumentConversionError)
 
 
 class DoclingGateway:
@@ -48,19 +51,15 @@ class DoclingGateway:
 
         return self._lazy_init("_chunker", "chunk documents", _make_chunker)
 
+    @_wrap_docling_error("Failed to convert '{file_path}': {e}")
     def convert(self, file_path: Path) -> Any:
         """Convert a document file to a DoclingDocument."""
         converter = self._get_converter()
-        try:
-            result = converter.convert(str(file_path))
-            return result.document
-        except Exception as e:
-            raise DocumentConversionError(f"Failed to convert '{file_path}': {e}") from e
+        result = converter.convert(str(file_path))
+        return result.document
 
+    @_wrap_docling_error("Failed to chunk document: {e}")
     def chunk(self, document: Any) -> list[Any]:
         """Chunk a DoclingDocument into raw chunks."""
         chunker = self._get_chunker()
-        try:
-            return list(chunker.chunk(document))
-        except Exception as e:
-            raise DocumentConversionError(f"Failed to chunk document: {e}") from e
+        return list(chunker.chunk(document))

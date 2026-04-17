@@ -1,39 +1,13 @@
-import functools
-import inspect
 from pathlib import Path
 
 import chromadb
 
 from researcher.chroma_parsing import parse_query_results
 from researcher.exceptions import StorageError
+from researcher.gateways.error_wrapper import wrap_gateway_error
 from researcher.models import FragmentForStorage, FragmentWithEmbedding, SearchResult
 
-
-def _wrap_storage_error(message_template: str):
-    """Decorator that wraps a method in a standard try-except-StorageError pattern.
-
-    The message_template may contain {e} for the exception and keyword arg
-    placeholders (e.g. {collection_name}) resolved from the wrapped function's
-    arguments at call time.
-    """
-
-    def decorator(fn):
-        @functools.wraps(fn)
-        def wrapper(*args, **kwargs):
-            try:
-                return fn(*args, **kwargs)
-            except StorageError:
-                raise
-            except Exception as e:
-                sig = inspect.signature(fn)
-                bound = sig.bind(*args, **kwargs)
-                bound.apply_defaults()
-                msg = message_template.format(e=e, **bound.arguments)
-                raise StorageError(msg) from e
-
-        return wrapper
-
-    return decorator
+_wrap_storage_error = wrap_gateway_error(StorageError)
 
 
 class ChromaGateway:
