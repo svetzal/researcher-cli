@@ -5,11 +5,8 @@ from pathlib import Path
 
 import typer
 from packaging.version import Version
-from rich.console import Console
 
-from researcher.cli.output import cli_output
-
-console = Console()
+from researcher.cli.output import JSON_OPTION, cli_output, console
 
 SKILLS = ["researcher-admin", "researcher-find"]
 
@@ -152,7 +149,7 @@ def _print_init_results(result: dict) -> None:
 def init_command(
     force: bool = typer.Option(False, "--force", help="Overwrite existing skill files"),
     global_install: bool = typer.Option(False, "--global", "-g", help="Install to ~/.claude/skills/ (global)"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Install researcher skills into the current project's .claude/skills/ directory."""
     target = Path.home() if global_install else Path.cwd()

@@ -1,8 +1,7 @@
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from researcher.cli.output import cli_exit_on_error, cli_output, make_service_factory_callback
+from researcher.cli.output import JSON_OPTION, cli_exit_on_error, cli_output, console, make_service_factory_callback
 from researcher.config import RepositoryConfig
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
@@ -20,11 +19,8 @@ _IMAGE_VLM_MODEL_HELP = (
 _AUDIO_ASR_MODEL_HELP = (
     "Whisper ASR model for audio files. Options: tiny, base, small, medium, large, turbo. Default: turbo"
 )
-_JSON_OUTPUT_HELP = "Output as JSON"
 
 repo_app = typer.Typer(help="Manage document repositories.")
-console = Console()
-
 
 make_service_factory_callback(repo_app)
 
@@ -62,7 +58,7 @@ def add_repo(
         "--audio-asr-model",
         help=_AUDIO_ASR_MODEL_HELP,
     ),
-    json_output: bool = typer.Option(False, "--json", "-j", help=_JSON_OUTPUT_HELP),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Add a new document repository."""
     factory: ServiceFactory = ctx.obj
@@ -90,7 +86,7 @@ def add_repo(
 def remove_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name to remove"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Remove a document repository."""
     factory: ServiceFactory = ctx.obj
@@ -136,7 +132,7 @@ def update_repo(
         "--audio-asr-model",
         help=_AUDIO_ASR_MODEL_HELP,
     ),
-    json_output: bool = typer.Option(False, "--json", "-j", help=_JSON_OUTPUT_HELP),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Update an existing repository's configuration."""
     factory: ServiceFactory = ctx.obj
@@ -176,7 +172,7 @@ def update_repo(
 @repo_app.command("list")
 def list_repos(
     ctx: typer.Context,
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """List all configured repositories."""
     factory: ServiceFactory = ctx.obj

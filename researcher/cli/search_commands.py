@@ -1,7 +1,6 @@
-from rich.console import Console
 from rich.panel import Panel
 
-from researcher.cli.output import cli_output
+from researcher.cli.output import cli_output, console
 from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, SearchResult
 from researcher.service_factory import ServiceFactory
@@ -9,8 +8,6 @@ from researcher.services.multi_repo_search import (
     search_documents_across_repos,
     search_fragments_across_repos,
 )
-
-console = Console()
 
 
 def build_fragment_search_result(

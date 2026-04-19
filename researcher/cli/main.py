@@ -1,11 +1,12 @@
 import typer
-from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 from researcher.cli.config_commands import config_app
-from researcher.cli.index_commands import emit_json_results, run_index, run_status
+from researcher.cli.index_commands import build_json_results_wrapper, run_index, run_status
 from researcher.cli.init_commands import init_command
 from researcher.cli.model_commands import models_app
-from researcher.cli.output import cli_exit_on_error, cli_output, make_service_factory_callback
+from researcher.cli.output import JSON_OPTION, cli_exit_on_error, cli_output, console, make_service_factory_callback
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
 from researcher.config import RepositoryConfig
@@ -21,8 +22,6 @@ app.add_typer(repo_app, name="repo")
 app.add_typer(config_app, name="config")
 app.add_typer(models_app, name="models")
 app.command("init")(init_command)
-
-console = Console()
 
 
 def _resolve_repos(
@@ -46,7 +45,7 @@ make_service_factory_callback(app)
 def index_command(
     ctx: typer.Context,
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
     force: bool = typer.Option(False, "--force", help="Re-index all files, ignoring checksums"),
 ) -> None:
     """Index a repository (or all repositories)."""
@@ -65,10 +64,33 @@ def index_command(
         with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
             repos = _resolve_repos(factory, repo_name, repos)
 
-    repo_results = [run_index(factory, repo, json_output=json_output, force=force) for repo in repos]
+    repo_results: list[dict] = []
+
+    def _run_with_progress():
+        for repo in repos:
+            with Progress(
+                SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
+            ) as progress:
+                task = progress.add_task(f"Indexing [bold]{repo.name}[/bold]...", total=None)
+                result = run_index(factory, repo, force=force)
+                progress.remove_task(task)
+            repo_results.append(result)
+            console.print(
+                f"[green]✓[/green] [bold]{result['repository']}[/bold]: {result['documents_indexed']} indexed, "
+                f"{result['documents_skipped']} skipped, {result['documents_failed']} failed, "
+                f"{result['documents_purged']} purged, {result['fragments_created']} fragments"
+            )
+            for error in result["errors"]:
+                console.print(f"  [red]✗[/red] {error}")
 
     if json_output:
-        emit_json_results(repo_results)
+        repo_results = [run_index(factory, repo, force=force) for repo in repos]
+
+    cli_output(
+        build_json_results_wrapper(repo_results),
+        _run_with_progress,
+        json_output=json_output,
+    )
 
 
 @app.command("remove")
@@ -76,7 +98,7 @@ def remove_command(
     ctx: typer.Context,
     repo_name: str = typer.Argument(..., help="Repository name"),
     document_path: str = typer.Argument(..., help="Document path to remove from the index"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Remove a specific document from the index."""
     factory: ServiceFactory = ctx.obj
@@ -98,7 +120,7 @@ def remove_command(
 def status_command(
     ctx: typer.Context,
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Show index statistics for repositories."""
     factory: ServiceFactory = ctx.obj
@@ -112,10 +134,24 @@ def status_command(
         with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
             repos = _resolve_repos(factory, repo_name, repos)
 
-    repo_stats = [run_status(factory, repo, json_output=json_output) for repo in repos]
+    repo_stats = [run_status(factory, repo) for repo in repos]
 
-    if json_output:
-        emit_json_results(repo_stats)
+    def _print_status():
+        for stat in repo_stats:
+            table = Table(show_header=False, box=None)
+            table.add_column("Key", style="bold")
+            table.add_column("Value")
+            table.add_row("Repository", stat["repository_name"])
+            table.add_row("Documents", str(stat["total_documents"]))
+            table.add_row("Fragments", str(stat["total_fragments"]))
+            table.add_row("Last Indexed", stat["last_indexed"] or "[dim]never[/dim]")
+            console.print(table)
+
+    cli_output(
+        build_json_results_wrapper(repo_stats),
+        _print_status,
+        json_output=json_output,
+    )
 
 
 @app.command("search")
@@ -126,7 +162,7 @@ def search_command(
     fragments: int = typer.Option(10, "--fragments", "-f", help="Number of fragment results"),
     documents: int = typer.Option(5, "--documents", "-d", help="Number of document results"),
     mode: str = typer.Option("documents", "--mode", "-m", help="Search mode: 'fragments' or 'documents'"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Search across indexed repositories."""
     factory: ServiceFactory = ctx.obj

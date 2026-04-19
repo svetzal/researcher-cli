@@ -51,6 +51,9 @@ def cli_exit_on_error(*exception_types, json_output: bool):
         raise typer.Exit(1) from None
 
 
+JSON_OPTION: bool = typer.Option(False, "--json", "-j", help="Output as JSON")
+
+
 def make_service_factory_callback(typer_app: typer.Typer) -> None:
     @typer_app.callback()
     def _callback(ctx: typer.Context) -> None:

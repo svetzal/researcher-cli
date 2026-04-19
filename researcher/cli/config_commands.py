@@ -1,14 +1,12 @@
 import typer
 import yaml
-from rich.console import Console
 from rich.syntax import Syntax
 
-from researcher.cli.output import cli_exit_on_error, make_service_factory_callback
+from researcher.cli.output import cli_exit_on_error, console, make_service_factory_callback
 from researcher.config import ResearcherConfig
 from researcher.service_factory import ServiceFactory
 
 config_app = typer.Typer(help="Manage researcher configuration.")
-console = Console()
 
 make_service_factory_callback(config_app)
 

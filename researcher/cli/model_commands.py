@@ -1,16 +1,20 @@
 from pathlib import Path
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
-from researcher.cli.output import cli_error, cli_exit_on_error, cli_output, make_service_factory_callback
+from researcher.cli.output import (
+    JSON_OPTION,
+    cli_error,
+    cli_exit_on_error,
+    cli_output,
+    console,
+    make_service_factory_callback,
+)
 from researcher.exceptions import ModelArchiveError
 from researcher.service_factory import ServiceFactory
 
 models_app = typer.Typer(help="Manage model caches for offline use.")
-console = Console()
-
 
 make_service_factory_callback(models_app)
 
@@ -19,7 +23,7 @@ make_service_factory_callback(models_app)
 def pack_command(
     ctx: typer.Context,
     output: Path = typer.Option(..., "--output", "-o", help="Output archive path (e.g. models.tar.gz)"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Pack model cache directories into a portable archive."""
     factory: ServiceFactory = ctx.obj
@@ -58,7 +62,7 @@ def pack_command(
 def unpack_command(
     ctx: typer.Context,
     archive: Path = typer.Argument(..., help="Path to the model archive (.tar.gz)"),
-    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     """Unpack a model archive into the local cache directories."""
     factory: ServiceFactory = ctx.obj
