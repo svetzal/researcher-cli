@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-04-20
+
 ### Changed
 
 - `researcher init --force` is now strictly a version-guard override for downgrades. Up-to-date skill files (installed version equals binary version) are skipped regardless of `--force`. The `--force` help text is updated to reflect this.
