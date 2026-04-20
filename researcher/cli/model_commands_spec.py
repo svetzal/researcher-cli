@@ -54,7 +54,7 @@ class DescribeModelsCallback:
 
         result = runner.invoke(models_app, ["pack", "--output", "/tmp/out.tar.gz"], obj=mock_factory)
 
-        assert result.exit_code == 1
+        assert result.exit_code == 0
         mock_factory.repository_service.list_repositories.assert_called_once()
 
 
@@ -98,12 +98,12 @@ class DescribePackCommand:
             assert "docling" in result.output
             assert "huggingface" in result.output
 
-        def should_error_when_no_repos_configured(self, mock_factory):
+        def should_exit_zero_with_message_when_no_repos_configured(self, mock_factory):
             mock_factory.repository_service.list_repositories.return_value = []
 
             result = runner.invoke(models_app, ["pack", "--output", "/tmp/models.tar.gz"], obj=mock_factory)
 
-            assert result.exit_code == 1
+            assert result.exit_code == 0
             assert "No repositories" in result.output
 
         def should_error_on_file_not_found(self, mock_factory):
@@ -152,15 +152,14 @@ class DescribePackCommand:
             data = json.loads(result.output)
             assert "archive" in data
 
-        def should_write_error_json_when_no_repos(self, mock_factory):
+        def should_write_empty_json_when_no_repos(self, mock_factory):
             mock_factory.repository_service.list_repositories.return_value = []
 
             result = runner.invoke(models_app, ["pack", "--output", "/tmp/models.tar.gz", "--json"], obj=mock_factory)
 
-            assert result.exit_code == 1
+            assert result.exit_code == 0
             data = json.loads(result.output)
-            assert "error" in data
-            assert "No repositories" in data["error"]
+            assert data == {"repositories": []}
 
         def should_write_error_json_on_file_not_found(self, mock_factory):
             mock_factory.repository_service.list_repositories.return_value = [_make_repo()]

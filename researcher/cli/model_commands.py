@@ -1,16 +1,16 @@
 from pathlib import Path
 
 import typer
-from rich.table import Table
 
 from researcher.cli.output import (
     JSON_OPTION,
-    cli_error,
     cli_exit_on_error,
     cli_output,
     console,
     make_service_factory_callback,
 )
+from researcher.cli.presenters import present_pack_result
+from researcher.cli.serializers import serialize_pack_result, serialize_unpack_result
 from researcher.exceptions import ModelArchiveError
 from researcher.service_factory import ServiceFactory
 
@@ -30,30 +30,21 @@ def pack_command(
     repos = factory.repository_service.list_repositories()
 
     if not repos:
-        cli_error("No repositories configured.", json_output=json_output)
-        raise typer.Exit(1)
+        cli_output(
+            {"repositories": []},
+            "[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]",
+            json_output=json_output,
+        )
+        raise typer.Exit(0)
 
     service = factory.model_archive_service()
 
     with cli_exit_on_error(ModelArchiveError, json_output=json_output):
         result = service.pack(repos, output)
 
-    def _print_pack():
-        console.print(f"[green]✓[/green] Packed [bold]{result.total_files}[/bold] files into {result.archive_path}")
-        table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Category", no_wrap=True)
-        table.add_column("Archive Path")
-        for entry in result.entries:
-            table.add_row(entry.category, entry.archive_path)
-        console.print(table)
-
     cli_output(
-        {
-            "archive": str(result.archive_path),
-            "total_files": result.total_files,
-            "entries": [{"category": entry.category, "archive_path": entry.archive_path} for entry in result.entries],
-        },
-        _print_pack,
+        serialize_pack_result(result),
+        lambda: present_pack_result(result, console),
         json_output=json_output,
     )
 
@@ -72,11 +63,7 @@ def unpack_command(
         result = service.unpack(archive)
 
     cli_output(
-        {
-            "archive": str(archive),
-            "entries_restored": result.entries_restored,
-            "files_extracted": result.files_extracted,
-        },
+        serialize_unpack_result(archive, result),
         f"[green]✓[/green] Unpacked [bold]{result.files_extracted}[/bold] files "
         f"across [bold]{result.entries_restored}[/bold] model entries from {archive}",
         json_output=json_output,

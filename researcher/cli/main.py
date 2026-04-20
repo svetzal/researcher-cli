@@ -1,17 +1,24 @@
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.table import Table
 
 from researcher.cli.config_commands import config_app
-from researcher.cli.index_commands import build_json_results_wrapper, run_index, run_status
 from researcher.cli.init_commands import init_command
 from researcher.cli.model_commands import models_app
 from researcher.cli.output import JSON_OPTION, cli_exit_on_error, cli_output, console, make_service_factory_callback
+from researcher.cli.presenters import present_index_results, present_status
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
+from researcher.cli.serializers import (
+    build_json_results_wrapper,
+    serialize_empty_search,
+    serialize_index_result,
+    serialize_index_stats,
+)
 from researcher.config import RepositoryConfig
 from researcher.exceptions import ResearcherError
+from researcher.models import IndexingResult
 from researcher.service_factory import ServiceFactory
+from researcher.services.index_facade import remove_from_repo
 
 app = typer.Typer(
     name="researcher",
@@ -41,6 +48,14 @@ def _resolve_repos(
 make_service_factory_callback(app)
 
 
+def _index_with_spinner(factory: ServiceFactory, repo: RepositoryConfig, force: bool) -> IndexingResult:
+    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
+        task = progress.add_task(f"Indexing [bold]{repo.name}[/bold]...", total=None)
+        result = factory.index_service(repo).index_repository(repo, force=force)
+        progress.remove_task(task)
+    return result
+
+
 @app.command("index")
 def index_command(
     ctx: typer.Context,
@@ -65,30 +80,16 @@ def index_command(
             repos = _resolve_repos(factory, repo_name, repos)
 
     repo_results: list[dict] = []
-
-    def _run_with_progress():
-        for repo in repos:
-            with Progress(
-                SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
-            ) as progress:
-                task = progress.add_task(f"Indexing [bold]{repo.name}[/bold]...", total=None)
-                result = run_index(factory, repo, force=force)
-                progress.remove_task(task)
-            repo_results.append(result)
-            console.print(
-                f"[green]✓[/green] [bold]{result['repository']}[/bold]: {result['documents_indexed']} indexed, "
-                f"{result['documents_skipped']} skipped, {result['documents_failed']} failed, "
-                f"{result['documents_purged']} purged, {result['fragments_created']} fragments"
-            )
-            for error in result["errors"]:
-                console.print(f"  [red]✗[/red] {error}")
-
-    if json_output:
-        repo_results = [run_index(factory, repo, force=force) for repo in repos]
+    for repo in repos:
+        if json_output:
+            result = factory.index_service(repo).index_repository(repo, force=force)
+        else:
+            result = _index_with_spinner(factory, repo, force)
+        repo_results.append(serialize_index_result(repo.name, result))
 
     cli_output(
         build_json_results_wrapper(repo_results),
-        _run_with_progress,
+        lambda: present_index_results(repo_results, console),
         json_output=json_output,
     )
 
@@ -103,11 +104,7 @@ def remove_command(
     """Remove a specific document from the index."""
     factory: ServiceFactory = ctx.obj
     with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
-        repo = factory.repository_service.get_repository(repo_name)
-
-    with cli_exit_on_error(ResearcherError, json_output=json_output):
-        service = factory.index_service(repo)
-        service.remove_document(document_path)
+        remove_from_repo(factory, repo_name, document_path)
 
     cli_output(
         {"repository": repo_name, "document_path": document_path, "removed": True},
@@ -134,22 +131,11 @@ def status_command(
         with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
             repos = _resolve_repos(factory, repo_name, repos)
 
-    repo_stats = [run_status(factory, repo) for repo in repos]
-
-    def _print_status():
-        for stat in repo_stats:
-            table = Table(show_header=False, box=None)
-            table.add_column("Key", style="bold")
-            table.add_column("Value")
-            table.add_row("Repository", stat["repository_name"])
-            table.add_row("Documents", str(stat["total_documents"]))
-            table.add_row("Fragments", str(stat["total_fragments"]))
-            table.add_row("Last Indexed", stat["last_indexed"] or "[dim]never[/dim]")
-            console.print(table)
+    repo_stats = [serialize_index_stats(factory.index_service(repo).get_stats()) for repo in repos]
 
     cli_output(
         build_json_results_wrapper(repo_stats),
-        _print_status,
+        lambda: present_status(repo_stats, console),
         json_output=json_output,
     )
 
@@ -170,14 +156,7 @@ def search_command(
 
     if not all_repos:
         cli_output(
-            {
-                "query": query,
-                "mode": mode,
-                "repository": repo,
-                "repos_searched": [],
-                "result_count": 0,
-                "results": [],
-            },
+            serialize_empty_search(query, mode, repo),
             "[yellow]No repositories configured.[/yellow]",
             json_output=json_output,
         )

@@ -1,8 +1,7 @@
-from pathlib import Path
-
 import fastmcp
 
 from researcher.service_factory import ServiceFactory
+from researcher.services.index_facade import get_repo_status, index_file_in_repo, remove_from_repo
 from researcher.services.multi_repo_search import (
     search_documents_across_repos,
     search_fragments_across_repos,
@@ -29,21 +28,23 @@ def set_factory(factory: ServiceFactory) -> None:
 @mcp.tool
 def add_to_index(repository: str, file_path: str) -> str:
     """Index a specific file in a repository."""
-    factory = _get_factory()
-    repo = factory.repository_service.get_repository(repository)
-    service = factory.index_service(repo)
-    chunk_result = service.index_file(Path(file_path), repo)
-    return f"Indexed {len(chunk_result.fragments)} fragments from {file_path}"
+    chunk_result = index_file_in_repo(_get_factory(), repository, file_path)
+    count = len(chunk_result.fragments) if chunk_result else 0
+    return f"Indexed {count} fragments from {file_path}"
 
 
 @mcp.tool
 def remove_from_index(repository: str, document_path: str) -> str:
     """Remove a document from a repository's index."""
-    factory = _get_factory()
-    repo = factory.repository_service.get_repository(repository)
-    service = factory.index_service(repo)
-    service.remove_document(document_path)
+    remove_from_repo(_get_factory(), repository, document_path)
     return f"Removed {document_path} from {repository}"
+
+
+def _get_repos(repository: str | None):
+    factory = _get_factory()
+    if repository:
+        return [factory.repository_service.get_repository(repository)]
+    return factory.repository_service.list_repositories()
 
 
 @mcp.tool
@@ -72,23 +73,10 @@ def list_repositories() -> list[dict]:
 @mcp.tool
 def get_index_status(repository: str | None = None) -> dict:
     """Get indexing statistics for one or all repositories."""
-    repos = _get_repos(repository)
-    statuses = []
-    for repo in repos:
-        service = _get_factory().index_service(repo)
-        stats = service.get_stats()
-        statuses.append(stats.model_dump(mode="json"))
-
+    statuses = [s.model_dump(mode="json") for s in get_repo_status(_get_factory(), repository)]
     if len(statuses) == 1:
         return statuses[0]
     return {"repositories": statuses}
-
-
-def _get_repos(repository: str | None):
-    """Return a list of repos — one if named, all if None."""
-    if repository:
-        return [_get_factory().repository_service.get_repository(repository)]
-    return _get_factory().repository_service.list_repositories()
 
 
 def start_server(port: int | None = None) -> None:

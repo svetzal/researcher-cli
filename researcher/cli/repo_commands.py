@@ -1,7 +1,7 @@
 import typer
-from rich.table import Table
 
 from researcher.cli.output import JSON_OPTION, cli_exit_on_error, cli_output, console, make_service_factory_callback
+from researcher.cli.presenters import present_repo_list, present_repo_update
 from researcher.config import RepositoryConfig
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
@@ -153,18 +153,9 @@ def update_repo(
             index_svc = factory.index_service(repo)
             purged = index_svc.purge_excluded_documents(repo)
 
-        def _print_update():
-            console.print(f"[green]✓[/green] Updated repository '[bold]{repo.name}[/bold]'")
-            if added_patterns:
-                console.print(f"  Added exclusion patterns: {', '.join(added_patterns)}")
-            if purged:
-                console.print(f"  Purged [bold]{purged}[/bold] previously-indexed document(s) matching new exclusions")
-            elif added_patterns and not no_purge:
-                console.print("  [dim]No previously-indexed documents matched the new exclusions[/dim]")
-
         cli_output(
             repo.model_dump() | {"purged_documents": purged},
-            _print_update,
+            lambda: present_repo_update(repo, added_patterns, purged, no_purge, console),
             json_output=json_output,
         )
 
@@ -178,41 +169,8 @@ def list_repos(
     factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
-    def _print_repos():
-        if not repos:
-            console.print("[dim]No repositories configured.[/dim]")
-            return
-
-        table = Table(title="Repositories", show_header=True, header_style="bold cyan", expand=True)
-        table.add_column("Name", style="bold", no_wrap=True)
-        table.add_column("Path")
-        table.add_column("File Types")
-        table.add_column("Embed", no_wrap=True)
-        table.add_column("Image", no_wrap=True)
-        table.add_column("Excludes")
-
-        for repo in repos:
-            embed_info = repo.embedding_provider
-            if repo.embedding_model:
-                embed_info += f"\n{repo.embedding_model}"
-
-            image_info = repo.image_pipeline
-            if repo.image_pipeline == "vlm" and repo.image_vlm_model:
-                image_info += f"\n{repo.image_vlm_model}"
-
-            table.add_row(
-                repo.name,
-                repo.path,
-                ", ".join(repo.file_types),
-                embed_info,
-                image_info,
-                ", ".join(repo.exclude_patterns) if repo.exclude_patterns else "[dim]none[/dim]",
-            )
-
-        console.print(table)
-
     cli_output(
         {"repositories": [repo.model_dump() for repo in repos]},
-        _print_repos,
+        lambda: present_repo_list(repos, console),
         json_output=json_output,
     )
