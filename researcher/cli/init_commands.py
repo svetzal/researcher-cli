@@ -60,26 +60,22 @@ def _decide_skill_action(
         return "install", None
 
     existing_version = _parse_frontmatter_version(dest.read_text())
+    if existing_version is None:
+        return "install", None  # no version field → no guard applies
 
-    if existing_version and not force:
-        existing = Version(existing_version)
-        current = Version(current_version)
-        if existing > current:
-            return "refuse", (
-                f"Installed skill is from researcher v{existing_version} "
-                f"but this binary is v{current_version}. Use --force to downgrade."
-            )
-        if existing == current:
-            return "skip", f"up-to-date at v{current_version}"
-        return "install", None
+    existing = Version(existing_version)
+    current = Version(current_version)
 
-    if not force and existing_version is None:
-        return "install", None  # No version field → always install
-
-    if not force:
-        return "skip", "already exists, use --force to overwrite"
-
-    return "install", None
+    if existing > current:
+        if force:
+            return "install", None
+        return "refuse", (
+            f"Installed skill is from researcher v{existing_version} "
+            f"but this binary is v{current_version}. Use --force to downgrade."
+        )
+    if existing == current:
+        return "skip", f"up-to-date at v{current_version}"
+    return "install", None  # upgrade path
 
 
 def run_init(
@@ -136,9 +132,7 @@ def _print_init_results(result: dict) -> None:
         console.print(f"[green]Installed[/green] {skill_name} (v{current_version})")
 
     if result["skills_refused"]:
-        console.print("\n[dim]Use --force to override version guard.[/dim]")
-    elif result["skills_skipped"] and not result["skills_refused"]:
-        console.print("\n[dim]Use --force to overwrite existing skills.[/dim]")
+        console.print("\n[dim]Use --force to override the version guard when downgrading.[/dim]")
 
     console.print(
         "\n[dim]Hint: configure the MCP server in .claude/settings.json:[/dim]\n"
@@ -147,7 +141,11 @@ def _print_init_results(result: dict) -> None:
 
 
 def init_command(
-    force: bool = typer.Option(False, "--force", help="Overwrite existing skill files"),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite even if installed skill version is newer than this binary",
+    ),
     global_install: bool = typer.Option(False, "--global", "-g", help="Install to ~/.claude/skills/ (global)"),
     json_output: bool = JSON_OPTION,
 ) -> None:

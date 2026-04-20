@@ -92,7 +92,7 @@ class DescribeRunInit:
 
             assert "researcher-admin" in result["skills_installed"]
 
-    def should_overwrite_existing_skills_with_force(self):
+    def should_overwrite_legacy_files_without_version_field(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
             run_init(target, _version="0.4.0")
@@ -100,10 +100,21 @@ class DescribeRunInit:
             skill_path = target / ".claude" / "skills" / "researcher-admin" / "SKILL.md"
             skill_path.write_text("old content")
 
-            result = run_init(target, force=True, _version="0.4.0")
+            result = run_init(target, _version="0.4.0")
 
             assert "researcher-admin" in result["skills_installed"]
             assert skill_path.read_text() != "old content"
+
+    def should_skip_same_version_even_with_force(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            run_init(target, _version="0.4.0")
+
+            result = run_init(target, force=True, _version="0.4.0")
+
+            assert result["skills_installed"] == []
+            assert "researcher-admin" in result["skills_skipped"]
+            assert "researcher-find" in result["skills_skipped"]
 
     def should_create_claude_skills_directories(self):
         with tempfile.TemporaryDirectory() as tmp:
