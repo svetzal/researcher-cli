@@ -180,6 +180,40 @@ def should_checksum_gateway_load_bad_json_raise_storage_error(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# FilesystemGateway → StorageError
+# ---------------------------------------------------------------------------
+
+
+def should_filesystem_gateway_read_file_missing_raise_storage_error(tmp_path):
+    from researcher.gateways.filesystem_gateway import FilesystemGateway
+
+    gw = FilesystemGateway(tmp_path)
+    with pytest.raises(StorageError) as exc_info:
+        gw.read_file(tmp_path / "nonexistent.txt")
+    assert exc_info.value.__cause__ is not None
+
+
+def should_filesystem_gateway_read_file_binary_raise_storage_error(tmp_path):
+    from researcher.gateways.filesystem_gateway import FilesystemGateway
+
+    binary_file = tmp_path / "binary.bin"
+    binary_file.write_bytes(b"\xff\xfe binary content \x00\x01")
+    gw = FilesystemGateway(tmp_path)
+    with pytest.raises(StorageError) as exc_info:
+        gw.read_file(binary_file)
+    assert exc_info.value.__cause__ is not None
+
+
+def should_filesystem_gateway_compute_checksum_missing_raise_storage_error(tmp_path):
+    from researcher.gateways.filesystem_gateway import FilesystemGateway
+
+    gw = FilesystemGateway(tmp_path)
+    with pytest.raises(StorageError) as exc_info:
+        gw.compute_checksum(tmp_path / "nonexistent.txt")
+    assert exc_info.value.__cause__ is not None
+
+
+# ---------------------------------------------------------------------------
 # IndexService — unexpected exceptions propagate (not swallowed)
 # ---------------------------------------------------------------------------
 

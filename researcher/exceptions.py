@@ -3,7 +3,7 @@ class ResearcherError(Exception):
 
 
 class StorageError(ResearcherError):
-    """ChromaDB or checksum store failure."""
+    """Filesystem, ChromaDB, or checksum store failure."""
 
 
 class EmbeddingError(ResearcherError):

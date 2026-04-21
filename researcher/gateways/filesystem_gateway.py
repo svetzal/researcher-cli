@@ -1,7 +1,11 @@
 import hashlib
 from pathlib import Path
 
+from researcher.exceptions import StorageError
+from researcher.gateways.error_wrapper import wrap_gateway_error
 from researcher.path_exclusion import is_path_excluded
+
+_wrap_storage_error = wrap_gateway_error(StorageError)
 
 
 class FilesystemGateway:
@@ -33,14 +37,17 @@ class FilesystemGateway:
         relative = file_path.relative_to(self._base_path)
         return is_path_excluded(relative, exclude_patterns)
 
+    @_wrap_storage_error("Failed to read '{path}': {e}")
     def read_file(self, path: Path) -> str:
         """Read a text file and return its contents."""
         return path.read_text(encoding="utf-8")
 
+    @_wrap_storage_error("Failed to read bytes from '{path}': {e}")
     def read_bytes(self, path: Path) -> bytes:
         """Read a file as bytes."""
         return path.read_bytes()
 
+    @_wrap_storage_error("Failed to compute checksum for '{path}': {e}")
     def compute_checksum(self, path: Path) -> str:
         """Compute SHA-256 checksum of a file."""
         h = hashlib.sha256()
@@ -49,6 +56,7 @@ class FilesystemGateway:
                 h.update(chunk)
         return h.hexdigest()
 
+    @_wrap_storage_error("Failed to check existence of '{path}': {e}")
     def file_exists(self, path: Path) -> bool:
         """Check if a file exists."""
         return path.exists()

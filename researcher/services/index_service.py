@@ -80,7 +80,7 @@ class IndexService:
                 result.fragments_created += len(chunk_result.fragments)
                 logger.info("Indexed file", path=path_key, fragments=len(chunk_result.fragments))
 
-            except (StorageError, EmbeddingError, DocumentConversionError, OSError, UnicodeDecodeError) as e:
+            except (StorageError, EmbeddingError, DocumentConversionError) as e:
                 result.documents_failed += 1
                 result.errors.append(f"{path_key}: {e}")
                 logger.error("Failed to index file", path=path_key, error=str(e))
