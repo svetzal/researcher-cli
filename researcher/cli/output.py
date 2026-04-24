@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import json
 from collections.abc import Callable
 
@@ -49,6 +50,21 @@ def cli_exit_on_error(*exception_types, json_output: bool):
     except exception_types as e:
         cli_error(str(e), json_output=json_output)
         raise typer.Exit(1) from None
+
+
+def cli_errors(*exception_types):
+    """Decorator that wraps a Typer command, catching exception_types and routing through cli_error."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            json_output = kwargs.get("json_output", False)
+            with cli_exit_on_error(*exception_types, json_output=json_output):
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 JSON_OPTION: bool = typer.Option(False, "--json", "-j", help="Output as JSON")

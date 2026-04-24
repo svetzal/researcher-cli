@@ -4,7 +4,14 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from researcher.cli.config_commands import config_app
 from researcher.cli.init_commands import init_command
 from researcher.cli.model_commands import models_app
-from researcher.cli.output import JSON_OPTION, cli_exit_on_error, cli_output, console, make_service_factory_callback
+from researcher.cli.output import (
+    JSON_OPTION,
+    cli_errors,
+    cli_exit_on_error,
+    cli_output,
+    console,
+    make_service_factory_callback,
+)
 from researcher.cli.presenters import present_index_results, present_status
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
@@ -45,6 +52,16 @@ def _resolve_repos(
     return all_repos
 
 
+def _resolve_repos_or_exit(
+    factory: ServiceFactory,
+    repo_name: str | None,
+    all_repos: list[RepositoryConfig],
+    json_output: bool,
+) -> list[RepositoryConfig]:
+    with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
+        return _resolve_repos(factory, repo_name, all_repos)
+
+
 make_service_factory_callback(app)
 
 
@@ -75,9 +92,7 @@ def index_command(
         )
         raise typer.Exit(0)
 
-    if repo_name:
-        with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
-            repos = _resolve_repos(factory, repo_name, repos)
+    repos = _resolve_repos_or_exit(factory, repo_name, repos, json_output)
 
     repo_results: list[dict] = []
     for repo in repos:
@@ -95,6 +110,7 @@ def index_command(
 
 
 @app.command("remove")
+@cli_errors(ValueError, ResearcherError)
 def remove_command(
     ctx: typer.Context,
     repo_name: str = typer.Argument(..., help="Repository name"),
@@ -103,8 +119,7 @@ def remove_command(
 ) -> None:
     """Remove a specific document from the index."""
     factory: ServiceFactory = ctx.obj
-    with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
-        remove_from_repo(factory, repo_name, document_path)
+    remove_from_repo(factory, repo_name, document_path)
 
     cli_output(
         {"repository": repo_name, "document_path": document_path, "removed": True},
@@ -127,9 +142,7 @@ def status_command(
         cli_output({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
         return
 
-    if repo_name:
-        with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
-            repos = _resolve_repos(factory, repo_name, repos)
+    repos = _resolve_repos_or_exit(factory, repo_name, repos, json_output)
 
     repo_stats = [serialize_index_stats(factory.index_service(repo).get_stats()) for repo in repos]
 
@@ -162,8 +175,7 @@ def search_command(
         )
         raise typer.Exit(0)
 
-    with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
-        search_repos = _resolve_repos(factory, repo, all_repos)
+    search_repos = _resolve_repos_or_exit(factory, repo, all_repos, json_output)
 
     with cli_exit_on_error(ResearcherError, json_output=json_output):
         if mode == "fragments":

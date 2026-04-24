@@ -4,7 +4,7 @@ import typer
 
 from researcher.cli.output import (
     JSON_OPTION,
-    cli_exit_on_error,
+    cli_errors,
     cli_output,
     console,
     make_service_factory_callback,
@@ -20,6 +20,7 @@ make_service_factory_callback(models_app)
 
 
 @models_app.command("pack")
+@cli_errors(ModelArchiveError)
 def pack_command(
     ctx: typer.Context,
     output: Path = typer.Option(..., "--output", "-o", help="Output archive path (e.g. models.tar.gz)"),
@@ -38,9 +39,7 @@ def pack_command(
         raise typer.Exit(0)
 
     service = factory.model_archive_service()
-
-    with cli_exit_on_error(ModelArchiveError, json_output=json_output):
-        result = service.pack(repos, output)
+    result = service.pack(repos, output)
 
     cli_output(
         serialize_pack_result(result),
@@ -50,6 +49,7 @@ def pack_command(
 
 
 @models_app.command("unpack")
+@cli_errors(ModelArchiveError)
 def unpack_command(
     ctx: typer.Context,
     archive: Path = typer.Argument(..., help="Path to the model archive (.tar.gz)"),
@@ -58,9 +58,7 @@ def unpack_command(
     """Unpack a model archive into the local cache directories."""
     factory: ServiceFactory = ctx.obj
     service = factory.model_archive_service()
-
-    with cli_exit_on_error(ModelArchiveError, json_output=json_output):
-        result = service.unpack(archive)
+    result = service.unpack(archive)
 
     cli_output(
         serialize_unpack_result(archive, result),

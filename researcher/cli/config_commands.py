@@ -2,7 +2,7 @@ import typer
 import yaml
 from rich.syntax import Syntax
 
-from researcher.cli.output import cli_exit_on_error, console, make_service_factory_callback
+from researcher.cli.output import cli_errors, console, make_service_factory_callback
 from researcher.config import ResearcherConfig
 from researcher.service_factory import ServiceFactory
 
@@ -22,6 +22,7 @@ def show_config(ctx: typer.Context) -> None:
 
 
 @config_app.command("set")
+@cli_errors(ValueError)
 def set_config(
     ctx: typer.Context,
     key: str = typer.Argument(..., help="Configuration key (e.g. default_embedding_provider)"),
@@ -32,16 +33,15 @@ def set_config(
     config = factory.config
     data = config.model_dump(mode="json")
 
-    with cli_exit_on_error(ValueError, json_output=False):
-        if key not in data:
-            raise ValueError(f"Unknown configuration key: '{key}'")
-        if isinstance(data[key], int):
-            try:
-                data[key] = int(value)
-            except ValueError:
-                raise ValueError(f"Value for '{key}' must be an integer") from None
-        else:
-            data[key] = value
+    if key not in data:
+        raise ValueError(f"Unknown configuration key: '{key}'")
+    if isinstance(data[key], int):
+        try:
+            data[key] = int(value)
+        except ValueError:
+            raise ValueError(f"Value for '{key}' must be an integer") from None
+    else:
+        data[key] = value
 
     new_config = ResearcherConfig.model_validate(data)
     factory.config_gateway.save(new_config)

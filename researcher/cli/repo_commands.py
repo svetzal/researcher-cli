@@ -1,6 +1,6 @@
 import typer
 
-from researcher.cli.output import JSON_OPTION, cli_exit_on_error, cli_output, console, make_service_factory_callback
+from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
 from researcher.cli.presenters import present_repo_list, present_repo_update
 from researcher.config import RepositoryConfig
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
@@ -26,6 +26,7 @@ make_service_factory_callback(repo_app)
 
 
 @repo_app.command("add")
+@cli_errors(RepositoryAlreadyExistsError)
 def add_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
@@ -63,26 +64,26 @@ def add_repo(
     """Add a new document repository."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")]
-    with cli_exit_on_error(RepositoryAlreadyExistsError, json_output=json_output):
-        repo = factory.repository_service.add_repository(
-            name=name,
-            path=path,
-            file_types=types,
-            embedding_provider=embedding_provider,
-            embedding_model=embedding_model,
-            exclude_patterns=exclude or [],
-            image_pipeline=image_pipeline,
-            image_vlm_model=image_vlm_model,
-            audio_asr_model=audio_asr_model,
-        )
-        cli_output(
-            repo.model_dump(),
-            f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}",
-            json_output=json_output,
-        )
+    repo = factory.repository_service.add_repository(
+        name=name,
+        path=path,
+        file_types=types,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        exclude_patterns=exclude or [],
+        image_pipeline=image_pipeline,
+        image_vlm_model=image_vlm_model,
+        audio_asr_model=audio_asr_model,
+    )
+    cli_output(
+        repo.model_dump(),
+        f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}",
+        json_output=json_output,
+    )
 
 
 @repo_app.command("remove")
+@cli_errors(RepositoryNotFoundError)
 def remove_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name to remove"),
@@ -90,16 +91,16 @@ def remove_repo(
 ) -> None:
     """Remove a document repository."""
     factory: ServiceFactory = ctx.obj
-    with cli_exit_on_error(RepositoryNotFoundError, json_output=json_output):
-        factory.repository_service.remove_repository(name)
-        cli_output(
-            {"name": name, "removed": True},
-            f"[green]✓[/green] Removed repository '[bold]{name}[/bold]'",
-            json_output=json_output,
-        )
+    factory.repository_service.remove_repository(name)
+    cli_output(
+        {"name": name, "removed": True},
+        f"[green]✓[/green] Removed repository '[bold]{name}[/bold]'",
+        json_output=json_output,
+    )
 
 
 @repo_app.command("update")
+@cli_errors(RepositoryNotFoundError)
 def update_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
@@ -137,27 +138,26 @@ def update_repo(
     """Update an existing repository's configuration."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")] if file_types else None
-    with cli_exit_on_error(RepositoryNotFoundError, json_output=json_output):
-        repo, added_patterns = factory.repository_service.update_repository(
-            name=name,
-            file_types=types,
-            embedding_provider=embedding_provider,
-            embedding_model=embedding_model,
-            add_exclude_patterns=exclude or [],
-            image_pipeline=image_pipeline,
-            image_vlm_model=image_vlm_model,
-            audio_asr_model=audio_asr_model,
-        )
-        purged = 0
-        if added_patterns and not no_purge:
-            index_svc = factory.index_service(repo)
-            purged = index_svc.purge_excluded_documents(repo)
+    repo, added_patterns = factory.repository_service.update_repository(
+        name=name,
+        file_types=types,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        add_exclude_patterns=exclude or [],
+        image_pipeline=image_pipeline,
+        image_vlm_model=image_vlm_model,
+        audio_asr_model=audio_asr_model,
+    )
+    purged = 0
+    if added_patterns and not no_purge:
+        index_svc = factory.index_service(repo)
+        purged = index_svc.purge_excluded_documents(repo)
 
-        cli_output(
-            repo.model_dump() | {"purged_documents": purged},
-            lambda: present_repo_update(repo, added_patterns, purged, no_purge, console),
-            json_output=json_output,
-        )
+    cli_output(
+        repo.model_dump() | {"purged_documents": purged},
+        lambda: present_repo_update(repo, added_patterns, purged, no_purge, console),
+        json_output=json_output,
+    )
 
 
 @repo_app.command("list")
