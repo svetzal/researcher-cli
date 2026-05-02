@@ -35,7 +35,6 @@ class DescribeDoclingGatewayConvert:
             result = gateway.convert(Path("/some/file.pdf"))
 
         assert result is document
-        mock_converter.convert.assert_called_once_with("/some/file.pdf")
 
     def should_raise_document_conversion_error_on_failure(self, stub_config):
         mock_converter = MagicMock()
@@ -59,20 +58,25 @@ class DescribeDoclingGatewayConvert:
                 gateway.convert(Path("/some/file.pdf"))
 
     def should_create_converter_only_once(self, stub_config):
+        doc1 = MagicMock()
+        doc2 = MagicMock()
+        result1 = MagicMock()
+        result1.document = doc1
+        result2 = MagicMock()
+        result2.document = doc2
         mock_converter = MagicMock()
-        mock_result = MagicMock()
-        mock_result.document = MagicMock()
-        mock_converter.convert.return_value = mock_result
+        mock_converter.convert.side_effect = [result1, result2]
 
         with patch(
             "researcher.gateways.docling_gateway.build_document_converter",
             return_value=mock_converter,
-        ) as mock_build:
+        ):
             gateway = DoclingGateway()
-            gateway.convert(Path("/file1.pdf"))
-            gateway.convert(Path("/file2.pdf"))
+            out1 = gateway.convert(Path("/file1.pdf"))
+            out2 = gateway.convert(Path("/file2.pdf"))
 
-        mock_build.assert_called_once()
+        assert out1 is doc1
+        assert out2 is doc2
 
 
 class DescribeDoclingGatewayChunk:

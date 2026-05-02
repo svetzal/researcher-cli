@@ -55,7 +55,7 @@ class DescribeModelsCallback:
         result = runner.invoke(models_app, ["pack", "--output", "/tmp/out.tar.gz"], obj=mock_factory)
 
         assert result.exit_code == 0
-        mock_factory.repository_service.list_repositories.assert_called_once()
+        assert "No repositories" in result.output
 
 
 class DescribePackCommand:

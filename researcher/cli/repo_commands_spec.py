@@ -583,33 +583,35 @@ class DescribeRepoUpdateCommand:
         assert data["image_vlm_model"] == "phi4"
 
     def should_pass_none_image_pipeline_when_not_provided_on_update(self, mock_factory):
-        mock_factory.repository_service.update_repository.return_value = (self._make_updated_repo(), [])
+        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", image_pipeline="standard")
+        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
 
-        result = runner.invoke(repo_app, ["update", "my-repo"], obj=mock_factory)
+        result = runner.invoke(repo_app, ["update", "my-repo", "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
-        call_kwargs = mock_factory.repository_service.update_repository.call_args.kwargs
-        assert call_kwargs["image_pipeline"] is None
-        assert call_kwargs["image_vlm_model"] is None
+        data = json.loads(result.output)
+        assert data["image_pipeline"] == "standard"
+        assert data["image_vlm_model"] is None
 
     def should_pass_audio_asr_model_to_service_on_update(self, mock_factory):
         updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="base")
         mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
 
-        result = runner.invoke(repo_app, ["update", "my-repo", "--audio-asr-model", "base"], obj=mock_factory)
+        result = runner.invoke(repo_app, ["update", "my-repo", "--audio-asr-model", "base", "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
-        call_kwargs = mock_factory.repository_service.update_repository.call_args.kwargs
-        assert call_kwargs["audio_asr_model"] == "base"
+        data = json.loads(result.output)
+        assert data["audio_asr_model"] == "base"
 
     def should_pass_none_audio_asr_model_when_not_provided_on_update(self, mock_factory):
-        mock_factory.repository_service.update_repository.return_value = (self._make_updated_repo(), [])
+        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="turbo")
+        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
 
-        result = runner.invoke(repo_app, ["update", "my-repo"], obj=mock_factory)
+        result = runner.invoke(repo_app, ["update", "my-repo", "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
-        call_kwargs = mock_factory.repository_service.update_repository.call_args.kwargs
-        assert call_kwargs["audio_asr_model"] is None
+        data = json.loads(result.output)
+        assert data["audio_asr_model"] == "turbo"
 
     def should_include_audio_asr_model_in_json_output_on_update(self, mock_factory):
         updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="large")

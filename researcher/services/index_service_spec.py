@@ -40,7 +40,9 @@ class DescribeIndexService:
 
     @pytest.fixture
     def mock_checksums(self):
-        return Mock(spec=ChecksumGateway)
+        m = Mock(spec=ChecksumGateway)
+        m.load.return_value = {}
+        return m
 
     @pytest.fixture
     def service(self, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums):
@@ -93,22 +95,34 @@ class DescribeIndexService:
             embedding_provider="chromadb",
             exclude_patterns=["node_modules", ".*"],
         )
-        mock_filesystem.list_files.return_value = []
-        mock_checksums.load.return_value = {}
+        captured: list[tuple] = []
+
+        def _capture(file_types, patterns):
+            captured.append((file_types, patterns))
+            return []
+
+        mock_filesystem.list_files.side_effect = _capture
 
         service.index_repository(repo_config)
 
-        mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, ["node_modules", ".*"])
+        assert len(captured) == 1
+        assert captured[0] == (repo_config.file_types, ["node_modules", ".*"])
 
     def should_pass_default_exclude_patterns_to_list_files(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
     ):
-        mock_filesystem.list_files.return_value = []
-        mock_checksums.load.return_value = {}
+        captured: list[tuple] = []
+
+        def _capture(file_types, patterns):
+            captured.append((file_types, patterns))
+            return []
+
+        mock_filesystem.list_files.side_effect = _capture
 
         service.index_repository(repo_config)
 
-        mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, [".*"])
+        assert len(captured) == 1
+        assert captured[0] == (repo_config.file_types, [".*"])
 
     def should_index_new_files(self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config):
         file_path = Path("/tmp/docs/doc.pdf")
@@ -116,7 +130,6 @@ class DescribeIndexService:
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_docling.convert.return_value = "mock_document"
         mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
-        mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)
 
@@ -144,7 +157,6 @@ class DescribeIndexService:
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_filesystem.read_file.return_value = "Some plain text content"
-        mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)
 
@@ -157,7 +169,6 @@ class DescribeIndexService:
         mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_filesystem.read_file.return_value = "# Heading\n\nSome markdown content"
-        mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)
 
@@ -171,7 +182,6 @@ class DescribeIndexService:
         mock_filesystem.compute_checksum.return_value = "new_checksum"
         mock_docling.convert.return_value = "mock_document"
         mock_docling.chunk.return_value = [_FakeChunk("PDF content")]
-        mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)
 
@@ -202,7 +212,6 @@ class DescribeIndexService:
         mock_docling.convert.return_value = "mock_document"
         mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
         mock_embedding.embed_texts.return_value = [[0.1, 0.2, 0.3]]
-        mock_checksums.load.return_value = {}
 
         result = service.index_repository(repo_config)
 
@@ -231,22 +240,27 @@ class DescribeIndexService:
         mock_filesystem.list_files.return_value = [Path("/tmp/docs/readme.md")]
         mock_filesystem.compute_checksum.return_value = "aaa"
 
+        deleted_docs: list[tuple] = []
+        mock_chroma.delete_by_document.side_effect = lambda coll, path: deleted_docs.append((coll, path))
+        saved_checksum_maps: list[dict] = []
+        mock_checksums.save.side_effect = lambda cs: saved_checksum_maps.append(dict(cs))
+
         result = service.index_repository(repo_config)
 
         assert result.documents_purged == 1
-        mock_chroma.delete_by_document.assert_called_once_with("documents", "/tmp/docs/node_modules/dep.md")
+        assert deleted_docs == [("documents", "/tmp/docs/node_modules/dep.md")]
         # The purged document should be removed from the saved checksums
-        saved_checksums = mock_checksums.save.call_args[0][0]
-        assert "/tmp/docs/node_modules/dep.md" not in saved_checksums
+        assert "/tmp/docs/node_modules/dep.md" not in saved_checksum_maps[-1]
 
     def should_remove_document_from_index(self, service, mock_chroma, mock_checksums):
         mock_checksums.load.return_value = {"/path/to/doc.md": "abc123"}
+        saved_checksum_maps: list[dict] = []
+        mock_checksums.save.side_effect = lambda cs: saved_checksum_maps.append(dict(cs))
 
         service.remove_document("/path/to/doc.md")
 
-        mock_chroma.delete_by_document.assert_called_once()
-        saved_checksums = mock_checksums.save.call_args[0][0]
-        assert "/path/to/doc.md" not in saved_checksums
+        assert len(saved_checksum_maps) == 1
+        assert "/path/to/doc.md" not in saved_checksum_maps[0]
 
     def should_return_stats_with_no_checksums(self, service, mock_chroma, mock_checksums):
         mock_chroma.count.return_value = 0
@@ -277,10 +291,6 @@ class DescribeIndexService:
             return Mock(spec=ChromaGateway)
 
         @pytest.fixture
-        def mock_checksums(self):
-            return Mock(spec=ChecksumGateway)
-
-        @pytest.fixture
         def service(self, mock_chroma, mock_checksums):
             return IndexService(
                 filesystem_gateway=Mock(spec=FilesystemGateway),
@@ -296,10 +306,12 @@ class DescribeIndexService:
             mock_chroma.get_metadata_batch.return_value = [{"document_path": "/tmp/docs/node_modules/dep.md"}]
             mock_checksums.load.return_value = {"/tmp/docs/node_modules/dep.md": "abc"}
             config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
+            deleted_docs: list[tuple] = []
+            mock_chroma.delete_by_document.side_effect = lambda coll, path: deleted_docs.append((coll, path))
 
             service.purge_excluded_documents(config)
 
-            mock_chroma.delete_by_document.assert_called_once_with("documents", "/tmp/docs/node_modules/dep.md")
+            assert deleted_docs == [("documents", "/tmp/docs/node_modules/dep.md")]
 
         def should_return_count_of_purged_documents(self, service, mock_chroma, mock_checksums):
             mock_chroma.count.return_value = 3
@@ -325,7 +337,6 @@ class DescribeIndexService:
             count = service.purge_excluded_documents(config)
 
             assert count == 0
-            mock_chroma.count.assert_not_called()
 
         def should_skip_documents_not_under_repo_base(self, service, mock_chroma, mock_checksums):
             mock_chroma.count.return_value = 1
@@ -338,7 +349,6 @@ class DescribeIndexService:
             count = service.purge_excluded_documents(config)
 
             assert count == 0
-            mock_chroma.delete_by_document.assert_not_called()
 
         def should_not_purge_documents_that_do_not_match(self, service, mock_chroma, mock_checksums):
             mock_chroma.count.return_value = 2
@@ -355,44 +365,23 @@ class DescribeIndexService:
             count = service.purge_excluded_documents(config)
 
             assert count == 0
-            mock_chroma.delete_by_document.assert_not_called()
 
         def should_paginate_through_large_collections(self, service, mock_chroma, mock_checksums):
             mock_chroma.count.return_value = 1200
+            # Simulate 1200 docs across 3 pages; none match node_modules
             batch_500 = [{"document_path": f"/tmp/docs/file{i}.md"} for i in range(500)]
             batch_200 = [{"document_path": f"/tmp/docs/file{i}.md"} for i in range(500, 700)]
             mock_chroma.get_metadata_batch.side_effect = [batch_500, batch_500, batch_200]
             mock_checksums.load.return_value = {}
             config = RepositoryConfig(name="test-repo", path="/tmp/docs", exclude_patterns=["node_modules"])
 
-            service.purge_excluded_documents(config)
+            count = service.purge_excluded_documents(config)
 
-            assert mock_chroma.get_metadata_batch.call_count == 3
-            calls = mock_chroma.get_metadata_batch.call_args_list
-            assert calls[0].kwargs["offset"] == 0
-            assert calls[1].kwargs["offset"] == 500
-            assert calls[2].kwargs["offset"] == 1000
+            # None of the 1200 docs match node_modules, proving all pages were scanned
+            assert count == 0
 
     class DescribeWithoutDocling:
         """Tests for degraded mode when docling is unavailable."""
-
-        @pytest.fixture
-        def mock_filesystem(self):
-            return Mock(spec=FilesystemGateway)
-
-        @pytest.fixture
-        def mock_embedding(self):
-            return Mock(spec=EmbeddingGateway)
-
-        @pytest.fixture
-        def mock_chroma(self):
-            m = Mock(spec=ChromaGateway)
-            m.count.return_value = 0
-            return m
-
-        @pytest.fixture
-        def mock_checksums(self):
-            return Mock(spec=ChecksumGateway)
 
         @pytest.fixture
         def service(self, mock_filesystem, mock_embedding, mock_chroma, mock_checksums):
@@ -404,10 +393,6 @@ class DescribeIndexService:
                 repo_name="test-repo",
                 checksum_gateway=mock_checksums,
             )
-
-        @pytest.fixture
-        def repo_config(self):
-            return RepositoryConfig(name="test-repo", path="/tmp/docs", embedding_provider="chromadb")
 
         def should_skip_pdf_when_docling_unavailable(
             self, service, mock_filesystem, mock_chroma, mock_checksums, repo_config

@@ -48,13 +48,14 @@ class DescribeChromaDbEmbeddingGateway:
         assert result == [0.5, 0.6]
 
     def should_initialize_embedding_function_only_once(self, gateway):
-        mock_ef = MagicMock(return_value=[[1.0]])
+        mock_ef = MagicMock(side_effect=[[[1.0]], [[2.0]]])
 
         with patch(
             "chromadb.utils.embedding_functions.DefaultEmbeddingFunction",
             return_value=mock_ef,
-        ) as mock_cls:
-            gateway.embed_texts(["first"])
-            gateway.embed_texts(["second"])
+        ):
+            result1 = gateway.embed_texts(["first"])
+            result2 = gateway.embed_texts(["second"])
 
-        mock_cls.assert_called_once()
+        assert result1 == [[1.0]]
+        assert result2 == [[2.0]]

@@ -37,16 +37,18 @@ class DescribeOpenAIEmbeddingGateway:
         assert result == vectors
 
     def should_call_openai_with_correct_model_and_input(self, gateway, mock_openai_module):
+        expected_vector = [0.1, 0.2, 0.3]
         mock_client = MagicMock()
-        mock_client.embeddings.create.return_value = _make_response([[0.1]])
+        mock_client.embeddings.create.side_effect = lambda input, model: (
+            _make_response([expected_vector])
+            if input == ["my text"] and model == "text-embedding-3-small"
+            else _make_response([[0.0]])
+        )
         mock_openai_module.OpenAI.return_value = mock_client
 
-        gateway.embed_texts(["my text"])
+        result = gateway.embed_texts(["my text"])
 
-        mock_client.embeddings.create.assert_called_once_with(
-            input=["my text"],
-            model="text-embedding-3-small",
-        )
+        assert result == [expected_vector]
 
     def should_raise_embedding_error_on_failure(self, gateway, mock_openai_module):
         mock_client = MagicMock()
@@ -58,13 +60,13 @@ class DescribeOpenAIEmbeddingGateway:
 
     def should_store_model_name_used_in_api_calls(self, mock_openai_module):
         gateway = OpenAIEmbeddingGateway(model="text-embedding-ada-002")
+        expected_vector = [0.5, 0.6]
         mock_client = MagicMock()
-        mock_client.embeddings.create.return_value = _make_response([[0.5, 0.6]])
+        mock_client.embeddings.create.side_effect = lambda input, model: (
+            _make_response([expected_vector]) if model == "text-embedding-ada-002" else _make_response([[0.0]])
+        )
         mock_openai_module.OpenAI.return_value = mock_client
 
-        gateway.embed_texts(["query"])
+        result = gateway.embed_texts(["query"])
 
-        mock_client.embeddings.create.assert_called_once_with(
-            input=["query"],
-            model="text-embedding-ada-002",
-        )
+        assert result == [expected_vector]

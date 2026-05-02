@@ -1,5 +1,5 @@
 import sys
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -31,14 +31,12 @@ class DescribeOllamaEmbeddingGateway:
         assert result == [[1.0, 2.0], [3.0, 4.0]]
 
     def should_call_ollama_with_correct_model_and_prompt(self, gateway, mock_ollama_module):
-        mock_ollama_module.embeddings.return_value = {"embedding": [0.1, 0.2]}
+        vectors = {"alpha": [0.1, 0.2], "beta": [0.3, 0.4]}
+        mock_ollama_module.embeddings.side_effect = lambda model, prompt: {"embedding": vectors[prompt]}
 
-        gateway.embed_texts(["alpha", "beta"])
+        result = gateway.embed_texts(["alpha", "beta"])
 
-        assert mock_ollama_module.embeddings.call_args_list == [
-            call(model="nomic-embed-text", prompt="alpha"),
-            call(model="nomic-embed-text", prompt="beta"),
-        ]
+        assert result == [[0.1, 0.2], [0.3, 0.4]]
 
     def should_raise_embedding_error_on_failure(self, gateway, mock_ollama_module):
         mock_ollama_module.embeddings.side_effect = ConnectionError("connection refused")
@@ -48,8 +46,10 @@ class DescribeOllamaEmbeddingGateway:
 
     def should_store_model_name_used_in_api_calls(self, mock_ollama_module):
         gateway = OllamaEmbeddingGateway(model="mxbai-embed-large")
-        mock_ollama_module.embeddings.return_value = {"embedding": [0.5]}
+        mock_ollama_module.embeddings.side_effect = lambda model, prompt: (
+            {"embedding": [0.5]} if model == "mxbai-embed-large" else {"embedding": [0.0]}
+        )
 
-        gateway.embed_texts(["test"])
+        result = gateway.embed_texts(["test"])
 
-        mock_ollama_module.embeddings.assert_called_once_with(model="mxbai-embed-large", prompt="test")
+        assert result == [[0.5]]

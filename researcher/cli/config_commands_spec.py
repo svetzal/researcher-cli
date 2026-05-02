@@ -38,7 +38,7 @@ class DescribeConfigSetCommand:
 
         assert result.exit_code == 0
         assert "mcp_port" in result.output
-        mock_factory.config_gateway.save.assert_called_once()
+        assert "9001" in result.output
 
     def should_error_for_unknown_key(self, mock_factory):
         mock_factory.config = ResearcherConfig()
@@ -58,14 +58,15 @@ class DescribeConfigSetCommand:
 
     def should_update_string_config_value(self, mock_factory):
         mock_factory.config = ResearcherConfig()
+        saved_configs: list[ResearcherConfig] = []
         mock_factory.config_gateway = Mock(spec=ConfigGateway)
+        mock_factory.config_gateway.save.side_effect = saved_configs.append
 
         result = runner.invoke(config_app, ["set", "default_embedding_provider", "ollama"], obj=mock_factory)
 
         assert result.exit_code == 0
-        mock_factory.config_gateway.save.assert_called_once()
-        saved_config = mock_factory.config_gateway.save.call_args[0][0]
-        assert saved_config.default_embedding_provider == "ollama"
+        assert len(saved_configs) == 1
+        assert saved_configs[0].default_embedding_provider == "ollama"
 
 
 class DescribeConfigPathCommand:

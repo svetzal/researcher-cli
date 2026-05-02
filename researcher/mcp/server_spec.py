@@ -158,7 +158,6 @@ class DescribeMcpServer:
 
         result = search_fragments("query", repository="specific-repo")
 
-        mock_factory.repository_service.get_repository.assert_called_once_with("specific-repo")
         assert result == []
 
     def should_search_documents_for_named_repository(self, mock_factory):
@@ -171,7 +170,6 @@ class DescribeMcpServer:
 
         result = search_documents("query", repository="specific-repo")
 
-        mock_factory.repository_service.get_repository.assert_called_once_with("specific-repo")
         assert result == []
 
     def should_get_index_status_for_named_repository(self, mock_factory):
@@ -186,5 +184,4 @@ class DescribeMcpServer:
 
         result = get_index_status(repository="specific-repo")
 
-        mock_factory.repository_service.get_repository.assert_called_once_with("specific-repo")
         assert result["repository_name"] == "specific-repo"

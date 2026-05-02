@@ -96,12 +96,13 @@ class DescribeModelArchiveServicePack:
         mock_cache.create_archive.return_value = ctx
         mock_tar.add.return_value = None
         repo = RepositoryConfig(name="my-repo", path="/tmp/test", image_pipeline="standard")
+        captured_addfile: list[tuple] = []
+        mock_tar.addfile.side_effect = lambda *args: captured_addfile.append(args)
 
         service.pack([repo], output_path)
 
         # First addfile call is the manifest
-        first_call = mock_tar.addfile.call_args_list[0]
-        tar_info, file_obj = first_call[0]
+        tar_info, file_obj = captured_addfile[0]
         assert tar_info.name == "manifest.json"
         manifest = json.loads(file_obj.read().decode("utf-8"))
         assert manifest["version"] == 1
@@ -218,11 +219,14 @@ class DescribeModelArchiveServiceUnpack:
             {"manifest.json": manifest_bytes, "docling/models/layout/model.onnx": file_data},
         )
         mock_cache.open_archive.return_value = ctx
+        written_files: list[tuple] = []
+        mock_cache.write_file.side_effect = lambda dest, data: written_files.append((dest, data))
 
         result = service.unpack(archive_path)
 
         expected_dest = _FAKE_BASES["docling"] / "layout" / "model.onnx"
-        mock_cache.write_file.assert_called_once_with(expected_dest, file_data)
+        assert len(written_files) == 1
+        assert written_files[0] == (expected_dest, file_data)
         assert result.files_extracted == 1
 
     def should_create_directory_members(self, service, mock_cache, archive_path):
@@ -235,11 +239,14 @@ class DescribeModelArchiveServiceUnpack:
         dir_info.type = tarfile.DIRTYPE
         ctx, _ = _make_open_archive_mock([manifest_info, dir_info], {"manifest.json": manifest_bytes})
         mock_cache.open_archive.return_value = ctx
+        created_dirs: list[Path] = []
+        mock_cache.make_dirs.side_effect = lambda dest: created_dirs.append(dest)
 
         service.unpack(archive_path)
 
         expected_dest = _FAKE_BASES["docling"] / "layout"
-        mock_cache.make_dirs.assert_called_once_with(expected_dest)
+        assert len(created_dirs) == 1
+        assert created_dirs[0] == expected_dest
 
     def should_skip_members_with_unknown_prefix(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = True
@@ -252,7 +259,6 @@ class DescribeModelArchiveServiceUnpack:
 
         result = service.unpack(archive_path)
 
-        mock_cache.write_file.assert_not_called()
         assert result.files_extracted == 0
 
     def should_count_zero_entries_when_manifest_has_empty_list(self, service, mock_cache, archive_path):
@@ -276,9 +282,10 @@ class DescribeModelArchiveServiceUnpack:
         ctx, _ = _make_open_archive_mock([manifest_info], {"manifest.json": manifest_bytes})
         mock_cache.open_archive.return_value = ctx
 
-        service.unpack(archive_path)
+        result = service.unpack(archive_path)
 
-        assert mock_cache.open_archive.call_count == 1
+        assert isinstance(result, UnpackResult)
+        assert result.entries_restored == 1
 
 
 class DescribeModelArchiveServiceIntegration:

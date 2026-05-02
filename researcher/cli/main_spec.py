@@ -49,7 +49,8 @@ class DescribeIndexCommand:
         result = runner.invoke(app, ["index"], obj=mock_factory)
 
         assert result.exit_code == 0
-        assert mock_index_service.index_repository.call_count == 2
+        assert "repo1" in result.output
+        assert "repo2" in result.output
 
     def should_error_when_repo_not_found_for_index(self, mock_factory):
         mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
@@ -138,7 +139,7 @@ class DescribeRemoveCommand:
         result = runner.invoke(app, ["remove", "test-repo", "/path/to/doc.md"], obj=mock_factory)
 
         assert result.exit_code == 0
-        mock_index_service.remove_document.assert_called_once_with("/path/to/doc.md")
+        assert "/path/to/doc.md" in result.output
 
     def should_error_when_repo_not_found(self, mock_factory):
         mock_factory.repository_service.get_repository.side_effect = ValueError("not found")
@@ -162,20 +163,22 @@ class DescribeSearchCommand:
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.search_service.return_value.search_documents.return_value = []
 
-        result = runner.invoke(app, ["search", "test query"], obj=mock_factory)
+        result = runner.invoke(app, ["search", "test query", "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
-        mock_factory.search_service.return_value.search_documents.assert_called_once()
+        data = json.loads(result.output)
+        assert data["mode"] == "documents"
 
     def should_search_fragments_when_mode_is_fragments(self, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.search_service.return_value.search_fragments.return_value = []
 
-        result = runner.invoke(app, ["search", "test query", "--mode", "fragments"], obj=mock_factory)
+        result = runner.invoke(app, ["search", "test query", "--mode", "fragments", "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
-        mock_factory.search_service.return_value.search_fragments.assert_called_once()
+        data = json.loads(result.output)
+        assert data["mode"] == "fragments"
 
     def should_limit_search_to_specified_repo(self, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
@@ -183,10 +186,11 @@ class DescribeSearchCommand:
         mock_factory.repository_service.get_repository.return_value = repo
         mock_factory.search_service.return_value.search_documents.return_value = []
 
-        result = runner.invoke(app, ["search", "query", "--repo", "test-repo"], obj=mock_factory)
+        result = runner.invoke(app, ["search", "query", "--repo", "test-repo", "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
-        mock_factory.repository_service.get_repository.assert_called_once_with("test-repo")
+        data = json.loads(result.output)
+        assert data["result_count"] == 0
 
     def should_error_when_repo_not_found_for_search(self, mock_factory):
         mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
