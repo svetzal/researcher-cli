@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from researcher.exceptions import EmbeddingError, StorageError
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.models import SearchResult
@@ -112,3 +113,21 @@ class DescribeSearchService:
         results = service.search_fragments("query", n_results=10)
 
         assert len(results) == 3
+
+    def should_propagate_storage_error_from_count(self, service, mock_chroma, mock_embedding):
+        mock_chroma.count.side_effect = StorageError("chroma unavailable")
+
+        with pytest.raises(StorageError):
+            service.search_fragments("query")
+
+    def should_propagate_embedding_error_from_embed_query(self, service, mock_chroma, mock_embedding):
+        mock_embedding.embed_query.side_effect = EmbeddingError("provider down")
+
+        with pytest.raises(EmbeddingError):
+            service.search_fragments("query")
+
+    def should_propagate_storage_error_from_query_with_embedding(self, service, mock_chroma, mock_embedding):
+        mock_chroma.query_with_embedding.side_effect = StorageError("query failed")
+
+        with pytest.raises(StorageError):
+            service.search_fragments("query")

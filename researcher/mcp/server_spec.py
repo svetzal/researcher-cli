@@ -3,9 +3,12 @@ from unittest.mock import Mock
 import pytest
 
 from researcher.config import RepositoryConfig
+from researcher.exceptions import RepositoryNotFoundError, StorageError
 from researcher.mcp.server import (
+    add_to_index,
     get_index_status,
     list_repositories,
+    remove_from_index,
     search_documents,
     search_fragments,
     set_factory,
@@ -185,3 +188,48 @@ class DescribeMcpServer:
         result = get_index_status(repository="specific-repo")
 
         assert result["repository_name"] == "specific-repo"
+
+    def should_return_error_string_from_add_to_index_on_storage_error(self, mock_factory):
+        set_factory(mock_factory)
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_factory.repository_service.get_repository.return_value = repo
+        mock_index_service = Mock(spec=IndexService)
+        mock_index_service.index_file.side_effect = StorageError("disk full")
+        mock_factory.index_service.return_value = mock_index_service
+
+        result = add_to_index("test-repo", "/tmp/file.md")
+
+        assert result.startswith("Error:")
+
+    def should_return_error_string_from_remove_from_index_on_storage_error(self, mock_factory):
+        set_factory(mock_factory)
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_factory.repository_service.get_repository.return_value = repo
+        mock_index_service = Mock(spec=IndexService)
+        mock_index_service.remove_document.side_effect = StorageError("write failed")
+        mock_factory.index_service.return_value = mock_index_service
+
+        result = remove_from_index("test-repo", "doc.md")
+
+        assert result.startswith("Error:")
+
+    def should_return_error_dict_from_search_fragments_on_repo_not_found(self, mock_factory):
+        set_factory(mock_factory)
+        mock_factory.repository_service.get_repository.side_effect = RepositoryNotFoundError("not found")
+
+        result = search_fragments("query", repository="missing-repo")
+
+        assert len(result) == 1
+        assert "error" in result[0]
+
+    def should_return_error_dict_from_get_index_status_on_storage_error(self, mock_factory):
+        set_factory(mock_factory)
+        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        mock_factory.repository_service.list_repositories.return_value = [repo]
+        mock_index_service = Mock(spec=IndexService)
+        mock_index_service.get_stats.side_effect = StorageError("chroma down")
+        mock_factory.index_service.return_value = mock_index_service
+
+        result = get_index_status()
+
+        assert "error" in result

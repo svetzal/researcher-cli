@@ -74,6 +74,7 @@ def _index_with_spinner(factory: ServiceFactory, repo: RepositoryConfig, force: 
 
 
 @app.command("index")
+@cli_errors(ResearcherError)
 def index_command(
     ctx: typer.Context,
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
@@ -129,6 +130,7 @@ def remove_command(
 
 
 @app.command("status")
+@cli_errors(ResearcherError)
 def status_command(
     ctx: typer.Context,
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
@@ -154,6 +156,7 @@ def status_command(
 
 
 @app.command("search")
+@cli_errors(ResearcherError)
 def search_command(
     ctx: typer.Context,
     query: str = typer.Argument(..., help="Search query"),
@@ -177,11 +180,10 @@ def search_command(
 
     search_repos = _resolve_repos_or_exit(factory, repo, all_repos, json_output)
 
-    with cli_exit_on_error(ResearcherError, json_output=json_output):
-        if mode == "fragments":
-            run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)
-        else:
-            run_search_documents(factory, search_repos, query, n_results=documents, json_output=json_output)
+    if mode == "fragments":
+        run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)
+    else:
+        run_search_documents(factory, search_repos, query, n_results=documents, json_output=json_output)
 
 
 @app.command("serve")

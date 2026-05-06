@@ -1,6 +1,7 @@
 import structlog
 
 from researcher.constants import COLLECTION_NAME
+from researcher.exceptions import EmbeddingError, StorageError
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.models import DocumentSearchResult, SearchResult
@@ -17,12 +18,24 @@ class SearchService:
 
     def search_fragments(self, query: str, n_results: int = 10) -> list[SearchResult]:
         """Search for text fragments matching the query."""
-        count = self._chroma.count(COLLECTION_NAME)
+        try:
+            count = self._chroma.count(COLLECTION_NAME)
+        except StorageError:
+            logger.error("Failed to count collection during search", collection=COLLECTION_NAME)
+            raise
         if count == 0:
             return []
         actual_n = min(n_results, count)
-        embedding = self._embedding.embed_query(query)
-        return self._chroma.query_with_embedding(COLLECTION_NAME, embedding, n_results=actual_n)
+        try:
+            embedding = self._embedding.embed_query(query)
+        except EmbeddingError:
+            logger.error("Failed to embed search query", query=query)
+            raise
+        try:
+            return self._chroma.query_with_embedding(COLLECTION_NAME, embedding, n_results=actual_n)
+        except StorageError:
+            logger.error("Failed to query collection during search", collection=COLLECTION_NAME)
+            raise
 
     def search_documents(self, query: str, n_results: int = 5) -> list[DocumentSearchResult]:
         """Search for documents, grouped and ranked by best fragment match."""

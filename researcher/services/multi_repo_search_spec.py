@@ -3,6 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from researcher.config import RepositoryConfig
+from researcher.exceptions import EmbeddingError, StorageError
 from researcher.models import DocumentSearchResult, SearchResult
 from researcher.service_factory import ServiceFactory
 from researcher.services.multi_repo_search import (
@@ -98,6 +99,42 @@ class DescribeSearchFragmentsAcrossRepos:
 
         assert results == []
 
+    def should_return_empty_when_single_repo_raises_storage_error(self, mock_factory, mock_search_service):
+        repo = _make_repo("failing-repo")
+        mock_factory.search_service.return_value = mock_search_service
+        mock_search_service.search_fragments.side_effect = StorageError("chroma down")
+
+        results = search_fragments_across_repos(mock_factory, [repo], "query", n_results=5)
+
+        assert results == []
+
+    def should_return_results_from_healthy_repo_when_first_raises_embedding_error(
+        self, mock_factory, mock_search_service
+    ):
+        repo_a = _make_repo("bad-repo")
+        repo_b = _make_repo("good-repo")
+        mock_search_service_b = Mock(spec=SearchService)
+        mock_factory.search_service.side_effect = [mock_search_service, mock_search_service_b]
+        mock_search_service.search_fragments.side_effect = EmbeddingError("provider down")
+        mock_search_service_b.search_fragments.return_value = [_make_search_result("f1", distance=0.1)]
+
+        results = search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+
+        assert len(results) == 1
+        assert results[0].fragment_id == "f1"
+
+    def should_return_empty_when_all_repos_fail(self, mock_factory, mock_search_service):
+        repo_a = _make_repo("bad-a")
+        repo_b = _make_repo("bad-b")
+        mock_search_service_b = Mock(spec=SearchService)
+        mock_factory.search_service.side_effect = [mock_search_service, mock_search_service_b]
+        mock_search_service.search_fragments.side_effect = StorageError("disk full")
+        mock_search_service_b.search_fragments.side_effect = StorageError("disk full")
+
+        results = search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+
+        assert results == []
+
 
 class DescribeSearchDocumentsAcrossRepos:
     @pytest.fixture
@@ -147,5 +184,41 @@ class DescribeSearchDocumentsAcrossRepos:
 
     def should_return_empty_list_when_no_repos(self, mock_factory):
         results = search_documents_across_repos(mock_factory, [], "query", n_results=5)
+
+        assert results == []
+
+    def should_return_empty_when_single_repo_raises_storage_error(self, mock_factory, mock_search_service):
+        repo = _make_repo("failing-repo")
+        mock_factory.search_service.return_value = mock_search_service
+        mock_search_service.search_documents.side_effect = StorageError("chroma down")
+
+        results = search_documents_across_repos(mock_factory, [repo], "query", n_results=5)
+
+        assert results == []
+
+    def should_return_results_from_healthy_repo_when_first_raises_embedding_error(
+        self, mock_factory, mock_search_service
+    ):
+        repo_a = _make_repo("bad-repo")
+        repo_b = _make_repo("good-repo")
+        mock_search_service_b = Mock(spec=SearchService)
+        mock_factory.search_service.side_effect = [mock_search_service, mock_search_service_b]
+        mock_search_service.search_documents.side_effect = EmbeddingError("provider down")
+        mock_search_service_b.search_documents.return_value = [_make_doc_result("doc.md", best_distance=0.1)]
+
+        results = search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+
+        assert len(results) == 1
+        assert results[0].document_path == "doc.md"
+
+    def should_return_empty_when_all_repos_fail(self, mock_factory, mock_search_service):
+        repo_a = _make_repo("bad-a")
+        repo_b = _make_repo("bad-b")
+        mock_search_service_b = Mock(spec=SearchService)
+        mock_factory.search_service.side_effect = [mock_search_service, mock_search_service_b]
+        mock_search_service.search_documents.side_effect = StorageError("disk full")
+        mock_search_service_b.search_documents.side_effect = StorageError("disk full")
+
+        results = search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
 
         assert results == []

@@ -1,5 +1,6 @@
 import fastmcp
 
+from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_facade import get_repo_status, index_file_in_repo, remove_from_repo
 from researcher.services.multi_repo_search import (
@@ -28,16 +29,22 @@ def set_factory(factory: ServiceFactory) -> None:
 @mcp.tool
 def add_to_index(repository: str, file_path: str) -> str:
     """Index a specific file in a repository."""
-    chunk_result = index_file_in_repo(_get_factory(), repository, file_path)
-    count = len(chunk_result.fragments) if chunk_result else 0
-    return f"Indexed {count} fragments from {file_path}"
+    try:
+        chunk_result = index_file_in_repo(_get_factory(), repository, file_path)
+        count = len(chunk_result.fragments) if chunk_result else 0
+        return f"Indexed {count} fragments from {file_path}"
+    except ResearcherError as e:
+        return f"Error: {e}"
 
 
 @mcp.tool
 def remove_from_index(repository: str, document_path: str) -> str:
     """Remove a document from a repository's index."""
-    remove_from_repo(_get_factory(), repository, document_path)
-    return f"Removed {document_path} from {repository}"
+    try:
+        remove_from_repo(_get_factory(), repository, document_path)
+        return f"Removed {document_path} from {repository}"
+    except ResearcherError as e:
+        return f"Error: {e}"
 
 
 def _get_repos(repository: str | None):
@@ -50,33 +57,45 @@ def _get_repos(repository: str | None):
 @mcp.tool
 def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[dict]:
     """Search for text fragments across indexed repositories."""
-    repos = _get_repos(repository)
-    results = search_fragments_across_repos(_get_factory(), repos, query, n_results)
-    return [r.model_dump() for r in results]
+    try:
+        repos = _get_repos(repository)
+        results = search_fragments_across_repos(_get_factory(), repos, query, n_results)
+        return [r.model_dump() for r in results]
+    except ResearcherError as e:
+        return [{"error": str(e)}]
 
 
 @mcp.tool
 def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[dict]:
     """Search for documents across indexed repositories, returning top fragments per document."""
-    repos = _get_repos(repository)
-    results = search_documents_across_repos(_get_factory(), repos, query, n_results)
-    return [r.model_dump() for r in results]
+    try:
+        repos = _get_repos(repository)
+        results = search_documents_across_repos(_get_factory(), repos, query, n_results)
+        return [r.model_dump() for r in results]
+    except ResearcherError as e:
+        return [{"error": str(e)}]
 
 
 @mcp.tool
 def list_repositories() -> list[dict]:
     """List all configured repositories with their settings."""
-    repos = _get_factory().repository_service.list_repositories()
-    return [r.model_dump() for r in repos]
+    try:
+        repos = _get_factory().repository_service.list_repositories()
+        return [r.model_dump() for r in repos]
+    except ResearcherError as e:
+        return [{"error": str(e)}]
 
 
 @mcp.tool
 def get_index_status(repository: str | None = None) -> dict:
     """Get indexing statistics for one or all repositories."""
-    statuses = [s.model_dump(mode="json") for s in get_repo_status(_get_factory(), repository)]
-    if len(statuses) == 1:
-        return statuses[0]
-    return {"repositories": statuses}
+    try:
+        statuses = [s.model_dump(mode="json") for s in get_repo_status(_get_factory(), repository)]
+        if len(statuses) == 1:
+            return statuses[0]
+        return {"repositories": statuses}
+    except ResearcherError as e:
+        return {"error": str(e)}
 
 
 def start_server(port: int | None = None) -> None:
