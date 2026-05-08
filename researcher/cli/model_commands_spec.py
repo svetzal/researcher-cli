@@ -5,16 +5,12 @@ from unittest.mock import Mock
 from typer.testing import CliRunner
 
 from researcher.cli.model_commands import models_app
-from researcher.config import RepositoryConfig
+from researcher.conftest import make_repo
 from researcher.exceptions import ModelArchiveError
 from researcher.model_registry import ModelCacheEntry
 from researcher.services.model_archive_service import ModelArchiveService, PackResult, UnpackResult
 
 runner = CliRunner()
-
-
-def _make_repo(name: str = "my-notes") -> RepositoryConfig:
-    return RepositoryConfig(name=name, path="/tmp/notes")
 
 
 def _make_entry(category: str = "docling", archive_path: str = "docling/models") -> ModelCacheEntry:
@@ -61,7 +57,7 @@ class DescribeModelsCallback:
 class DescribePackCommand:
     class DescribeRichOutput:
         def should_display_success_message_with_file_count(self, mock_factory):
-            mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
             mock_service = Mock(spec=ModelArchiveService)
             mock_service.pack.return_value = _make_pack_result(total_files=7)
             mock_factory.model_archive_service.return_value = mock_service
@@ -72,7 +68,7 @@ class DescribePackCommand:
             assert "7" in result.output
 
         def should_display_archive_path_in_output(self, mock_factory):
-            mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
             mock_service = Mock(spec=ModelArchiveService)
             mock_service.pack.return_value = _make_pack_result(archive_path="/tmp/models.tar.gz")
             mock_factory.model_archive_service.return_value = mock_service
@@ -87,7 +83,7 @@ class DescribePackCommand:
                 _make_entry(category="docling", archive_path="docling/models"),
                 _make_entry(category="huggingface", archive_path="huggingface/hub/models--org--repo"),
             ]
-            mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
             mock_service = Mock(spec=ModelArchiveService)
             mock_service.pack.return_value = _make_pack_result(entries=entries, total_files=3)
             mock_factory.model_archive_service.return_value = mock_service
@@ -107,7 +103,7 @@ class DescribePackCommand:
             assert "No repositories" in result.output
 
         def should_error_on_file_not_found(self, mock_factory):
-            mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
             mock_service = Mock(spec=ModelArchiveService)
             mock_service.pack.side_effect = ModelArchiveError("No model cache directories found on disk to pack.")
             mock_factory.model_archive_service.return_value = mock_service
@@ -120,7 +116,7 @@ class DescribePackCommand:
     class DescribeJsonOutput:
         def should_write_valid_json_on_success(self, mock_factory):
             entries = [_make_entry(category="docling", archive_path="docling/models")]
-            mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
             mock_service = Mock(spec=ModelArchiveService)
             mock_service.pack.return_value = _make_pack_result(
                 archive_path="/tmp/models.tar.gz",
@@ -141,7 +137,7 @@ class DescribePackCommand:
             assert data["entries"][0]["archive_path"] == "docling/models"
 
         def should_accept_short_json_flag(self, mock_factory):
-            mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
             mock_service = Mock(spec=ModelArchiveService)
             mock_service.pack.return_value = _make_pack_result()
             mock_factory.model_archive_service.return_value = mock_service
@@ -162,7 +158,7 @@ class DescribePackCommand:
             assert data == {"repositories": []}
 
         def should_write_error_json_on_file_not_found(self, mock_factory):
-            mock_factory.repository_service.list_repositories.return_value = [_make_repo()]
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
             mock_service = Mock(spec=ModelArchiveService)
             mock_service.pack.side_effect = ModelArchiveError("No model cache directories found on disk to pack.")
             mock_factory.model_archive_service.return_value = mock_service

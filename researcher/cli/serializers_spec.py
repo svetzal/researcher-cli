@@ -11,13 +11,9 @@ from researcher.cli.serializers import (
     serialize_pack_result,
     serialize_unpack_result,
 )
-from researcher.config import RepositoryConfig
-from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
+from researcher.conftest import make_doc_result, make_repo, make_search_result
+from researcher.models import DocumentSearchResult, IndexingResult, IndexStats
 from researcher.services.model_archive_service import PackResult, UnpackResult
-
-
-def _make_repo(name: str = "my-notes") -> RepositoryConfig:
-    return RepositoryConfig(name=name, path="/tmp/notes")
 
 
 def _make_indexing_result(
@@ -50,30 +46,6 @@ def _make_index_stats(
         total_fragments=total_fragments,
         last_indexed=last_indexed,
     )
-
-
-def _make_search_result(
-    doc_path: str = "doc.md",
-    fragment_index: int = 0,
-    distance: float = 0.15,
-    text: str = "some text",
-) -> SearchResult:
-    return SearchResult(
-        fragment_id="f1",
-        text=text,
-        document_path=doc_path,
-        fragment_index=fragment_index,
-        distance=distance,
-    )
-
-
-def _make_doc_result(
-    doc_path: str = "doc.md",
-    best_distance: float = 0.15,
-    fragment: SearchResult | None = None,
-) -> DocumentSearchResult:
-    fr = fragment or _make_search_result(doc_path=doc_path, distance=best_distance)
-    return DocumentSearchResult(document_path=doc_path, top_fragments=[fr], best_distance=best_distance)
 
 
 class DescribeSerializeIndexResult:
@@ -121,8 +93,8 @@ class DescribeSerializeIndexStats:
 
 class DescribeSerializeFragmentSearch:
     def should_write_valid_structure(self):
-        repo = _make_repo()
-        sr = _make_search_result()
+        repo = make_repo()
+        sr = make_search_result()
 
         data = serialize_fragment_search([repo], "test query", [sr])
 
@@ -131,8 +103,8 @@ class DescribeSerializeFragmentSearch:
         assert data["result_count"] == 1
 
     def should_include_correct_result_fields(self):
-        repo = _make_repo()
-        sr = _make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.234, text="JWT tokens")
+        repo = make_repo()
+        sr = make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.234, text="JWT tokens")
 
         data = serialize_fragment_search([repo], "auth", [sr])
 
@@ -143,14 +115,14 @@ class DescribeSerializeFragmentSearch:
         assert result["text"] == "JWT tokens"
 
     def should_set_repository_to_name_when_single_repo(self):
-        repo = _make_repo("my-notes")
+        repo = make_repo("my-notes")
 
         data = serialize_fragment_search([repo], "query", [])
 
         assert data["repository"] == "my-notes"
 
     def should_set_repository_to_null_when_multiple_repos(self):
-        repos = [_make_repo("repo-a"), _make_repo("repo-b")]
+        repos = [make_repo("repo-a"), make_repo("repo-b")]
 
         data = serialize_fragment_search(repos, "query", [])
 
@@ -158,7 +130,7 @@ class DescribeSerializeFragmentSearch:
         assert data["repos_searched"] == ["repo-a", "repo-b"]
 
     def should_return_empty_results_when_no_matches(self):
-        repo = _make_repo()
+        repo = make_repo()
 
         data = serialize_fragment_search([repo], "query", [])
 
@@ -168,8 +140,8 @@ class DescribeSerializeFragmentSearch:
 
 class DescribeSerializeDocumentSearch:
     def should_write_valid_structure(self):
-        repo = _make_repo()
-        doc = _make_doc_result()
+        repo = make_repo()
+        doc = make_doc_result()
 
         data = serialize_document_search([repo], "test query", [doc])
 
@@ -178,9 +150,9 @@ class DescribeSerializeDocumentSearch:
         assert data["result_count"] == 1
 
     def should_include_correct_result_fields(self):
-        repo = _make_repo()
-        sr = _make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.123, text="JWT tokens")
-        doc = _make_doc_result(doc_path="/notes/auth.md", best_distance=0.123, fragment=sr)
+        repo = make_repo()
+        sr = make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.123, text="JWT tokens")
+        doc = make_doc_result(doc_path="/notes/auth.md", best_distance=0.123, fragment=sr)
 
         data = serialize_document_search([repo], "auth", [doc])
 
@@ -193,7 +165,7 @@ class DescribeSerializeDocumentSearch:
         assert result["top_fragment"]["distance"] == 0.123
 
     def should_set_top_fragment_to_null_when_no_fragments(self):
-        repo = _make_repo()
+        repo = make_repo()
         doc = DocumentSearchResult(document_path="doc.md", top_fragments=[], best_distance=0.5)
 
         data = serialize_document_search([repo], "query", [doc])
@@ -201,7 +173,7 @@ class DescribeSerializeDocumentSearch:
         assert data["results"][0]["top_fragment"] is None
 
     def should_return_empty_results_when_no_matches(self):
-        repo = _make_repo()
+        repo = make_repo()
 
         data = serialize_document_search([repo], "query", [])
 

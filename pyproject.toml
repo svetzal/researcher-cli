@@ -36,6 +36,7 @@ select = ["E", "F", "I", "C90", "B", "UP", "SIM", "RUF", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "*_spec.py" = ["S101", "S108"]
+"researcher/conftest.py" = ["S108"]
 "researcher/cli/*.py" = ["B008"]
 
 [tool.ruff.lint.mccabe]

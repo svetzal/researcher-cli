@@ -13,7 +13,8 @@ from researcher.cli.presenters import (
     present_status,
 )
 from researcher.config import RepositoryConfig
-from researcher.models import DocumentSearchResult, SearchResult
+from researcher.conftest import make_search_result
+from researcher.models import DocumentSearchResult
 from researcher.services.model_archive_service import PackResult
 
 
@@ -23,21 +24,6 @@ def _make_console() -> Console:
 
 def _make_repo(name: str = "my-notes", path: str = "/tmp/notes") -> RepositoryConfig:
     return RepositoryConfig(name=name, path=path)
-
-
-def _make_search_result(
-    doc_path: str = "doc.md",
-    fragment_index: int = 0,
-    distance: float = 0.15,
-    text: str = "some text",
-) -> SearchResult:
-    return SearchResult(
-        fragment_id="f1",
-        text=text,
-        document_path=doc_path,
-        fragment_index=fragment_index,
-        distance=distance,
-    )
 
 
 class DescribePresentIndexResults:
@@ -191,7 +177,7 @@ class DescribePresentFragmentResults:
         assert "No results found" in console.file.getvalue()
 
     def should_display_fragment_text_and_path(self):
-        results = [_make_search_result(doc_path="notes/auth.md", text="JWT token validation")]
+        results = [make_search_result(doc_path="notes/auth.md", text="JWT token validation")]
         console = _make_console()
 
         present_fragment_results(results, console)
@@ -210,7 +196,7 @@ class DescribePresentDocumentResults:
         assert "No results found" in console.file.getvalue()
 
     def should_display_document_path_and_preview(self):
-        sr = _make_search_result(doc_path="notes/auth.md", text="JWT token validation logic")
+        sr = make_search_result(doc_path="notes/auth.md", text="JWT token validation logic")
         doc = DocumentSearchResult(document_path="notes/auth.md", top_fragments=[sr], best_distance=0.1)
         console = _make_console()
 
@@ -222,7 +208,7 @@ class DescribePresentDocumentResults:
 
     def should_truncate_long_preview_text(self):
         long_text = "x" * 300
-        sr = _make_search_result(text=long_text)
+        sr = make_search_result(text=long_text)
         doc = DocumentSearchResult(document_path="doc.md", top_fragments=[sr], best_distance=0.1)
         console = _make_console()
 
