@@ -17,10 +17,16 @@ class ChromaGateway:
     def __init__(self, persist_directory: Path):
         self._client = chromadb.PersistentClient(path=str(persist_directory))
 
+    def _collection(self, name: str):
+        return self._client.get_or_create_collection(name=name)
+
+    def _raw_collection(self, name: str):
+        return self._client.get_or_create_collection(name=name, embedding_function=None)
+
     @_wrap_storage_error("Failed to get or create collection '{name}': {e}")
     def get_or_create_collection(self, name: str):
         """Get or create a ChromaDB collection."""
-        return self._client.get_or_create_collection(name=name)
+        return self._collection(name)
 
     @_wrap_storage_error("Failed to add fragments to '{collection_name}': {e}")
     def add_fragments(self, collection_name: str, fragments: list[FragmentForStorage]) -> None:
@@ -30,7 +36,7 @@ class ChromaGateway:
         and ChromaDB (e.g. from an interrupted previous run) never causes a
         duplicate-ID error.
         """
-        collection = self._client.get_or_create_collection(name=collection_name)
+        collection = self._collection(collection_name)
         collection.upsert(
             ids=[f.id for f in fragments],
             documents=[f.text for f in fragments],
@@ -45,7 +51,7 @@ class ChromaGateway:
         and ChromaDB (e.g. from an interrupted previous run) never causes a
         duplicate-ID error.
         """
-        collection = self._client.get_or_create_collection(name=collection_name, embedding_function=None)
+        collection = self._raw_collection(collection_name)
         collection.upsert(
             ids=[f.id for f in fragments],
             documents=[f.text for f in fragments],
@@ -56,7 +62,7 @@ class ChromaGateway:
     @_wrap_storage_error("Failed to query collection '{collection_name}': {e}")
     def query(self, collection_name: str, query_text: str, n_results: int = 10) -> list[SearchResult]:
         """Query the collection using text (ChromaDB handles embedding)."""
-        collection = self._client.get_or_create_collection(name=collection_name)
+        collection = self._collection(collection_name)
         results = collection.query(query_texts=[query_text], n_results=n_results)
         return self._parse_query_results(results)
 
@@ -65,14 +71,14 @@ class ChromaGateway:
         self, collection_name: str, query_embedding: list[float], n_results: int = 10
     ) -> list[SearchResult]:
         """Query the collection using a pre-computed embedding vector."""
-        collection = self._client.get_or_create_collection(name=collection_name, embedding_function=None)
+        collection = self._raw_collection(collection_name)
         results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
         return self._parse_query_results(results)
 
     @_wrap_storage_error("Failed to delete fragments for '{document_path}': {e}")
     def delete_by_document(self, collection_name: str, document_path: str) -> None:
         """Delete all fragments for a given document path."""
-        collection = self._client.get_or_create_collection(name=collection_name)
+        collection = self._collection(collection_name)
         collection.delete(where={"document_path": document_path})
 
     @_wrap_storage_error("Failed to delete collection '{collection_name}': {e}")
@@ -83,13 +89,13 @@ class ChromaGateway:
     @_wrap_storage_error("Failed to count fragments in '{collection_name}': {e}")
     def count(self, collection_name: str) -> int:
         """Return the number of fragments in a collection."""
-        collection = self._client.get_or_create_collection(name=collection_name)
+        collection = self._collection(collection_name)
         return collection.count()
 
     @_wrap_storage_error("Failed to retrieve metadata batch from '{collection_name}': {e}")
     def get_metadata_batch(self, collection_name: str, limit: int, offset: int) -> list[dict | None]:
         """Return a batch of fragment metadata from the collection."""
-        collection = self._client.get_or_create_collection(name=collection_name)
+        collection = self._collection(collection_name)
         results = collection.get(include=["metadatas"], limit=limit, offset=offset)
         return results.get("metadatas", [])
 
