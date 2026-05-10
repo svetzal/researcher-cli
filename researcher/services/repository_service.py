@@ -1,6 +1,6 @@
 import structlog
 
-from researcher.config import RepositoryConfig
+from researcher.config import RepositoryConfig, ResearcherConfig
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.gateways.config_gateway import ConfigGateway
 
@@ -12,6 +12,9 @@ class RepositoryService:
 
     def __init__(self, config_gateway: ConfigGateway):
         self._config_gateway = config_gateway
+
+    def _find_repository(self, config: ResearcherConfig, name: str) -> RepositoryConfig | None:
+        return next((r for r in config.repositories if r.name == name), None)
 
     def add_repository(
         self,
@@ -28,7 +31,7 @@ class RepositoryService:
         """Add a new repository to the configuration."""
         config = self._config_gateway.load()
 
-        if any(r.name == name for r in config.repositories):
+        if self._find_repository(config, name) is not None:
             raise RepositoryAlreadyExistsError(f"Repository '{name}' already exists")
 
         optional = {
@@ -54,7 +57,7 @@ class RepositoryService:
         """Remove a repository from the configuration."""
         config = self._config_gateway.load()
 
-        if not any(r.name == name for r in config.repositories):
+        if self._find_repository(config, name) is None:
             raise RepositoryNotFoundError(f"Repository '{name}' not found")
 
         config.repositories = [r for r in config.repositories if r.name != name]
@@ -68,10 +71,10 @@ class RepositoryService:
     def get_repository(self, name: str) -> RepositoryConfig:
         """Get a repository by name, raising RepositoryNotFoundError if not found."""
         config = self._config_gateway.load()
-        for repo in config.repositories:
-            if repo.name == name:
-                return repo
-        raise RepositoryNotFoundError(f"Repository '{name}' not found")
+        repo = self._find_repository(config, name)
+        if repo is None:
+            raise RepositoryNotFoundError(f"Repository '{name}' not found")
+        return repo
 
     def update_repository(
         self,
@@ -106,7 +109,7 @@ class RepositoryService:
             RepositoryNotFoundError: If no repository with the given name exists.
         """
         config = self._config_gateway.load()
-        repo = next((r for r in config.repositories if r.name == name), None)
+        repo = self._find_repository(config, name)
         if repo is None:
             raise RepositoryNotFoundError(f"Repository '{name}' not found")
 
