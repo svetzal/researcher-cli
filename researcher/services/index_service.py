@@ -169,13 +169,11 @@ class IndexService:
         if total == 0:
             return []
         batch_size = 500
-        all_batches: list[list[dict | None]] = []
-        offset = 0
-        while offset < total:
-            batch = self._chroma.get_metadata_batch(collection_name, limit=batch_size, offset=offset)
-            all_batches.append(batch)
-            offset += batch_size
-        return collect_document_paths(all_batches)
+        batches = [
+            self._chroma.get_metadata_batch(collection_name, limit=batch_size, offset=offset)
+            for offset in range(0, total, batch_size)
+        ]
+        return collect_document_paths(batches)
 
     def purge_excluded_documents(self, config: RepositoryConfig) -> int:
         """Remove all indexed documents that now match the repository's exclude patterns.

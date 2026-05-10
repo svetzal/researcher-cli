@@ -67,10 +67,13 @@ class ServiceFactory:
         """Return the data directory for a repository."""
         return self._config_dir / "repositories" / repo.name
 
+    def _chroma_dir(self, repo: RepositoryConfig) -> Path:
+        return self._repo_data_dir(repo) / "chroma"
+
     def index_service(self, repo: RepositoryConfig) -> IndexService:
         """Create a fresh IndexService for the given repository."""
         repo_data_dir = self._repo_data_dir(repo)
-        chroma_dir = repo_data_dir / "chroma"
+        chroma_dir = self._chroma_dir(repo)
         checksums_path = repo_data_dir / "checksums.json"
 
         docling_gw: DoclingGateway | None = None
@@ -96,9 +99,7 @@ class ServiceFactory:
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:
         """Create a fresh SearchService for the given repository."""
-        chroma_dir = self._repo_data_dir(repo) / "chroma"
-
         return SearchService(
-            chroma_gateway=ChromaGateway(persist_directory=chroma_dir),
+            chroma_gateway=ChromaGateway(persist_directory=self._chroma_dir(repo)),
             embedding_gateway=self._create_embedding_gateway(repo),
         )
