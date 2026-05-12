@@ -5,8 +5,8 @@ from unittest.mock import Mock
 from typer.testing import CliRunner
 
 from researcher.cli.main import app
-from researcher.config import RepositoryConfig
-from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
+from researcher.conftest import make_doc_result, make_repo, make_search_result
+from researcher.models import IndexingResult, IndexStats
 from researcher.services.index_service import IndexService
 
 runner = CliRunner()
@@ -22,7 +22,7 @@ class DescribeIndexCommand:
         assert "No repositories" in result.output
 
     def should_index_specific_repository(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
@@ -37,8 +37,8 @@ class DescribeIndexCommand:
         assert "2 indexed" in result.output
 
     def should_index_all_repos_when_no_name_given(self, mock_factory):
-        repo1 = RepositoryConfig(name="repo1", path="/tmp/1")
-        repo2 = RepositoryConfig(name="repo2", path="/tmp/2")
+        repo1 = make_repo("repo1", "/tmp/1")
+        repo2 = make_repo("repo2", "/tmp/2")
         mock_factory.repository_service.list_repositories.return_value = [repo1, repo2]
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.index_repository.return_value = IndexingResult(
@@ -53,7 +53,7 @@ class DescribeIndexCommand:
         assert "repo2" in result.output
 
     def should_error_when_repo_not_found_for_index(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_factory.repository_service.list_repositories.return_value = [make_repo("other", "/tmp")]
         mock_factory.repository_service.get_repository.side_effect = ValueError("Repository 'missing' not found")
 
         result = runner.invoke(app, ["index", "missing"], obj=mock_factory)
@@ -62,7 +62,7 @@ class DescribeIndexCommand:
         assert "Error" in result.output
 
     def should_display_errors_from_indexing_result(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
@@ -92,7 +92,7 @@ class DescribeStatusCommand:
         assert "No repositories" in result.output
 
     def should_show_stats_for_all_repos(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.get_stats.return_value = IndexStats(
@@ -106,7 +106,7 @@ class DescribeStatusCommand:
         assert "test-repo" in result.output
 
     def should_show_stats_for_specific_repo(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
@@ -121,7 +121,7 @@ class DescribeStatusCommand:
         assert "test-repo" in result.output
 
     def should_error_when_repo_not_found_for_status(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_factory.repository_service.list_repositories.return_value = [make_repo("other", "/tmp")]
         mock_factory.repository_service.get_repository.side_effect = ValueError("not found")
 
         result = runner.invoke(app, ["status", "missing"], obj=mock_factory)
@@ -131,7 +131,7 @@ class DescribeStatusCommand:
 
 class DescribeRemoveCommand:
     def should_remove_document_from_index(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
         mock_factory.index_service.return_value = mock_index_service
@@ -159,7 +159,7 @@ class DescribeSearchCommand:
         assert "No repositories" in result.output
 
     def should_search_documents_by_default(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.search_service.return_value.search_documents.return_value = []
 
@@ -170,7 +170,7 @@ class DescribeSearchCommand:
         assert data["mode"] == "documents"
 
     def should_search_fragments_when_mode_is_fragments(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.search_service.return_value.search_fragments.return_value = []
 
@@ -181,7 +181,7 @@ class DescribeSearchCommand:
         assert data["mode"] == "fragments"
 
     def should_limit_search_to_specified_repo(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.repository_service.get_repository.return_value = repo
         mock_factory.search_service.return_value.search_documents.return_value = []
@@ -193,7 +193,7 @@ class DescribeSearchCommand:
         assert data["result_count"] == 0
 
     def should_error_when_repo_not_found_for_search(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_factory.repository_service.list_repositories.return_value = [make_repo("other", "/tmp")]
         mock_factory.repository_service.get_repository.side_effect = ValueError("not found")
 
         result = runner.invoke(app, ["search", "query", "--repo", "missing"], obj=mock_factory)
@@ -201,10 +201,10 @@ class DescribeSearchCommand:
         assert result.exit_code == 1
 
     def should_display_document_results(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
-        sr = SearchResult(fragment_id="f1", text="some text", document_path="doc.md", fragment_index=0, distance=0.1)
-        doc_result = DocumentSearchResult(document_path="doc.md", top_fragments=[sr], best_distance=0.1)
+        sr = make_search_result(doc_path="doc.md", text="some text", distance=0.1)
+        doc_result = make_doc_result(doc_path="doc.md", best_distance=0.1, fragment=sr)
         mock_factory.search_service.return_value.search_documents.return_value = [doc_result]
 
         result = runner.invoke(app, ["search", "query"], obj=mock_factory)
@@ -213,11 +213,9 @@ class DescribeSearchCommand:
         assert "doc.md" in result.output
 
     def should_display_fragment_results(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
-        sr = SearchResult(
-            fragment_id="f1", text="fragment text", document_path="doc.md", fragment_index=0, distance=0.2
-        )
+        sr = make_search_result(doc_path="doc.md", text="fragment text", distance=0.2)
         mock_factory.search_service.return_value.search_fragments.return_value = [sr]
 
         result = runner.invoke(app, ["search", "query", "--mode", "fragments"], obj=mock_factory)
@@ -228,7 +226,7 @@ class DescribeSearchCommand:
 
 class DescribeIndexCommandJsonOutput:
     def should_write_valid_json_with_repositories_key(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.index_repository.return_value = IndexingResult(
@@ -246,7 +244,7 @@ class DescribeIndexCommandJsonOutput:
         assert data["repositories"][0]["documents_indexed"] == 5
 
     def should_write_error_json_when_repo_not_found(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_factory.repository_service.list_repositories.return_value = [make_repo("other", "/tmp")]
         mock_factory.repository_service.get_repository.side_effect = ValueError("Repository 'missing' not found")
 
         result = runner.invoke(app, ["index", "missing", "--json"], obj=mock_factory)
@@ -267,7 +265,7 @@ class DescribeIndexCommandJsonOutput:
 
 class DescribeStatusCommandJsonOutput:
     def should_write_valid_json_with_repositories_key(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.get_stats.return_value = IndexStats(
@@ -286,7 +284,7 @@ class DescribeStatusCommandJsonOutput:
         assert data["repositories"][0]["last_indexed"] is None
 
     def should_serialize_last_indexed_as_iso_string(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         ts = datetime(2026, 2, 20, 10, 0, 0)
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_index_service = Mock(spec=IndexService)
@@ -302,7 +300,7 @@ class DescribeStatusCommandJsonOutput:
         assert data["repositories"][0]["last_indexed"] == "2026-02-20T10:00:00"
 
     def should_write_error_json_when_repo_not_found(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_factory.repository_service.list_repositories.return_value = [make_repo("other", "/tmp")]
         mock_factory.repository_service.get_repository.side_effect = ValueError("not found")
 
         result = runner.invoke(app, ["status", "missing", "--json"], obj=mock_factory)
@@ -323,7 +321,7 @@ class DescribeStatusCommandJsonOutput:
 
 class DescribeRemoveCommandJsonOutput:
     def should_write_valid_json_on_success(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
         mock_factory.index_service.return_value = mock_index_service
@@ -348,10 +346,10 @@ class DescribeRemoveCommandJsonOutput:
 
 class DescribeSearchCommandJsonOutput:
     def should_write_valid_json_for_document_mode(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
-        sr = SearchResult(fragment_id="f1", text="some text", document_path="doc.md", fragment_index=0, distance=0.1)
-        doc_result = DocumentSearchResult(document_path="doc.md", top_fragments=[sr], best_distance=0.1)
+        sr = make_search_result(doc_path="doc.md", text="some text", distance=0.1)
+        doc_result = make_doc_result(doc_path="doc.md", best_distance=0.1, fragment=sr)
         mock_factory.search_service.return_value.search_documents.return_value = [doc_result]
 
         result = runner.invoke(app, ["search", "query", "--json"], obj=mock_factory)
@@ -364,11 +362,9 @@ class DescribeSearchCommandJsonOutput:
         assert data["results"][0]["document_path"] == "doc.md"
 
     def should_write_valid_json_for_fragment_mode(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
-        sr = SearchResult(
-            fragment_id="f1", text="fragment text", document_path="doc.md", fragment_index=2, distance=0.2
-        )
+        sr = make_search_result(doc_path="doc.md", text="fragment text", fragment_index=2, distance=0.2)
         mock_factory.search_service.return_value.search_fragments.return_value = [sr]
 
         result = runner.invoke(app, ["search", "query", "--mode", "fragments", "--json"], obj=mock_factory)
@@ -390,7 +386,7 @@ class DescribeSearchCommandJsonOutput:
         assert data["results"] == []
 
     def should_write_error_json_when_repo_not_found(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [RepositoryConfig(name="other", path="/tmp")]
+        mock_factory.repository_service.list_repositories.return_value = [make_repo("other", "/tmp")]
         mock_factory.repository_service.get_repository.side_effect = ValueError("not found")
 
         result = runner.invoke(app, ["search", "query", "--repo", "missing", "--json"], obj=mock_factory)
@@ -400,7 +396,7 @@ class DescribeSearchCommandJsonOutput:
         assert "error" in data
 
     def should_accept_short_flag(self, mock_factory):
-        repo = RepositoryConfig(name="test-repo", path="/tmp")
+        repo = make_repo("test-repo", "/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_factory.search_service.return_value.search_documents.return_value = []
 

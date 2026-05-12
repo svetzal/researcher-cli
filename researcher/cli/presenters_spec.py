@@ -12,18 +12,13 @@ from researcher.cli.presenters import (
     present_repo_update,
     present_status,
 )
-from researcher.config import RepositoryConfig
-from researcher.conftest import make_search_result
+from researcher.conftest import make_repo, make_search_result
 from researcher.models import DocumentSearchResult
 from researcher.services.model_archive_service import PackResult
 
 
 def _make_console() -> Console:
     return Console(file=StringIO(), highlight=False, markup=True)
-
-
-def _make_repo(name: str = "my-notes", path: str = "/tmp/notes") -> RepositoryConfig:
-    return RepositoryConfig(name=name, path=path)
 
 
 class DescribePresentIndexResults:
@@ -105,7 +100,7 @@ class DescribePresentStatus:
 
 class DescribePresentRepoUpdate:
     def should_display_success_message(self):
-        repo = _make_repo()
+        repo = make_repo("my-notes")
         console = _make_console()
 
         present_repo_update(repo, [], 0, False, console)
@@ -114,7 +109,7 @@ class DescribePresentRepoUpdate:
         assert "my-notes" in console.file.getvalue()
 
     def should_display_added_patterns(self):
-        repo = _make_repo()
+        repo = make_repo("my-notes")
         console = _make_console()
 
         present_repo_update(repo, ["*.tmp", "*.log"], 0, False, console)
@@ -124,7 +119,7 @@ class DescribePresentRepoUpdate:
         assert "*.log" in output
 
     def should_display_purge_count_when_nonzero(self):
-        repo = _make_repo()
+        repo = make_repo("my-notes")
         console = _make_console()
 
         present_repo_update(repo, ["*.tmp"], 5, False, console)
@@ -133,7 +128,7 @@ class DescribePresentRepoUpdate:
         assert "Purged" in console.file.getvalue()
 
     def should_display_no_matches_message_when_patterns_added_but_nothing_purged(self):
-        repo = _make_repo()
+        repo = make_repo("my-notes")
         console = _make_console()
 
         present_repo_update(repo, ["*.tmp"], 0, False, console)
@@ -141,7 +136,7 @@ class DescribePresentRepoUpdate:
         assert "No previously-indexed" in console.file.getvalue()
 
     def should_not_display_no_matches_message_when_no_purge_flag_set(self):
-        repo = _make_repo()
+        repo = make_repo("my-notes")
         console = _make_console()
 
         present_repo_update(repo, ["*.tmp"], 0, True, console)
@@ -158,7 +153,7 @@ class DescribePresentRepoList:
         assert "No repositories" in console.file.getvalue()
 
     def should_display_repo_names_in_table(self):
-        repos = [_make_repo("notes"), _make_repo("research")]
+        repos = [make_repo("notes"), make_repo("research")]
         console = _make_console()
 
         present_repo_list(repos, console)
