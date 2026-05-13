@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from researcher.config import RepoConfigOptions
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.gateways.config_gateway import ConfigGateway
 from researcher.services.repository_service import RepositoryService
@@ -74,20 +75,24 @@ class DescribeRepositoryService:
             service.get_repository("nonexistent")
 
     def should_add_repository_with_custom_file_types(self, service):
-        repo = service.add_repository("my-repo", "/tmp/docs", file_types=["md", "txt"])
+        repo = service.add_repository("my-repo", "/tmp/docs", options=RepoConfigOptions(file_types=["md", "txt"]))
 
         assert repo.file_types == ["md", "txt"]
 
     def should_add_repository_with_embedding_settings(self, service):
         repo = service.add_repository(
-            "my-repo", "/tmp/docs", embedding_provider="ollama", embedding_model="nomic-embed-text"
+            "my-repo",
+            "/tmp/docs",
+            options=RepoConfigOptions(embedding_provider="ollama", embedding_model="nomic-embed-text"),
         )
 
         assert repo.embedding_provider == "ollama"
         assert repo.embedding_model == "nomic-embed-text"
 
     def should_store_image_pipeline_setting(self, service):
-        repo = service.add_repository("my-repo", "/tmp/docs", image_pipeline="vlm", image_vlm_model="smoldocling")
+        repo = service.add_repository(
+            "my-repo", "/tmp/docs", options=RepoConfigOptions(image_pipeline="vlm", image_vlm_model="smoldocling")
+        )
 
         assert repo.image_pipeline == "vlm"
         assert repo.image_vlm_model == "smoldocling"
@@ -99,7 +104,7 @@ class DescribeRepositoryService:
         assert repo.image_vlm_model is None
 
     def should_store_audio_asr_model_setting(self, service):
-        repo = service.add_repository("my-repo", "/tmp/docs", audio_asr_model="small")
+        repo = service.add_repository("my-repo", "/tmp/docs", options=RepoConfigOptions(audio_asr_model="small"))
 
         assert repo.audio_asr_model == "small"
 
@@ -128,8 +133,7 @@ class DescribeRepositoryServiceUpdateRepository:
         return service.add_repository(
             "my-repo",
             "/tmp/docs",
-            file_types=["md", "txt"],
-            embedding_provider="chromadb",
+            options=RepoConfigOptions(file_types=["md", "txt"], embedding_provider="chromadb"),
             exclude_patterns=["node_modules"],
         )
 
@@ -151,7 +155,7 @@ class DescribeRepositoryServiceUpdateRepository:
         assert updated.exclude_patterns == ["node_modules", "dist", "build"]
 
     def should_update_file_types_when_provided(self, service, existing_repo):
-        updated, _ = service.update_repository("my-repo", file_types=["pdf"])
+        updated, _ = service.update_repository("my-repo", options=RepoConfigOptions(file_types=["pdf"]))
 
         assert updated.file_types == ["pdf"]
 
@@ -161,7 +165,7 @@ class DescribeRepositoryServiceUpdateRepository:
         assert updated.file_types == ["md", "txt"]
 
     def should_update_embedding_provider_when_provided(self, service, existing_repo):
-        updated, _ = service.update_repository("my-repo", embedding_provider="ollama")
+        updated, _ = service.update_repository("my-repo", options=RepoConfigOptions(embedding_provider="ollama"))
 
         assert updated.embedding_provider == "ollama"
 
@@ -171,7 +175,7 @@ class DescribeRepositoryServiceUpdateRepository:
         assert updated.embedding_provider == "chromadb"
 
     def should_update_embedding_model_when_provided(self, service, existing_repo):
-        updated, _ = service.update_repository("my-repo", embedding_model="nomic-embed-text")
+        updated, _ = service.update_repository("my-repo", options=RepoConfigOptions(embedding_model="nomic-embed-text"))
 
         assert updated.embedding_model == "nomic-embed-text"
 
@@ -185,14 +189,18 @@ class DescribeRepositoryServiceUpdateRepository:
         assert added == ["dist"]
 
     def should_persist_updates(self, service, config_gateway, existing_repo):
-        service.update_repository("my-repo", file_types=["pdf"], add_exclude_patterns=["dist"])
+        service.update_repository(
+            "my-repo", options=RepoConfigOptions(file_types=["pdf"]), add_exclude_patterns=["dist"]
+        )
 
         reloaded = service.get_repository("my-repo")
         assert reloaded.file_types == ["pdf"]
         assert "dist" in reloaded.exclude_patterns
 
     def should_update_image_pipeline_setting(self, service, existing_repo):
-        updated, _ = service.update_repository("my-repo", image_pipeline="vlm", image_vlm_model="smoldocling")
+        updated, _ = service.update_repository(
+            "my-repo", options=RepoConfigOptions(image_pipeline="vlm", image_vlm_model="smoldocling")
+        )
 
         assert updated.image_pipeline == "vlm"
         assert updated.image_vlm_model == "smoldocling"
@@ -204,14 +212,14 @@ class DescribeRepositoryServiceUpdateRepository:
         assert updated.image_vlm_model is None
 
     def should_persist_image_pipeline_updates(self, service, config_gateway, existing_repo):
-        service.update_repository("my-repo", image_pipeline="vlm", image_vlm_model="phi4")
+        service.update_repository("my-repo", options=RepoConfigOptions(image_pipeline="vlm", image_vlm_model="phi4"))
 
         reloaded = service.get_repository("my-repo")
         assert reloaded.image_pipeline == "vlm"
         assert reloaded.image_vlm_model == "phi4"
 
     def should_update_audio_asr_model_when_provided(self, service, existing_repo):
-        updated, _ = service.update_repository("my-repo", audio_asr_model="medium")
+        updated, _ = service.update_repository("my-repo", options=RepoConfigOptions(audio_asr_model="medium"))
 
         assert updated.audio_asr_model == "medium"
 
@@ -221,7 +229,7 @@ class DescribeRepositoryServiceUpdateRepository:
         assert updated.audio_asr_model == "turbo"
 
     def should_persist_audio_asr_model_updates(self, service, config_gateway, existing_repo):
-        service.update_repository("my-repo", audio_asr_model="base")
+        service.update_repository("my-repo", options=RepoConfigOptions(audio_asr_model="base"))
 
         reloaded = service.get_repository("my-repo")
         assert reloaded.audio_asr_model == "base"

@@ -1,6 +1,6 @@
 import structlog
 
-from researcher.config import RepositoryConfig, ResearcherConfig
+from researcher.config import RepoConfigOptions, RepositoryConfig, ResearcherConfig
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.gateways.config_gateway import ConfigGateway
 
@@ -20,13 +20,8 @@ class RepositoryService:
         self,
         name: str,
         path: str,
-        file_types: list[str] | None = None,
-        embedding_provider: str | None = None,
-        embedding_model: str | None = None,
+        options: RepoConfigOptions | None = None,
         exclude_patterns: list[str] | None = None,
-        image_pipeline: str | None = None,
-        image_vlm_model: str | None = None,
-        audio_asr_model: str | None = None,
     ) -> RepositoryConfig:
         """Add a new repository to the configuration."""
         config = self._config_gateway.load()
@@ -34,20 +29,10 @@ class RepositoryService:
         if self._find_repository(config, name) is not None:
             raise RepositoryAlreadyExistsError(f"Repository '{name}' already exists")
 
-        optional = {
-            k: v
-            for k, v in {
-                "file_types": file_types,
-                "embedding_provider": embedding_provider,
-                "embedding_model": embedding_model,
-                "exclude_patterns": exclude_patterns,
-                "image_pipeline": image_pipeline,
-                "image_vlm_model": image_vlm_model,
-                "audio_asr_model": audio_asr_model,
-            }.items()
-            if v is not None
-        }
-        repo = RepositoryConfig(name=name, path=path, **optional)
+        kwargs = (options or RepoConfigOptions()).to_filtered_dict()
+        if exclude_patterns is not None:
+            kwargs["exclude_patterns"] = exclude_patterns
+        repo = RepositoryConfig(name=name, path=path, **kwargs)
         config.repositories.append(repo)
         self._config_gateway.save(config)
         logger.info("Repository added", name=name, path=path)
@@ -79,26 +64,16 @@ class RepositoryService:
     def update_repository(
         self,
         name: str,
-        file_types: list[str] | None = None,
-        embedding_provider: str | None = None,
-        embedding_model: str | None = None,
+        options: RepoConfigOptions | None = None,
         add_exclude_patterns: list[str] | None = None,
-        image_pipeline: str | None = None,
-        image_vlm_model: str | None = None,
-        audio_asr_model: str | None = None,
     ) -> tuple[RepositoryConfig, list[str]]:
         """Update an existing repository configuration.
 
         Args:
             name: The repository name to update.
-            file_types: New file type list (replaces existing when provided).
-            embedding_provider: New embedding provider (replaces existing when provided).
-            embedding_model: New embedding model (replaces existing when provided).
+            options: Optional config fields to update (None values are ignored).
             add_exclude_patterns: Patterns to add to the existing exclusion list.
                 Duplicates are silently ignored.
-            image_pipeline: New image processing pipeline (replaces existing when provided).
-            image_vlm_model: New VLM preset name (replaces existing when provided).
-            audio_asr_model: New Whisper ASR model name (replaces existing when provided).
 
         Returns:
             A tuple of (updated_config, newly_added_patterns) where
@@ -113,18 +88,7 @@ class RepositoryService:
         if repo is None:
             raise RepositoryNotFoundError(f"Repository '{name}' not found")
 
-        updates = {
-            k: v
-            for k, v in {
-                "file_types": file_types,
-                "embedding_provider": embedding_provider,
-                "embedding_model": embedding_model,
-                "image_pipeline": image_pipeline,
-                "image_vlm_model": image_vlm_model,
-                "audio_asr_model": audio_asr_model,
-            }.items()
-            if v is not None
-        }
+        updates = (options or RepoConfigOptions()).to_filtered_dict()
 
         existing = repo.exclude_patterns
         added = [p for p in (add_exclude_patterns or []) if p not in existing]

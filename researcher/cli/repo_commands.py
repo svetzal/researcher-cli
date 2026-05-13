@@ -2,7 +2,7 @@ import typer
 
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
 from researcher.cli.presenters import present_repo_list, present_repo_update
-from researcher.config import RepositoryConfig
+from researcher.config import RepoConfigOptions, RepositoryConfig
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
@@ -67,13 +67,15 @@ def add_repo(
     repo = factory.repository_service.add_repository(
         name=name,
         path=path,
-        file_types=types,
-        embedding_provider=embedding_provider,
-        embedding_model=embedding_model,
+        options=RepoConfigOptions(
+            file_types=types,
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+            image_pipeline=image_pipeline,
+            image_vlm_model=image_vlm_model,
+            audio_asr_model=audio_asr_model,
+        ),
         exclude_patterns=exclude or [],
-        image_pipeline=image_pipeline,
-        image_vlm_model=image_vlm_model,
-        audio_asr_model=audio_asr_model,
     )
     cli_output(
         repo.model_dump(),
@@ -140,13 +142,15 @@ def update_repo(
     types = [t.strip() for t in file_types.split(",")] if file_types else None
     repo, added_patterns = factory.repository_service.update_repository(
         name=name,
-        file_types=types,
-        embedding_provider=embedding_provider,
-        embedding_model=embedding_model,
+        options=RepoConfigOptions(
+            file_types=types,
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+            image_pipeline=image_pipeline,
+            image_vlm_model=image_vlm_model,
+            audio_asr_model=audio_asr_model,
+        ),
         add_exclude_patterns=exclude or [],
-        image_pipeline=image_pipeline,
-        image_vlm_model=image_vlm_model,
-        audio_asr_model=audio_asr_model,
     )
     purged = 0
     if added_patterns and not no_purge:
