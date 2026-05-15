@@ -252,6 +252,18 @@ class DescribeIndexService:
         # The purged document should be removed from the saved checksums
         assert "/tmp/docs/node_modules/dep.md" not in saved_checksum_maps[-1]
 
+    def should_return_skipped_in_process_file_for_unchanged_checksum(self, service, mock_filesystem, mock_chroma):
+        file_path = Path("/tmp/docs/doc.md")
+        mock_filesystem.compute_checksum.return_value = "abc123"
+        checksums = {str(file_path): "abc123"}
+        errors: list[str] = []
+
+        outcome, fragments = service._process_file(file_path, checksums, None, errors)
+
+        assert outcome == "skipped"
+        assert fragments == 0
+        mock_chroma.add_fragments.assert_not_called()
+
     def should_remove_document_from_index(self, service, mock_chroma, mock_checksums):
         mock_checksums.load.return_value = {"/path/to/doc.md": "abc123"}
         saved_checksum_maps: list[dict] = []

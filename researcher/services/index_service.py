@@ -60,33 +60,46 @@ class IndexService:
         files = self._filesystem.list_files(config.file_types, config.exclude_patterns)
 
         for file_path in files:
-            path_key = str(file_path)
-            try:
-                current_checksum = self._filesystem.compute_checksum(file_path)
-                if checksums.get(path_key) == current_checksum:
-                    result.documents_skipped += 1
-                    continue
-
-                # File is new or changed — delete old fragments first
-                if path_key in checksums:
-                    self._chroma.delete_by_document(COLLECTION_NAME, path_key)
-
-                chunk_result = self.index_file(file_path, config)
-                if chunk_result is None:
-                    result.documents_skipped += 1
-                    continue
-                checksums[path_key] = current_checksum
+            outcome, fragments = self._process_file(file_path, checksums, config, result.errors)
+            if outcome == "indexed":
                 result.documents_indexed += 1
-                result.fragments_created += len(chunk_result.fragments)
-                logger.info("Indexed file", path=path_key, fragments=len(chunk_result.fragments))
-
-            except (StorageError, EmbeddingError, DocumentConversionError) as e:
+                result.fragments_created += fragments
+            elif outcome == "skipped":
+                result.documents_skipped += 1
+            else:
                 result.documents_failed += 1
-                result.errors.append(f"{path_key}: {e}")
-                logger.error("Failed to index file", path=path_key, error=str(e))
 
         self._checksums.save(checksums)
         return result
+
+    def _process_file(
+        self,
+        file_path: Path,
+        checksums: dict,
+        config: RepositoryConfig,
+        errors: list[str],
+    ) -> tuple[str, int]:
+        path_key = str(file_path)
+        try:
+            current_checksum = self._filesystem.compute_checksum(file_path)
+            if checksums.get(path_key) == current_checksum:
+                return "skipped", 0
+
+            if path_key in checksums:
+                self._chroma.delete_by_document(COLLECTION_NAME, path_key)
+
+            chunk_result = self.index_file(file_path, config)
+            if chunk_result is None:
+                return "skipped", 0
+            checksums[path_key] = current_checksum
+            fragment_count = len(chunk_result.fragments)
+            logger.info("Indexed file", path=path_key, fragments=fragment_count)
+            return "indexed", fragment_count
+
+        except (StorageError, EmbeddingError, DocumentConversionError) as e:
+            errors.append(f"{path_key}: {e}")
+            logger.error("Failed to index file", path=path_key, error=str(e))
+            return "failed", 0
 
     def _is_plain_text(self, file_path: Path) -> bool:
         """Check if a file extension indicates plain text that can bypass docling."""

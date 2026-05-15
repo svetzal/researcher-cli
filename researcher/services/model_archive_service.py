@@ -101,15 +101,21 @@ class ModelArchiveService:
             raise ModelArchiveError(f"Archive not found: {archive_path}")
 
         bases = self._cache.resolve_cache_base_dirs()
+        category_roots = self._build_category_roots(bases)
+        files_extracted, manifest_data = self._process_archive_members(archive_path, category_roots)
+        entries_restored = len(manifest_data.get("entries", [])) if manifest_data else 0
 
-        # Category prefixes → cache base directories
-        category_roots = {
+        return UnpackResult(entries_restored=entries_restored, files_extracted=files_extracted)
+
+    def _build_category_roots(self, bases: dict[str, Path]) -> dict[str, Path]:
+        return {
             "docling/models": bases["docling"],
             "huggingface/hub": bases["huggingface"],
             "chroma": bases["chroma"],
             "whisper": bases["whisper"],
         }
 
+    def _process_archive_members(self, archive_path: Path, category_roots: dict[str, Path]) -> tuple[int, dict | None]:
         files_extracted = 0
         has_manifest = False
         manifest_data: dict | None = None
@@ -125,12 +131,10 @@ class ModelArchiveService:
                         manifest_data = json.loads(f.read().decode("utf-8"))
                     continue
 
-                # Find which category this member belongs to
                 dest_path = self._resolve_extraction_path(member.name, category_roots)
                 if dest_path is None:
                     continue
 
-                # Extract the member to the resolved path
                 self._extract_member(tar, member, dest_path)
                 if member.isfile():
                     files_extracted += 1
@@ -138,9 +142,7 @@ class ModelArchiveService:
             if not has_manifest:
                 raise ModelArchiveError("Archive is missing manifest.json — not a valid model archive.")
 
-        entries_restored = len(manifest_data.get("entries", [])) if manifest_data else 0
-
-        return UnpackResult(entries_restored=entries_restored, files_extracted=files_extracted)
+        return files_extracted, manifest_data
 
     def _build_manifest(self, repos: list[RepositoryConfig], entries: list[ModelCacheEntry]) -> dict:
         return {
