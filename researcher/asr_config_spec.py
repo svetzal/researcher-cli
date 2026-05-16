@@ -1,9 +1,7 @@
 from researcher.asr_config import (
     ASR_MODEL_MAP,
     ASR_MODEL_MAP_MLX,
-    DEFAULT_VLM_PRESET,
     resolve_asr_spec_name,
-    resolve_vlm_preset,
 )
 
 
@@ -27,14 +25,3 @@ class DescribeResolveAsrSpecName:
 
     def should_return_turbo_mlx_for_turbo_on_apple_silicon(self):
         assert resolve_asr_spec_name("turbo", apple_silicon=True) == "WHISPER_TURBO_MLX"
-
-
-class DescribeResolveVlmPreset:
-    def should_return_default_preset_when_none(self):
-        assert resolve_vlm_preset(None) == DEFAULT_VLM_PRESET
-
-    def should_return_specified_model_when_provided(self):
-        assert resolve_vlm_preset("smoldocling") == "smoldocling"
-
-    def should_return_specified_model_over_default(self):
-        assert resolve_vlm_preset("granite_docling") == "granite_docling"

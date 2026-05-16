@@ -4,7 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from researcher.asr_config import resolve_asr_spec_name, resolve_vlm_preset
+from researcher.asr_config import resolve_asr_spec_name
+from researcher.model_registry import resolve_vlm_preset
 
 
 class VlmFormatConfig(BaseModel):

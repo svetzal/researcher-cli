@@ -1,4 +1,4 @@
-"""ASR and VLM model configuration and resolution for docling integration."""
+"""ASR model configuration and resolution for docling integration."""
 
 from researcher.platform import is_apple_silicon
 
@@ -20,8 +20,6 @@ ASR_MODEL_MAP_MLX: dict[str, str] = {
     "turbo": "WHISPER_TURBO_MLX",
 }
 
-DEFAULT_VLM_PRESET = "granite_docling"
-
 
 def resolve_asr_spec_name(model_name: str, *, apple_silicon: bool | None = None) -> str:
     """Map a user-facing model name to the docling ASR spec constant name.
@@ -42,15 +40,3 @@ def resolve_asr_spec_name(model_name: str, *, apple_silicon: bool | None = None)
     model_map = ASR_MODEL_MAP_MLX if apple_silicon else ASR_MODEL_MAP
     default = "WHISPER_TURBO_MLX" if apple_silicon else "WHISPER_TURBO"
     return model_map.get(model_name, default)
-
-
-def resolve_vlm_preset(image_vlm_model: str | None) -> str:
-    """Resolve the VLM model preset name.
-
-    Args:
-        image_vlm_model: The user-specified VLM model name, or None for default.
-
-    Returns:
-        The VLM preset name to use.
-    """
-    return image_vlm_model or DEFAULT_VLM_PRESET

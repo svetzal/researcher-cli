@@ -1,5 +1,5 @@
-from researcher.asr_config import DEFAULT_VLM_PRESET
 from researcher.docling_config import AsrFormatConfig, ConverterConfig, VlmFormatConfig, build_converter_config
+from researcher.model_registry import DEFAULT_VLM_PRESET
 
 
 class DescribeBuildConverterConfig:
