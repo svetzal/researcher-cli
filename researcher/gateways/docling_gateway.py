@@ -21,10 +21,14 @@ class DoclingGateway:
         image_pipeline: str = "standard",
         image_vlm_model: str | None = None,
         audio_asr_model: str = "turbo",
+        converter: Any = None,
+        chunker: Any = None,
     ):
-        self._converter: Any = None
-        self._chunker: Any = None
-        self._converter_config = build_converter_config(image_pipeline, image_vlm_model, audio_asr_model)
+        self._converter = converter
+        self._chunker = chunker
+        self._converter_config = (
+            build_converter_config(image_pipeline, image_vlm_model, audio_asr_model) if converter is None else None
+        )
 
     def _lazy_init(self, attr_name: str, subject: str, factory: Callable[[], Any]) -> Any:
         if getattr(self, attr_name) is None:

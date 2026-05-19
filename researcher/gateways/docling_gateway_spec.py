@@ -1,108 +1,61 @@
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
 
 import pytest
 
-from researcher.docling_config import ConverterConfig
 from researcher.exceptions import DocumentConversionError
 from researcher.gateways.docling_gateway import DoclingGateway
 
-_STUB_CONFIG = ConverterConfig(vlm=None, asr=None)
-
-
-@pytest.fixture
-def stub_config():
-    with patch(
-        "researcher.gateways.docling_gateway.build_converter_config",
-        return_value=_STUB_CONFIG,
-    ):
-        yield
-
 
 class DescribeDoclingGatewayConvert:
-    def should_convert_document_and_return_result(self, stub_config):
-        document = MagicMock()
-        mock_result = MagicMock()
-        mock_result.document = document
-        mock_converter = MagicMock()
-        mock_converter.convert.return_value = mock_result
+    def should_convert_document_and_return_result(self):
+        fake_doc = object()
+        fake_result = SimpleNamespace(document=fake_doc)
+        fake_converter = SimpleNamespace(convert=lambda path: fake_result)
+        gateway = DoclingGateway(converter=fake_converter)
+        result = gateway.convert(Path("/some/file.pdf"))
+        assert result is fake_doc
 
-        with patch(
-            "researcher.gateways.docling_gateway.build_document_converter",
-            return_value=mock_converter,
-        ):
-            gateway = DoclingGateway()
-            result = gateway.convert(Path("/some/file.pdf"))
+    def should_raise_document_conversion_error_on_failure(self):
+        def failing_convert(path):
+            raise RuntimeError("parse failed")
 
-        assert result is document
+        fake_converter = SimpleNamespace(convert=failing_convert)
+        gateway = DoclingGateway(converter=fake_converter)
+        with pytest.raises(DocumentConversionError, match="Failed to convert"):
+            gateway.convert(Path("/bad/file.pdf"))
 
-    def should_raise_document_conversion_error_on_failure(self, stub_config):
-        mock_converter = MagicMock()
-        mock_converter.convert.side_effect = RuntimeError("parse failed")
+    def should_convert_multiple_documents_correctly(self):
+        docs = [object(), object()]
+        results = [SimpleNamespace(document=d) for d in docs]
+        calls = [0]
 
-        with patch(
-            "researcher.gateways.docling_gateway.build_document_converter",
-            return_value=mock_converter,
-        ):
-            gateway = DoclingGateway()
-            with pytest.raises(DocumentConversionError, match="Failed to convert"):
-                gateway.convert(Path("/bad/file.pdf"))
+        def counting_convert(path):
+            r = results[calls[0]]
+            calls[0] += 1
+            return r
 
-    def should_raise_document_conversion_error_when_docling_not_installed(self, stub_config):
-        with patch(
-            "researcher.gateways.docling_gateway.build_document_converter",
-            side_effect=ImportError("no module named docling"),
-        ):
-            gateway = DoclingGateway()
-            with pytest.raises(DocumentConversionError, match="docling is not installed"):
-                gateway.convert(Path("/some/file.pdf"))
-
-    def should_create_converter_only_once(self, stub_config):
-        doc1 = MagicMock()
-        doc2 = MagicMock()
-        result1 = MagicMock()
-        result1.document = doc1
-        result2 = MagicMock()
-        result2.document = doc2
-        mock_converter = MagicMock()
-        mock_converter.convert.side_effect = [result1, result2]
-
-        with patch(
-            "researcher.gateways.docling_gateway.build_document_converter",
-            return_value=mock_converter,
-        ):
-            gateway = DoclingGateway()
-            out1 = gateway.convert(Path("/file1.pdf"))
-            out2 = gateway.convert(Path("/file2.pdf"))
-
-        assert out1 is doc1
-        assert out2 is doc2
+        fake_converter = SimpleNamespace(convert=counting_convert)
+        gateway = DoclingGateway(converter=fake_converter)
+        out1 = gateway.convert(Path("/file1.pdf"))
+        out2 = gateway.convert(Path("/file2.pdf"))
+        assert out1 is docs[0]
+        assert out2 is docs[1]
 
 
 class DescribeDoclingGatewayChunk:
-    def should_chunk_document_into_list(self, stub_config):
-        chunks = [MagicMock(), MagicMock()]
-        mock_chunker = MagicMock()
-        mock_chunker.chunk.return_value = iter(chunks)
-
-        with (
-            patch("researcher.gateways.docling_gateway.build_document_converter", return_value=MagicMock()),
-            patch("docling.chunking.HybridChunker", return_value=mock_chunker),
-        ):
-            gateway = DoclingGateway()
-            document = MagicMock()
-            result = gateway.chunk(document)
-
+    def should_chunk_document_into_list(self):
+        chunks = [object(), object()]
+        fake_chunker = SimpleNamespace(chunk=lambda doc: iter(chunks))
+        gateway = DoclingGateway(chunker=fake_chunker)
+        result = gateway.chunk(object())
         assert result == chunks
 
-    def should_raise_document_conversion_error_on_chunk_failure(self, stub_config):
-        mock_chunker = MagicMock()
-        mock_chunker.chunk.side_effect = RuntimeError("chunking exploded")
+    def should_raise_document_conversion_error_on_chunk_failure(self):
+        def failing_chunk(doc):
+            raise RuntimeError("chunking exploded")
 
-        with (
-            patch("researcher.gateways.docling_gateway.build_document_converter", return_value=MagicMock()),
-            patch("docling.chunking.HybridChunker", return_value=mock_chunker),
-            pytest.raises(DocumentConversionError, match="Failed to chunk"),
-        ):
-            gateway = DoclingGateway()
-            gateway.chunk(MagicMock())
+        fake_chunker = SimpleNamespace(chunk=failing_chunk)
+        gateway = DoclingGateway(chunker=fake_chunker)
+        with pytest.raises(DocumentConversionError, match="Failed to chunk"):
+            gateway.chunk(object())

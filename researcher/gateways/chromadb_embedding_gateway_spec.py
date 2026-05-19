@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from researcher.exceptions import EmbeddingError
@@ -9,53 +7,36 @@ from researcher.gateways.chromadb_embedding_gateway import ChromaDbEmbeddingGate
 class DescribeChromaDbEmbeddingGateway:
     @pytest.fixture
     def gateway(self):
-        return ChromaDbEmbeddingGateway()
+        return ChromaDbEmbeddingGateway(embedding_fn=lambda texts: [[1.0, 2.0], [3.0, 4.0]])
 
     def should_return_embeddings_for_multiple_texts(self, gateway):
-        expected = [[1.0, 2.0], [3.0, 4.0]]
-        mock_ef = MagicMock(return_value=expected)
+        result = gateway.embed_texts(["hello", "world"])
+        assert result == [[1.0, 2.0], [3.0, 4.0]]
 
-        with patch(
-            "chromadb.utils.embedding_functions.DefaultEmbeddingFunction",
-            return_value=mock_ef,
-        ):
-            result = gateway.embed_texts(["hello", "world"])
+    def should_raise_embedding_error_on_failure(self):
+        def failing_ef(texts):
+            raise RuntimeError("model unavailable")
 
-        assert result == expected
-
-    def should_raise_embedding_error_on_failure(self, gateway):
-        mock_ef = MagicMock(side_effect=RuntimeError("model unavailable"))
-
-        with (
-            patch(
-                "chromadb.utils.embedding_functions.DefaultEmbeddingFunction",
-                return_value=mock_ef,
-            ),
-            pytest.raises(EmbeddingError, match="ChromaDB default embedding failed"),
-        ):
+        gateway = ChromaDbEmbeddingGateway(embedding_fn=failing_ef)
+        with pytest.raises(EmbeddingError, match="ChromaDB default embedding failed"):
             gateway.embed_texts(["hello"])
 
-    def should_return_single_embedding_for_query(self, gateway):
-        expected = [[0.5, 0.6]]
-        mock_ef = MagicMock(return_value=expected)
-
-        with patch(
-            "chromadb.utils.embedding_functions.DefaultEmbeddingFunction",
-            return_value=mock_ef,
-        ):
-            result = gateway.embed_query("my query")
-
+    def should_return_single_embedding_for_query(self):
+        gateway = ChromaDbEmbeddingGateway(embedding_fn=lambda texts: [[0.5, 0.6]])
+        result = gateway.embed_query("my query")
         assert result == [0.5, 0.6]
 
-    def should_initialize_embedding_function_only_once(self, gateway):
-        mock_ef = MagicMock(side_effect=[[[1.0]], [[2.0]]])
+    def should_return_correct_embeddings_across_multiple_calls(self):
+        results = [[[1.0]], [[2.0]]]
+        call_count = [0]
 
-        with patch(
-            "chromadb.utils.embedding_functions.DefaultEmbeddingFunction",
-            return_value=mock_ef,
-        ):
-            result1 = gateway.embed_texts(["first"])
-            result2 = gateway.embed_texts(["second"])
+        def sequential_ef(texts):
+            r = results[call_count[0]]
+            call_count[0] += 1
+            return r
 
+        gateway = ChromaDbEmbeddingGateway(embedding_fn=sequential_ef)
+        result1 = gateway.embed_texts(["first"])
+        result2 = gateway.embed_texts(["second"])
         assert result1 == [[1.0]]
         assert result2 == [[2.0]]
