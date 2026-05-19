@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependencies: coverage 7.13.5→7.14.0, cryptography 46.0.7→48.0.0, docling-parse 5.10.1→5.11.0, idna 3.13→3.14, mcp 1.27.0→1.27.1, propcache 0.4.1→0.5.2, pydantic-settings 2.14.0→2.14.1, python-multipart 0.0.27→0.0.28, regex 2026.4.4→2026.5.9; onnxruntime capped at <1.26.0 (no macOS ARM64 wheel in 1.26.0)
 - Relaxed `cryptography` pin from exact `==46.0.7` to minimum `>=46.0.7` to allow security patches to flow through automatically
 - Updated dependencies: docling-core 2.74.1→2.75.0, idna 3.14→3.15, onnxruntime 1.25.1→1.26.0, sse-starlette 3.4.3→3.4.4, transformers 5.8.0→5.8.1; removed `onnxruntime<1.26.0` upper-bound pin — macOS ARM64 wheels are now published for 1.26.0
+- Updated dependencies: cachetools 7.1.1→7.1.3, click 8.3.3→8.4.0, cyclopts 4.12.0→4.14.0, docling 2.93.0→2.94.0, docling-core 2.75.0→2.76.0, docling-slim 2.93.0→2.94.0, lxml 6.1.0→6.1.1, numpy 2.4.5→2.4.6, python-multipart 0.0.28→0.0.29, rich-rst 1.3.2→2.0.1, watchfiles 1.1.1→1.2.0, zipp 3.23.1→4.1.0
 
 ## [0.5.4] - 2026-04-20
 
