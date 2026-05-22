@@ -1,6 +1,7 @@
 import json
 from unittest.mock import Mock
 
+import pytest
 from typer.testing import CliRunner
 
 from researcher.cli.repo_commands import repo_app
@@ -31,44 +32,37 @@ class DescribeRepoAddCommand:
         assert result.exit_code == 1
         assert "Error" in result.output
 
-    def should_parse_file_types(self, mock_factory):
+    @pytest.mark.parametrize(
+        ("extra_cli_args", "config_overrides", "expected_fields"),
+        [
+            (["--file-types", "md,pdf"], {"file_types": ["md", "pdf"]}, {"file_types": ["md", "pdf"]}),
+            (["--embedding-provider", "ollama"], {"embedding_provider": "ollama"}, {"embedding_provider": "ollama"}),
+            (
+                ["--exclude", "node_modules"],
+                {"exclude_patterns": ["node_modules"]},
+                {"exclude_patterns": ["node_modules"]},
+            ),
+            ([], {}, {"exclude_patterns": [".*"]}),
+            (["--image-pipeline", "vlm"], {"image_pipeline": "vlm"}, {"image_pipeline": "vlm"}),
+            (
+                ["--image-pipeline", "vlm", "--image-vlm-model", "smoldocling"],
+                {"image_pipeline": "vlm", "image_vlm_model": "smoldocling"},
+                {"image_vlm_model": "smoldocling"},
+            ),
+            (["--audio-asr-model", "small"], {"audio_asr_model": "small"}, {"audio_asr_model": "small"}),
+        ],
+    )
+    def should_pass_option_to_service(self, mock_factory, extra_cli_args, config_overrides, expected_fields):
         mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", file_types=["md", "pdf"]
+            name="my-repo", path="/tmp/docs", **config_overrides
         )
 
-        result = runner.invoke(
-            repo_app, ["add", "my-repo", "/tmp/docs", "--file-types", "md,pdf", "--json"], obj=mock_factory
-        )
+        result = runner.invoke(repo_app, ["add", "my-repo", "/tmp/docs", *extra_cli_args, "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["file_types"] == ["md", "pdf"]
-
-    def should_pass_embedding_provider(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", embedding_provider="ollama"
-        )
-
-        result = runner.invoke(
-            repo_app, ["add", "my-repo", "/tmp/docs", "--embedding-provider", "ollama", "--json"], obj=mock_factory
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["embedding_provider"] == "ollama"
-
-    def should_pass_exclude_patterns_to_service(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", exclude_patterns=["node_modules"]
-        )
-
-        result = runner.invoke(
-            repo_app, ["add", "my-repo", "/tmp/docs", "--exclude", "node_modules", "--json"], obj=mock_factory
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["exclude_patterns"] == ["node_modules"]
+        for field, value in expected_fields.items():
+            assert data[field] == value
 
     def should_accept_multiple_exclude_flags(self, mock_factory):
         mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
@@ -95,94 +89,6 @@ class DescribeRepoAddCommand:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["exclude_patterns"] == ["dist"]
-
-    def should_pass_empty_exclude_patterns_when_no_exclude_flags(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(name="my-repo", path="/tmp/docs")
-
-        result = runner.invoke(repo_app, ["add", "my-repo", "/tmp/docs", "--json"], obj=mock_factory)
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["exclude_patterns"] == [".*"]
-
-    def should_pass_image_pipeline_to_service_on_add(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", image_pipeline="vlm"
-        )
-
-        result = runner.invoke(
-            repo_app, ["add", "my-repo", "/tmp/docs", "--image-pipeline", "vlm", "--json"], obj=mock_factory
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["image_pipeline"] == "vlm"
-
-    def should_pass_image_vlm_model_to_service_on_add(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", image_pipeline="vlm", image_vlm_model="smoldocling"
-        )
-
-        result = runner.invoke(
-            repo_app,
-            ["add", "my-repo", "/tmp/docs", "--image-pipeline", "vlm", "--image-vlm-model", "smoldocling", "--json"],
-            obj=mock_factory,
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["image_vlm_model"] == "smoldocling"
-
-    def should_include_image_pipeline_in_json_output_on_add(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", image_pipeline="vlm", image_vlm_model="smoldocling"
-        )
-
-        result = runner.invoke(
-            repo_app,
-            [
-                "add",
-                "my-repo",
-                "/tmp/docs",
-                "--image-pipeline",
-                "vlm",
-                "--image-vlm-model",
-                "smoldocling",
-                "--json",
-            ],
-            obj=mock_factory,
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["image_pipeline"] == "vlm"
-        assert data["image_vlm_model"] == "smoldocling"
-
-    def should_pass_audio_asr_model_to_service_on_add(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", audio_asr_model="small"
-        )
-
-        result = runner.invoke(
-            repo_app, ["add", "my-repo", "/tmp/docs", "--audio-asr-model", "small", "--json"], obj=mock_factory
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["audio_asr_model"] == "small"
-
-    def should_include_audio_asr_model_in_json_output_on_add(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-repo", path="/tmp/docs", audio_asr_model="medium"
-        )
-
-        result = runner.invoke(
-            repo_app, ["add", "my-repo", "/tmp/docs", "--audio-asr-model", "medium", "--json"], obj=mock_factory
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["audio_asr_model"] == "medium"
 
 
 class DescribeRepoRemoveCommand:
@@ -278,35 +184,6 @@ class DescribeRepoAddJsonOutput:
         data = json.loads(result.output)
         assert data["name"] == "my-notes"
 
-    def should_include_exclude_patterns_in_json_output(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-notes",
-            path="/tmp/notes",
-            exclude_patterns=["node_modules", ".*"],
-        )
-
-        result = runner.invoke(
-            repo_app,
-            ["add", "my-notes", "/tmp/notes", "--exclude", "node_modules", "--exclude", ".*", "--json"],
-            obj=mock_factory,
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["exclude_patterns"] == ["node_modules", ".*"]
-
-    def should_include_default_exclude_patterns_in_json_output_when_none_provided(self, mock_factory):
-        mock_factory.repository_service.add_repository.return_value = RepositoryConfig(
-            name="my-notes",
-            path="/tmp/notes",
-        )
-
-        result = runner.invoke(repo_app, ["add", "my-notes", "/tmp/notes", "--json"], obj=mock_factory)
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["exclude_patterns"] == [".*"]
-
 
 class DescribeRepoRemoveJsonOutput:
     def should_write_valid_json_on_success(self, mock_factory):
@@ -354,74 +231,55 @@ class DescribeRepoListJsonOutput:
         data = json.loads(result.output)
         assert data["repositories"] == []
 
-    def should_include_all_repo_fields(self, mock_factory):
+    @pytest.mark.parametrize(
+        ("config_kwargs", "expected_fields"),
+        [
+            (
+                {
+                    "file_types": ["md", "txt"],
+                    "embedding_provider": "chromadb",
+                    "embedding_model": None,
+                    "image_pipeline": "vlm",
+                    "image_vlm_model": "phi4",
+                    "audio_asr_model": "large",
+                    "exclude_patterns": ["node_modules", ".*"],
+                },
+                {
+                    "name": "my-notes",
+                    "path": "/tmp/notes",
+                    "file_types": ["md", "txt"],
+                    "embedding_provider": "chromadb",
+                    "embedding_model": None,
+                    "image_pipeline": "vlm",
+                    "image_vlm_model": "phi4",
+                    "audio_asr_model": "large",
+                    "exclude_patterns": ["node_modules", ".*"],
+                },
+            ),
+            (
+                {},
+                {
+                    "name": "my-notes",
+                    "path": "/tmp/notes",
+                    "image_pipeline": "standard",
+                    "image_vlm_model": None,
+                    "audio_asr_model": "turbo",
+                    "exclude_patterns": [".*"],
+                },
+            ),
+        ],
+    )
+    def should_include_all_fields_in_json_output(self, mock_factory, config_kwargs, expected_fields):
         mock_factory.repository_service.list_repositories.return_value = [
-            RepositoryConfig(
-                name="my-notes",
-                path="/tmp/notes",
-                file_types=["md", "txt"],
-                embedding_provider="chromadb",
-                embedding_model=None,
-            )
+            RepositoryConfig(name="my-notes", path="/tmp/notes", **config_kwargs)
         ]
 
         result = runner.invoke(repo_app, ["list", "--json"], obj=mock_factory)
 
         data = json.loads(result.output)
         repo = data["repositories"][0]
-        assert repo["name"] == "my-notes"
-        assert repo["path"] == "/tmp/notes"
-        assert repo["file_types"] == ["md", "txt"]
-        assert repo["embedding_provider"] == "chromadb"
-        assert repo["embedding_model"] is None
-        assert repo["image_pipeline"] == "standard"
-        assert repo["image_vlm_model"] is None
-        assert repo["audio_asr_model"] == "turbo"
-
-    def should_include_image_and_audio_fields_with_non_default_values(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [
-            RepositoryConfig(
-                name="my-notes",
-                path="/tmp/notes",
-                image_pipeline="vlm",
-                image_vlm_model="phi4",
-                audio_asr_model="large",
-            )
-        ]
-
-        result = runner.invoke(repo_app, ["list", "--json"], obj=mock_factory)
-
-        data = json.loads(result.output)
-        repo = data["repositories"][0]
-        assert repo["image_pipeline"] == "vlm"
-        assert repo["image_vlm_model"] == "phi4"
-        assert repo["audio_asr_model"] == "large"
-
-    def should_include_exclude_patterns_in_list_json_output(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [
-            RepositoryConfig(
-                name="my-notes",
-                path="/tmp/notes",
-                exclude_patterns=["node_modules", ".*"],
-            )
-        ]
-
-        result = runner.invoke(repo_app, ["list", "--json"], obj=mock_factory)
-
-        data = json.loads(result.output)
-        repo = data["repositories"][0]
-        assert repo["exclude_patterns"] == ["node_modules", ".*"]
-
-    def should_include_default_exclude_patterns_in_list_json_output_when_none_set(self, mock_factory):
-        mock_factory.repository_service.list_repositories.return_value = [
-            RepositoryConfig(name="my-notes", path="/tmp/notes")
-        ]
-
-        result = runner.invoke(repo_app, ["list", "--json"], obj=mock_factory)
-
-        data = json.loads(result.output)
-        repo = data["repositories"][0]
-        assert repo["exclude_patterns"] == [".*"]
+        for field, value in expected_fields.items():
+            assert repo[field] == value
 
 
 class DescribeRepoUpdateCommand:
@@ -524,103 +382,29 @@ class DescribeRepoUpdateCommand:
         assert "error" in data
         assert "not found" in data["error"]
 
-    def should_update_file_types_when_provided(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", file_types=["pdf"])
+    @pytest.mark.parametrize(
+        ("extra_cli_args", "config_overrides", "expected_fields"),
+        [
+            (["--file-types", "pdf"], {"file_types": ["pdf"]}, {"file_types": ["pdf"]}),
+            ([], {"file_types": ["md", "txt"]}, {"file_types": ["md", "txt"]}),
+            (["--image-pipeline", "vlm"], {"image_pipeline": "vlm"}, {"image_pipeline": "vlm"}),
+            (
+                ["--image-pipeline", "vlm", "--image-vlm-model", "phi4"],
+                {"image_pipeline": "vlm", "image_vlm_model": "phi4"},
+                {"image_vlm_model": "phi4"},
+            ),
+            ([], {"image_pipeline": "standard"}, {"image_pipeline": "standard", "image_vlm_model": None}),
+            (["--audio-asr-model", "base"], {"audio_asr_model": "base"}, {"audio_asr_model": "base"}),
+            ([], {"audio_asr_model": "turbo"}, {"audio_asr_model": "turbo"}),
+        ],
+    )
+    def should_pass_option_to_service_on_update(self, mock_factory, extra_cli_args, config_overrides, expected_fields):
+        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", **config_overrides)
         mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
 
-        result = runner.invoke(repo_app, ["update", "my-repo", "--file-types", "pdf", "--json"], obj=mock_factory)
+        result = runner.invoke(repo_app, ["update", "my-repo", *extra_cli_args, "--json"], obj=mock_factory)
 
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["file_types"] == ["pdf"]
-
-    def should_pass_none_file_types_when_not_provided(self, mock_factory):
-        mock_factory.repository_service.update_repository.return_value = (self._make_updated_repo(), [])
-
-        result = runner.invoke(repo_app, ["update", "my-repo", "--json"], obj=mock_factory)
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["file_types"] == ["md", "txt"]
-
-    def should_pass_image_pipeline_to_service_on_update(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", image_pipeline="vlm")
-        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
-
-        result = runner.invoke(repo_app, ["update", "my-repo", "--image-pipeline", "vlm", "--json"], obj=mock_factory)
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["image_pipeline"] == "vlm"
-
-    def should_pass_image_vlm_model_to_service_on_update(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", image_pipeline="vlm", image_vlm_model="phi4")
-        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
-
-        result = runner.invoke(
-            repo_app,
-            ["update", "my-repo", "--image-pipeline", "vlm", "--image-vlm-model", "phi4", "--json"],
-            obj=mock_factory,
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["image_vlm_model"] == "phi4"
-
-    def should_include_image_pipeline_in_json_output_on_update(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", image_pipeline="vlm", image_vlm_model="phi4")
-        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
-
-        result = runner.invoke(
-            repo_app,
-            ["update", "my-repo", "--image-pipeline", "vlm", "--image-vlm-model", "phi4", "--json"],
-            obj=mock_factory,
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["image_pipeline"] == "vlm"
-        assert data["image_vlm_model"] == "phi4"
-
-    def should_pass_none_image_pipeline_when_not_provided_on_update(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", image_pipeline="standard")
-        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
-
-        result = runner.invoke(repo_app, ["update", "my-repo", "--json"], obj=mock_factory)
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["image_pipeline"] == "standard"
-        assert data["image_vlm_model"] is None
-
-    def should_pass_audio_asr_model_to_service_on_update(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="base")
-        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
-
-        result = runner.invoke(repo_app, ["update", "my-repo", "--audio-asr-model", "base", "--json"], obj=mock_factory)
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["audio_asr_model"] == "base"
-
-    def should_pass_none_audio_asr_model_when_not_provided_on_update(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="turbo")
-        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
-
-        result = runner.invoke(repo_app, ["update", "my-repo", "--json"], obj=mock_factory)
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["audio_asr_model"] == "turbo"
-
-    def should_include_audio_asr_model_in_json_output_on_update(self, mock_factory):
-        updated_repo = RepositoryConfig(name="my-repo", path="/tmp/docs", audio_asr_model="large")
-        mock_factory.repository_service.update_repository.return_value = (updated_repo, [])
-
-        result = runner.invoke(
-            repo_app, ["update", "my-repo", "--audio-asr-model", "large", "--json"], obj=mock_factory
-        )
-
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["audio_asr_model"] == "large"
+        for field, value in expected_fields.items():
+            assert data[field] == value
