@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relaxed `cryptography` pin from exact `==46.0.7` to minimum `>=46.0.7` to allow security patches to flow through automatically
 - Updated dependencies: docling-core 2.74.1→2.75.0, idna 3.14→3.15, onnxruntime 1.25.1→1.26.0, sse-starlette 3.4.3→3.4.4, transformers 5.8.0→5.8.1; removed `onnxruntime<1.26.0` upper-bound pin — macOS ARM64 wheels are now published for 1.26.0
 - Updated dependencies: cachetools 7.1.1→7.1.3, click 8.3.3→8.4.0, cyclopts 4.12.0→4.14.0, docling 2.93.0→2.94.0, docling-core 2.75.0→2.76.0, docling-slim 2.93.0→2.94.0, lxml 6.1.0→6.1.1, numpy 2.4.5→2.4.6, python-multipart 0.0.28→0.0.29, rich-rst 1.3.2→2.0.1, watchfiles 1.1.1→1.2.0, zipp 3.23.1→4.1.0
+- Updated dependencies: aiohappyeyeballs 2.6.1→2.6.2, cachetools 7.1.3→7.1.4, certifi 2026.4.22→2026.5.20, click 8.4.0→8.4.1, cyclopts 4.14.0→4.15.0, docling 2.94.0→2.95.0, docling-core 2.76.0→2.77.0, docling-slim 2.94.0→2.95.0, huggingface-hub 1.15.0→1.16.1, idna 3.15→3.16, jsonschema-path 0.4.6→0.5.0, kubernetes 35.0.0→36.0.0, opentelemetry-* 1.41.1→1.42.1, opentelemetry-semantic-conventions 0.62b1→0.63b1, pathable 0.5.0→0.6.0, pyjwt 2.12.1→2.13.0, ruff 0.15.13→0.15.14, starlette 1.0.0→1.0.1, transformers 5.8.1→5.9.0, yarl 1.23.0→1.24.2
 
 ## [0.5.4] - 2026-04-20
 
