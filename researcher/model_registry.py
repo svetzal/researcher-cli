@@ -73,17 +73,6 @@ def hf_repo_id_to_cache_dir(repo_id: str) -> str:
     return f"models--{repo_id.replace('/', '--')}"
 
 
-def resolve_cache_base_dirs() -> dict[str, Path]:
-    """Return the base cache directories for each model category."""
-    home = Path.home()
-    return {
-        "docling": home / ".cache" / "docling" / "models",
-        "huggingface": home / ".cache" / "huggingface" / "hub",
-        "chroma": home / ".cache" / "chroma",
-        "whisper": home / ".cache" / "whisper",
-    }
-
-
 def _build_repo_id_reverse_lookup() -> dict[str, str]:
     """Build a reverse map from HF repo ID model-name suffix → preset name.
 
@@ -275,7 +264,7 @@ def build_model_entries(
 
 def resolve_models_for_repos(
     repos: list[RepositoryConfig],
-    cache_base_dirs: dict[str, Path] | None = None,
+    cache_base_dirs: dict[str, Path],
     *,
     apple_silicon: bool | None = None,
 ) -> list[ModelCacheEntry]:
@@ -283,8 +272,7 @@ def resolve_models_for_repos(
 
     Deduplicates across repos. Only includes entries that exist on disk.
     """
-    bases = cache_base_dirs or resolve_cache_base_dirs()
     requirements = _collect_requirements(repos, apple_silicon=apple_silicon)
-    candidates = _candidate_paths(requirements, bases)
+    candidates = _candidate_paths(requirements, cache_base_dirs)
     existing = {p for p in candidates if p.is_dir() or p.is_file()}
-    return build_model_entries(requirements, bases, existing)
+    return build_model_entries(requirements, cache_base_dirs, existing)

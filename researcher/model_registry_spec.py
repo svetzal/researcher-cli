@@ -4,10 +4,10 @@ from pathlib import Path
 import pytest
 
 from researcher.config import RepositoryConfig
+from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import (
     build_model_entries,
     hf_repo_id_to_cache_dir,
-    resolve_cache_base_dirs,
     resolve_models_for_repos,
     resolve_vlm_preset,
 )
@@ -33,12 +33,12 @@ class DescribeHfRepoIdToCacheDir:
 
 class DescribeResolveCacheBaseDirs:
     def should_return_four_categories(self):
-        dirs = resolve_cache_base_dirs()
+        dirs = ModelCacheGateway().resolve_cache_base_dirs()
 
         assert set(dirs.keys()) == {"docling", "huggingface", "chroma", "whisper"}
 
     def should_point_to_home_cache(self):
-        dirs = resolve_cache_base_dirs()
+        dirs = ModelCacheGateway().resolve_cache_base_dirs()
         home = Path.home()
 
         assert dirs["docling"] == home / ".cache" / "docling" / "models"

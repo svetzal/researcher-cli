@@ -126,10 +126,7 @@ class IndexService:
         if not fragments:
             return ChunkResult(document_path=path_key, fragments=[])
 
-        if config.embedding_provider == "chromadb":
-            self._store_with_chroma_embeddings(path_key, fragments)
-        else:
-            self._store_with_external_embeddings(path_key, fragments)
+        self._store_fragments(path_key, fragments, config.embedding_provider)
 
         return ChunkResult(document_path=path_key, fragments=fragments)
 
@@ -158,15 +155,15 @@ class IndexService:
             for i, (fragment, embedding) in enumerate(zip(fragments, embeddings, strict=True))
         ]
 
-    def _store_with_chroma_embeddings(self, path_key: str, fragments: list[Fragment]) -> None:
-        storage_fragments = self._build_storage_fragments(path_key, fragments, None)
-        self._chroma.add_fragments(COLLECTION_NAME, storage_fragments)
-
-    def _store_with_external_embeddings(self, path_key: str, fragments: list[Fragment]) -> None:
-        texts = [f.text for f in fragments]
-        embeddings = self._embedding.embed_texts(texts)
-        storage_fragments = self._build_storage_fragments(path_key, fragments, embeddings)
-        self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
+    def _store_fragments(self, path_key: str, fragments: list[Fragment], embedding_provider: str) -> None:
+        if embedding_provider == "chromadb":
+            storage_fragments = self._build_storage_fragments(path_key, fragments, None)
+            self._chroma.add_fragments(COLLECTION_NAME, storage_fragments)
+        else:
+            texts = [f.text for f in fragments]
+            embeddings = self._embedding.embed_texts(texts)
+            storage_fragments = self._build_storage_fragments(path_key, fragments, embeddings)
+            self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
 
     def remove_document(self, document_path: str) -> None:
         """Remove all fragments for a document from the index."""
