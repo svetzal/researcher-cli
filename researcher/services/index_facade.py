@@ -17,8 +17,5 @@ def remove_from_repo(factory: ServiceFactory, repo_name: str, doc_path: str) -> 
 
 
 def get_repo_status(factory: ServiceFactory, repo_name: str | None) -> list[IndexStats]:
-    if repo_name:
-        repos = [factory.repository_service.get_repository(repo_name)]
-    else:
-        repos = factory.repository_service.list_repositories()
+    repos = factory.repository_service.resolve_repos(repo_name)
     return [factory.index_service(repo).get_stats() for repo in repos]

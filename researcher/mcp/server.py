@@ -60,18 +60,11 @@ def remove_from_index(repository: str, document_path: str) -> str:
     return f"Removed {document_path} from {repository}"
 
 
-def _get_repos(repository: str | None):
-    factory = _get_factory()
-    if repository:
-        return [factory.repository_service.get_repository(repository)]
-    return factory.repository_service.list_repositories()
-
-
 @mcp.tool
 @_mcp_errors(lambda e: [{"error": str(e)}])
 def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[dict]:
     """Search for text fragments across indexed repositories."""
-    repos = _get_repos(repository)
+    repos = _get_factory().repository_service.resolve_repos(repository)
     results = search_fragments_across_repos(_get_factory(), repos, query, n_results)
     return [r.model_dump() for r in results]
 
@@ -80,7 +73,7 @@ def search_fragments(query: str, repository: str | None = None, n_results: int =
 @_mcp_errors(lambda e: [{"error": str(e)}])
 def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[dict]:
     """Search for documents across indexed repositories, returning top fragments per document."""
-    repos = _get_repos(repository)
+    repos = _get_factory().repository_service.resolve_repos(repository)
     results = search_documents_across_repos(_get_factory(), repos, query, n_results)
     return [r.model_dump() for r in results]
 

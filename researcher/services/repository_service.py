@@ -61,6 +61,12 @@ class RepositoryService:
             raise RepositoryNotFoundError(f"Repository '{name}' not found")
         return repo
 
+    def resolve_repos(self, name: str | None) -> list[RepositoryConfig]:
+        """Return [named_repo] if name given, else all repositories."""
+        if name:
+            return [self.get_repository(name)]
+        return self.list_repositories()
+
     def update_repository(
         self,
         name: str,

@@ -9,7 +9,11 @@ from researcher.service_factory import ServiceFactory
 
 @pytest.fixture
 def mock_factory():
-    return Mock(spec=ServiceFactory)
+    factory = Mock(spec=ServiceFactory)
+    factory.repository_service.resolve_repos.side_effect = lambda name: (
+        [factory.repository_service.get_repository(name)] if name else factory.repository_service.list_repositories()
+    )
+    return factory
 
 
 def make_repo(name: str = "repo", path: str | None = None) -> RepositoryConfig:

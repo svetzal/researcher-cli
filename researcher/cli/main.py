@@ -38,28 +38,13 @@ app.add_typer(models_app, name="models")
 app.command("init")(init_command)
 
 
-def _resolve_repos(
-    factory: ServiceFactory,
-    repo_name: str | None,
-    all_repos: list[RepositoryConfig],
-) -> list[RepositoryConfig]:
-    """Return [named_repo] if repo_name given, else all_repos.
-
-    Raises ValueError if repo_name is given but not found.
-    """
-    if repo_name:
-        return [factory.repository_service.get_repository(repo_name)]
-    return all_repos
-
-
 def _resolve_repos_or_exit(
     factory: ServiceFactory,
     repo_name: str | None,
-    all_repos: list[RepositoryConfig],
     json_output: bool,
 ) -> list[RepositoryConfig]:
     with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
-        return _resolve_repos(factory, repo_name, all_repos)
+        return factory.repository_service.resolve_repos(repo_name)
 
 
 make_service_factory_callback(app)
@@ -93,7 +78,7 @@ def index_command(
         )
         raise typer.Exit(0)
 
-    repos = _resolve_repos_or_exit(factory, repo_name, repos, json_output)
+    repos = _resolve_repos_or_exit(factory, repo_name, json_output)
 
     repo_results: list[dict] = []
     for repo in repos:
@@ -144,7 +129,7 @@ def status_command(
         cli_output({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
         return
 
-    repos = _resolve_repos_or_exit(factory, repo_name, repos, json_output)
+    repos = _resolve_repos_or_exit(factory, repo_name, json_output)
 
     repo_stats = [serialize_index_stats(factory.index_service(repo).get_stats()) for repo in repos]
 
@@ -178,7 +163,7 @@ def search_command(
         )
         raise typer.Exit(0)
 
-    search_repos = _resolve_repos_or_exit(factory, repo, all_repos, json_output)
+    search_repos = _resolve_repos_or_exit(factory, repo, json_output)
 
     if mode == "fragments":
         run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)

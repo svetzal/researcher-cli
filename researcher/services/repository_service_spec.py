@@ -113,6 +113,23 @@ class DescribeRepositoryService:
 
         assert repo.audio_asr_model == "turbo"
 
+    def should_resolve_single_repo_by_name(self, service):
+        service.add_repository("repo1", "/tmp/docs1")
+        service.add_repository("repo2", "/tmp/docs2")
+
+        repos = service.resolve_repos("repo1")
+
+        assert len(repos) == 1
+        assert repos[0].name == "repo1"
+
+    def should_resolve_all_repos_when_name_is_none(self, service):
+        service.add_repository("repo1", "/tmp/docs1")
+        service.add_repository("repo2", "/tmp/docs2")
+
+        repos = service.resolve_repos(None)
+
+        assert len(repos) == 2
+
 
 class DescribeRepositoryServiceUpdateRepository:
     @pytest.fixture
