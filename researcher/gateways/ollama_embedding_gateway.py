@@ -8,8 +8,6 @@ _wrap_embedding_error = wrap_gateway_error(EmbeddingError)
 
 
 class OllamaEmbeddingGateway(EmbeddingGateway):
-    """Thin wrapper around the ollama embeddings API."""
-
     def __init__(self, model: str, client: Any = None) -> None:
         self._model = model
         self._client = client

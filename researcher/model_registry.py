@@ -56,8 +56,6 @@ DEFAULT_VLM_PRESET = "granite_docling"
 
 
 class ModelCacheEntry(BaseModel):
-    """A single model cache directory to include in the archive."""
-
     model_config = ConfigDict(frozen=True)
 
     category: str  # "docling", "huggingface", "whisper", or "chroma"

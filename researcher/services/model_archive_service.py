@@ -19,8 +19,6 @@ from researcher.model_registry import (
 
 
 class PackResult(BaseModel):
-    """Result of a pack operation."""
-
     model_config = ConfigDict(frozen=True)
 
     archive_path: Path
@@ -29,8 +27,6 @@ class PackResult(BaseModel):
 
 
 class UnpackResult(BaseModel):
-    """Result of an unpack operation."""
-
     model_config = ConfigDict(frozen=True)
 
     entries_restored: int
@@ -38,8 +34,6 @@ class UnpackResult(BaseModel):
 
 
 class ModelArchiveService:
-    """Packs and unpacks model cache directories into portable tar.gz archives."""
-
     def __init__(self, model_cache_gateway: ModelCacheGateway) -> None:
         self._cache = model_cache_gateway
 
@@ -169,7 +163,6 @@ class ModelArchiveService:
         return count
 
     def _resolve_extraction_path(self, member_name: str, category_roots: dict[str, Path]) -> Path | None:
-        """Map an archive member name to its absolute extraction path."""
         for prefix, root in category_roots.items():
             if member_name.startswith(prefix + "/") or member_name == prefix:
                 relative = member_name[len(prefix) :].lstrip("/")

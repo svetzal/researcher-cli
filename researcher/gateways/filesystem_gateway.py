@@ -9,8 +9,6 @@ _wrap_storage_error = wrap_gateway_error(StorageError)
 
 
 class FilesystemGateway:
-    """Handles file discovery, reading, and metadata operations."""
-
     def __init__(self, base_path: Path):
         self._base_path = base_path
 
@@ -39,12 +37,10 @@ class FilesystemGateway:
 
     @_wrap_storage_error("Failed to read '{path}': {e}")
     def read_file(self, path: Path) -> str:
-        """Read a text file and return its contents."""
         return path.read_text(encoding="utf-8")
 
     @_wrap_storage_error("Failed to read bytes from '{path}': {e}")
     def read_bytes(self, path: Path) -> bytes:
-        """Read a file as bytes."""
         return path.read_bytes()
 
     @_wrap_storage_error("Failed to compute checksum for '{path}': {e}")
@@ -58,5 +54,4 @@ class FilesystemGateway:
 
     @_wrap_storage_error("Failed to check existence of '{path}': {e}")
     def file_exists(self, path: Path) -> bool:
-        """Check if a file exists."""
         return path.exists()

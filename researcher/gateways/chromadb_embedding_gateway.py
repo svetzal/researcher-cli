@@ -8,8 +8,6 @@ _wrap_embedding_error = wrap_gateway_error(EmbeddingError)
 
 
 class ChromaDbEmbeddingGateway(EmbeddingGateway):
-    """Thin wrapper around chromadb's default embedding function."""
-
     def __init__(self, embedding_fn: Any = None) -> None:
         self._ef: Any = embedding_fn
 

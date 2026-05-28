@@ -26,8 +26,6 @@ logger = structlog.get_logger()
 
 
 class IndexService:
-    """Orchestrates the document indexing pipeline."""
-
     def __init__(
         self,
         filesystem_gateway: FilesystemGateway,
@@ -166,7 +164,6 @@ class IndexService:
             self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
 
     def remove_document(self, document_path: str) -> None:
-        """Remove all fragments for a document from the index."""
         self._chroma.delete_by_document(COLLECTION_NAME, document_path)
         checksums = self._checksums.load()
         checksums.pop(document_path, None)
@@ -213,7 +210,6 @@ class IndexService:
         return count
 
     def get_stats(self) -> IndexStats:
-        """Return current index statistics."""
         checksums = self._checksums.load()
         total_documents = len(checksums)
         total_fragments = self._chroma.count(COLLECTION_NAME)

@@ -16,7 +16,6 @@ def run_search_fragments(
     n_results: int,
     json_output: bool = False,
 ) -> None:
-    """Search for fragments across one or more repositories."""
     all_results = search_fragments_across_repos(factory, repos, query, n_results)
     cli_output(
         serialize_fragment_search(repos, query, all_results),
@@ -32,7 +31,6 @@ def run_search_documents(
     n_results: int,
     json_output: bool = False,
 ) -> None:
-    """Search for documents across one or more repositories."""
     all_results = search_documents_across_repos(factory, repos, query, n_results)
     cli_output(
         serialize_document_search(repos, query, all_results),

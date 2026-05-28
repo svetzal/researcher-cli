@@ -12,8 +12,6 @@ _wrap_config_error = wrap_gateway_error(ConfigurationError)
 
 
 class ConfigGateway:
-    """Handles reading and writing the configuration file."""
-
     def __init__(self, config_dir: Path | None = None):
         self._config_dir = config_dir or DEFAULT_CONFIG_DIR
         self._config_file = self._config_dir / "config.yaml"

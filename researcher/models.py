@@ -4,8 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class DocumentMetadata(BaseModel):
-    """Metadata about an indexed document."""
-
     model_config = ConfigDict(frozen=True)
 
     file_path: str
@@ -27,8 +25,6 @@ class Fragment(BaseModel):
 
 
 class FragmentForStorage(BaseModel):
-    """A fragment prepared for storage in the vector database."""
-
     model_config = ConfigDict(frozen=True)
 
     id: str
@@ -37,8 +33,6 @@ class FragmentForStorage(BaseModel):
 
 
 class FragmentWithEmbedding(BaseModel):
-    """A fragment with its computed embedding vector."""
-
     model_config = ConfigDict(frozen=True)
 
     id: str
@@ -48,8 +42,6 @@ class FragmentWithEmbedding(BaseModel):
 
 
 class SearchResult(BaseModel):
-    """A single search result from vector search."""
-
     model_config = ConfigDict(frozen=True)
 
     fragment_id: str
@@ -70,8 +62,6 @@ class DocumentSearchResult(BaseModel):
 
 
 class ChunkResult(BaseModel):
-    """Result of chunking a single document."""
-
     model_config = ConfigDict(frozen=True)
 
     document_path: str
@@ -90,8 +80,6 @@ class IndexingResult(BaseModel):
 
 
 class IndexStats(BaseModel):
-    """Current state of a repository's index."""
-
     model_config = ConfigDict(frozen=True)
 
     repository_name: str

@@ -66,7 +66,6 @@ def index_command(
     json_output: bool = JSON_OPTION,
     force: bool = typer.Option(False, "--force", help="Re-index all files, ignoring checksums"),
 ) -> None:
-    """Index a repository (or all repositories)."""
     factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
@@ -103,7 +102,6 @@ def remove_command(
     document_path: str = typer.Argument(..., help="Document path to remove from the index"),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Remove a specific document from the index."""
     factory: ServiceFactory = ctx.obj
     remove_from_repo(factory, repo_name, document_path)
 
@@ -121,7 +119,6 @@ def status_command(
     repo_name: str | None = typer.Argument(None, help="Repository name (or all if not specified)"),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Show index statistics for repositories."""
     factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
@@ -151,7 +148,6 @@ def search_command(
     mode: str = typer.Option("documents", "--mode", "-m", help="Search mode: 'fragments' or 'documents'"),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Search across indexed repositories."""
     factory: ServiceFactory = ctx.obj
     all_repos = factory.repository_service.list_repositories()
 
@@ -175,7 +171,6 @@ def search_command(
 def serve_command(
     port: int | None = typer.Option(None, "--port", "-p", help="HTTP port (default: STDIO mode)"),
 ) -> None:
-    """Start the MCP server."""
     from researcher.mcp.server import start_server
 
     start_server(port=port)

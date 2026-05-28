@@ -61,7 +61,6 @@ def add_repo(
     ),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Add a new document repository."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")]
     repo = factory.repository_service.add_repository(
@@ -91,7 +90,6 @@ def remove_repo(
     name: str = typer.Argument(..., help="Repository name to remove"),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Remove a document repository."""
     factory: ServiceFactory = ctx.obj
     factory.repository_service.remove_repository(name)
     cli_output(
@@ -137,7 +135,6 @@ def update_repo(
     ),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Update an existing repository's configuration."""
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")] if file_types else None
     repo, added_patterns = factory.repository_service.update_repository(
@@ -169,7 +166,6 @@ def list_repos(
     ctx: typer.Context,
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """List all configured repositories."""
     factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 

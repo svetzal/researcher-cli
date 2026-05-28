@@ -19,8 +19,6 @@ class RepoConfigOptions:
 
 
 class RepositoryConfig(BaseModel):
-    """Configuration for a single document repository."""
-
     name: str
     path: str
     file_types: list[str] = Field(default_factory=lambda: ["md", "txt", "pdf", "docx", "html"])
@@ -33,8 +31,6 @@ class RepositoryConfig(BaseModel):
 
 
 class ResearcherConfig(BaseModel):
-    """Top-level configuration for the researcher tool."""
-
     repositories: list[RepositoryConfig] = Field(default_factory=list)
     default_embedding_provider: str = "chromadb"
     default_embedding_model: str | None = None

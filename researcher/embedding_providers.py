@@ -4,8 +4,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class EmbeddingProviderConfig(BaseModel):
-    """Resolved configuration for an embedding provider."""
-
     model_config = ConfigDict(frozen=True)
 
     provider: str

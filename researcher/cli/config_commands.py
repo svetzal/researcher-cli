@@ -13,7 +13,6 @@ make_service_factory_callback(config_app)
 
 @config_app.command("show")
 def show_config(ctx: typer.Context) -> None:
-    """Display the current configuration."""
     factory: ServiceFactory = ctx.obj
     config = factory.config
     yaml_text = yaml.dump(config.model_dump(mode="json"), default_flow_style=False)
@@ -28,7 +27,6 @@ def set_config(
     key: str = typer.Argument(..., help="Configuration key (e.g. default_embedding_provider)"),
     value: str = typer.Argument(..., help="Configuration value"),
 ) -> None:
-    """Set a top-level configuration value."""
     factory: ServiceFactory = ctx.obj
     config = factory.config
     data = config.model_dump(mode="json")
@@ -50,7 +48,6 @@ def set_config(
 
 @config_app.command("path")
 def config_path(ctx: typer.Context) -> None:
-    """Show the path to the configuration file."""
     factory: ServiceFactory = ctx.obj
     config_file = factory.config_gateway.config_dir / "config.yaml"
     console.print(str(config_file))

@@ -26,7 +26,6 @@ def pack_command(
     output: Path = typer.Option(..., "--output", "-o", help="Output archive path (e.g. models.tar.gz)"),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Pack model cache directories into a portable archive."""
     factory: ServiceFactory = ctx.obj
     repos = factory.repository_service.list_repositories()
 
@@ -55,7 +54,6 @@ def unpack_command(
     archive: Path = typer.Argument(..., help="Path to the model archive (.tar.gz)"),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Unpack a model archive into the local cache directories."""
     factory: ServiceFactory = ctx.obj
     service = factory.model_archive_service()
     result = service.unpack(archive)

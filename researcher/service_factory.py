@@ -40,7 +40,6 @@ class ServiceFactory:
 
     @cached_property
     def _docling_available(self) -> bool:
-        """Check whether the docling library can be imported."""
         try:
             import docling.document_converter  # noqa: F401
 
@@ -64,7 +63,6 @@ class ServiceFactory:
                 raise ValueError(f"Unsupported embedding provider: {config.provider}")
 
     def _repo_data_dir(self, repo: RepositoryConfig) -> Path:
-        """Return the data directory for a repository."""
         return self._config_dir / "repositories" / repo.name
 
     def _chroma_dir(self, repo: RepositoryConfig) -> Path:
@@ -94,7 +92,6 @@ class ServiceFactory:
         )
 
     def model_archive_service(self) -> ModelArchiveService:
-        """Create a ModelArchiveService."""
         return ModelArchiveService(model_cache_gateway=ModelCacheGateway())
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:

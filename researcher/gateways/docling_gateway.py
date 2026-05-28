@@ -57,13 +57,11 @@ class DoclingGateway:
 
     @_wrap_docling_error("Failed to convert '{file_path}': {e}")
     def convert(self, file_path: Path) -> Any:
-        """Convert a document file to a DoclingDocument."""
         converter = self._get_converter()
         result = converter.convert(str(file_path))
         return result.document
 
     @_wrap_docling_error("Failed to chunk document: {e}")
     def chunk(self, document: Any) -> list[Any]:
-        """Chunk a DoclingDocument into raw chunks."""
         chunker = self._get_chunker()
         return list(chunker.chunk(document))

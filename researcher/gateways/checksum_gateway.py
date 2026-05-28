@@ -10,8 +10,6 @@ _wrap_storage_error = wrap_gateway_error(StorageError)
 
 
 class ChecksumGateway:
-    """Persists document checksums to the filesystem."""
-
     def __init__(self, checksums_path: Path):
         self._path = checksums_path
 

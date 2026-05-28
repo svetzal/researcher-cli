@@ -46,7 +46,6 @@ def set_factory(factory: ServiceFactory) -> None:
 @mcp.tool
 @_mcp_errors(lambda e: f"Error: {e}")
 def add_to_index(repository: str, file_path: str) -> str:
-    """Index a specific file in a repository."""
     chunk_result = index_file_in_repo(_get_factory(), repository, file_path)
     count = len(chunk_result.fragments) if chunk_result else 0
     return f"Indexed {count} fragments from {file_path}"
@@ -55,7 +54,6 @@ def add_to_index(repository: str, file_path: str) -> str:
 @mcp.tool
 @_mcp_errors(lambda e: f"Error: {e}")
 def remove_from_index(repository: str, document_path: str) -> str:
-    """Remove a document from a repository's index."""
     remove_from_repo(_get_factory(), repository, document_path)
     return f"Removed {document_path} from {repository}"
 
@@ -63,7 +61,6 @@ def remove_from_index(repository: str, document_path: str) -> str:
 @mcp.tool
 @_mcp_errors(lambda e: [{"error": str(e)}])
 def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[dict]:
-    """Search for text fragments across indexed repositories."""
     repos = _get_factory().repository_service.resolve_repos(repository)
     results = search_fragments_across_repos(_get_factory(), repos, query, n_results)
     return [r.model_dump() for r in results]
@@ -81,7 +78,6 @@ def search_documents(query: str, repository: str | None = None, n_results: int =
 @mcp.tool
 @_mcp_errors(lambda e: [{"error": str(e)}])
 def list_repositories() -> list[dict]:
-    """List all configured repositories with their settings."""
     repos = _get_factory().repository_service.list_repositories()
     return [r.model_dump() for r in repos]
 
@@ -89,7 +85,6 @@ def list_repositories() -> list[dict]:
 @mcp.tool
 @_mcp_errors(lambda e: {"error": str(e)})
 def get_index_status(repository: str | None = None) -> dict:
-    """Get indexing statistics for one or all repositories."""
     statuses = [s.model_dump(mode="json") for s in get_repo_status(_get_factory(), repository)]
     if len(statuses) == 1:
         return statuses[0]

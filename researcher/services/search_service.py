@@ -5,14 +5,11 @@ from researcher.models import DocumentSearchResult, SearchResult
 
 
 class SearchService:
-    """Provides semantic search across indexed repositories."""
-
     def __init__(self, chroma_gateway: ChromaGateway, embedding_gateway: EmbeddingGateway):
         self._chroma = chroma_gateway
         self._embedding = embedding_gateway
 
     def search_fragments(self, query: str, n_results: int = 10) -> list[SearchResult]:
-        """Search for text fragments matching the query."""
         count = self._chroma.count(COLLECTION_NAME)
         if count == 0:
             return []

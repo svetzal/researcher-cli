@@ -8,8 +8,6 @@ logger = structlog.get_logger()
 
 
 class RepositoryService:
-    """Manages repository configuration and lifecycle."""
-
     def __init__(self, config_gateway: ConfigGateway):
         self._config_gateway = config_gateway
 
@@ -23,7 +21,6 @@ class RepositoryService:
         options: RepoConfigOptions | None = None,
         exclude_patterns: list[str] | None = None,
     ) -> RepositoryConfig:
-        """Add a new repository to the configuration."""
         config = self._config_gateway.load()
 
         if self._find_repository(config, name) is not None:
@@ -39,7 +36,6 @@ class RepositoryService:
         return repo
 
     def remove_repository(self, name: str) -> None:
-        """Remove a repository from the configuration."""
         config = self._config_gateway.load()
 
         if self._find_repository(config, name) is None:
@@ -50,7 +46,6 @@ class RepositoryService:
         logger.info("Repository removed", name=name)
 
     def list_repositories(self) -> list[RepositoryConfig]:
-        """List all configured repositories."""
         return self._config_gateway.load().repositories
 
     def get_repository(self, name: str) -> RepositoryConfig:

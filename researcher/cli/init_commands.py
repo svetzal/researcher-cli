@@ -119,7 +119,6 @@ def run_init(
 
 
 def _print_init_results(result: dict) -> None:
-    """Print human-readable init results to the console."""
     current_version = result["version"]
 
     for skill_name in result["skills_refused"]:
@@ -149,7 +148,6 @@ def init_command(
     global_install: bool = typer.Option(False, "--global", "-g", help="Install to ~/.claude/skills/ (global)"),
     json_output: bool = JSON_OPTION,
 ) -> None:
-    """Install researcher skills into the current project's .claude/skills/ directory."""
     target = Path.home() if global_install else Path.cwd()
     result = run_init(target, force=force)
     cli_output(result, lambda: _print_init_results(result), json_output=json_output)

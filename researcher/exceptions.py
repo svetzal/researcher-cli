@@ -19,11 +19,11 @@ class ConfigurationError(ResearcherError):
 
 
 class RepositoryNotFoundError(ResearcherError):
-    """No repository with the given name exists."""
+    pass
 
 
 class RepositoryAlreadyExistsError(ResearcherError):
-    """A repository with the given name already exists."""
+    pass
 
 
 class ModelArchiveError(ResearcherError):
