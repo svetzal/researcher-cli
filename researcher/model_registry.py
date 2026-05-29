@@ -64,17 +64,12 @@ class ModelCacheEntry(BaseModel):
 
 
 def hf_repo_id_to_cache_dir(repo_id: str) -> str:
-    """Convert a HuggingFace repo ID to its cache directory name.
-
-    e.g. "ibm-granite/granite-docling-258M" → "models--ibm-granite--granite-docling-258M"
-    """
+    """e.g. "ibm-granite/granite-docling-258M" → "models--ibm-granite--granite-docling-258M" """
     return f"models--{repo_id.replace('/', '--')}"
 
 
 def _build_repo_id_reverse_lookup() -> dict[str, str]:
-    """Build a reverse map from HF repo ID model-name suffix → preset name.
-
-    e.g. "granite-vision-3.3-2b" → "granite_vision"
+    """e.g. "granite-vision-3.3-2b" → "granite_vision"
     This lets us match config values that contain a repo ID fragment
     rather than a preset name.
     """
@@ -117,11 +112,7 @@ def resolve_vlm_preset(vlm_model_value: str | None) -> str:
 def _collect_requirements(
     repos: list[RepositoryConfig], *, apple_silicon: bool | None = None
 ) -> tuple[bool, set[str], set[str], bool]:
-    """Scan repos to determine which model categories are needed.
-
-    Returns:
-        (need_docling, hf_repo_ids, whisper_cache_files, need_chroma)
-    """
+    """Returns: (need_docling, hf_repo_ids, whisper_cache_files, need_chroma)"""
     need_docling = False
     need_chroma = False
     hf_repo_ids: set[str] = set()
@@ -141,9 +132,7 @@ def _collect_requirements(
 
 
 def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str], *, apple_silicon: bool | None = None) -> None:
-    """Add HuggingFace repo IDs for a VLM pipeline repo.
-
-    On Apple Silicon, only packs the MLX variant (what docling will use).
+    """On Apple Silicon, only packs the MLX variant (what docling will use).
     On other platforms, only packs the default (Transformers) variant.
     """
     preset = resolve_vlm_preset(repo.image_vlm_model)
@@ -166,9 +155,7 @@ def _collect_asr_cache_ids(
     *,
     apple_silicon: bool | None = None,
 ) -> None:
-    """Add cache identifiers for ASR (Whisper) models.
-
-    On Apple Silicon, MLX Whisper models are cached in HuggingFace hub.
+    """On Apple Silicon, MLX Whisper models are cached in HuggingFace hub.
     On other platforms, openai-whisper caches .pt files in ~/.cache/whisper/.
     """
     model_name = repo.audio_asr_model
@@ -187,10 +174,7 @@ def _candidate_paths(
     requirements: tuple[bool, set[str], set[str], bool],
     bases: dict[str, Path],
 ) -> set[Path]:
-    """Compute all paths that would be checked for the given requirements and bases.
-
-    Pure function — no filesystem access.
-    """
+    """Pure function — no filesystem access."""
     need_docling, hf_repo_ids, whisper_cache_files, need_chroma = requirements
     candidates: set[Path] = set()
 
@@ -214,11 +198,7 @@ def build_model_entries(
     bases: dict[str, Path],
     existing_paths: set[Path],
 ) -> list[ModelCacheEntry]:
-    """Build the list of ModelCacheEntry objects for the given requirements.
-
-    Pure function — no filesystem access. Only includes entries whose source_path
-    is a member of existing_paths.
-    """
+    """Pure function — no filesystem access. Only includes entries whose source_path is a member of existing_paths."""
     need_docling, hf_repo_ids, whisper_cache_files, need_chroma = requirements
     entries: list[ModelCacheEntry] = []
 
@@ -266,10 +246,7 @@ def resolve_models_for_repos(
     *,
     apple_silicon: bool | None = None,
 ) -> list[ModelCacheEntry]:
-    """Determine which model cache entries are needed for the given repos.
-
-    Deduplicates across repos. Only includes entries that exist on disk.
-    """
+    """Only includes entries that exist on disk."""
     requirements = _collect_requirements(repos, apple_silicon=apple_silicon)
     candidates = _candidate_paths(requirements, cache_base_dirs)
     existing = {p for p in candidates if p.is_dir() or p.is_file()}

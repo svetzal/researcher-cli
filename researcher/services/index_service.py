@@ -43,7 +43,6 @@ class IndexService:
         self._checksums = checksum_gateway
 
     def index_repository(self, config: RepositoryConfig, *, force: bool = False) -> IndexingResult:
-        """Index all documents in the repository, skipping unchanged files."""
         purged = self.purge_excluded_documents(config)
         result = IndexingResult(
             documents_indexed=0,
@@ -100,7 +99,6 @@ class IndexService:
             return "failed", 0
 
     def _is_plain_text(self, file_path: Path) -> bool:
-        """Check if a file extension indicates plain text that can bypass docling."""
         return file_path.suffix.lstrip(".").lower() in PLAIN_TEXT_EXTENSIONS
 
     def index_file(self, file_path: Path, config: RepositoryConfig) -> ChunkResult | None:
@@ -171,7 +169,6 @@ class IndexService:
         logger.info("Removed document", path=document_path)
 
     def _get_all_document_paths(self, collection_name: str) -> list[str]:
-        """Retrieve all unique document paths from the collection, paginating in batches."""
         total = self._chroma.count(collection_name)
         if total == 0:
             return []
@@ -183,15 +180,7 @@ class IndexService:
         return collect_document_paths(batches)
 
     def purge_excluded_documents(self, config: RepositoryConfig) -> int:
-        """Remove all indexed documents that now match the repository's exclude patterns.
-
-        Args:
-            config: The repository configuration containing the current exclusion patterns
-                and base path.
-
-        Returns:
-            The number of documents purged from the index.
-        """
+        """Remove all indexed documents that now match the repository's exclude patterns."""
         if not config.exclude_patterns:
             return 0
 

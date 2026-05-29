@@ -69,7 +69,6 @@ class ServiceFactory:
         return self._repo_data_dir(repo) / "chroma"
 
     def index_service(self, repo: RepositoryConfig) -> IndexService:
-        """Create a fresh IndexService for the given repository."""
         repo_data_dir = self._repo_data_dir(repo)
         chroma_dir = self._chroma_dir(repo)
         checksums_path = repo_data_dir / "checksums.json"
@@ -95,7 +94,6 @@ class ServiceFactory:
         return ModelArchiveService(model_cache_gateway=ModelCacheGateway())
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:
-        """Create a fresh SearchService for the given repository."""
         return SearchService(
             chroma_gateway=ChromaGateway(persist_directory=self._chroma_dir(repo)),
             embedding_gateway=self._create_embedding_gateway(repo),

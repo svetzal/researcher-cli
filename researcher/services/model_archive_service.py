@@ -38,18 +38,7 @@ class ModelArchiveService:
         self._cache = model_cache_gateway
 
     def pack(self, repos: list[RepositoryConfig], output_path: Path) -> PackResult:
-        """Pack model cache directories into a tar.gz archive.
-
-        Args:
-            repos: Repository configurations to resolve models from.
-            output_path: Destination path for the archive file.
-
-        Returns:
-            PackResult with archive details.
-
-        Raises:
-            ModelArchiveError: If no model cache directories are found on disk.
-        """
+        """Raises ModelArchiveError if no model cache directories are found on disk."""
         bases = self._cache.resolve_cache_base_dirs()
         requirements = _collect_requirements(repos)
         candidates = _candidate_paths(requirements, bases)
@@ -80,17 +69,7 @@ class ModelArchiveService:
         return PackResult(archive_path=output_path, entries=entries, total_files=total_files)
 
     def unpack(self, archive_path: Path) -> UnpackResult:
-        """Unpack a model archive into the correct cache directories.
-
-        Args:
-            archive_path: Path to the tar.gz archive.
-
-        Returns:
-            UnpackResult with extraction details.
-
-        Raises:
-            ModelArchiveError: If the archive does not exist or is missing a manifest.
-        """
+        """Raises ModelArchiveError if the archive is missing or has no manifest."""
         if not self._cache.archive_exists(archive_path):
             raise ModelArchiveError(f"Archive not found: {archive_path}")
 
@@ -152,7 +131,6 @@ class ModelArchiveService:
         }
 
     def _add_directory_to_tar(self, tar: tarfile.TarFile, source: Path, archive_prefix: str) -> int:
-        """Recursively add a directory to the tar under archive_prefix. Returns file count."""
         count = 0
         for item in sorted(source.rglob("*")):
             rel = item.relative_to(source)
@@ -172,7 +150,6 @@ class ModelArchiveService:
         return None
 
     def _extract_member(self, tar: tarfile.TarFile, member: tarfile.TarInfo, dest_path: Path) -> None:
-        """Extract a single tar member to dest_path."""
         if member.isdir():
             self._cache.make_dirs(dest_path)
         elif member.isfile():

@@ -49,7 +49,6 @@ class RepositoryService:
         return self._config_gateway.load().repositories
 
     def get_repository(self, name: str) -> RepositoryConfig:
-        """Get a repository by name, raising RepositoryNotFoundError if not found."""
         config = self._config_gateway.load()
         repo = self._find_repository(config, name)
         if repo is None:
@@ -57,7 +56,6 @@ class RepositoryService:
         return repo
 
     def resolve_repos(self, name: str | None) -> list[RepositoryConfig]:
-        """Return [named_repo] if name given, else all repositories."""
         if name:
             return [self.get_repository(name)]
         return self.list_repositories()
@@ -68,22 +66,6 @@ class RepositoryService:
         options: RepoConfigOptions | None = None,
         add_exclude_patterns: list[str] | None = None,
     ) -> tuple[RepositoryConfig, list[str]]:
-        """Update an existing repository configuration.
-
-        Args:
-            name: The repository name to update.
-            options: Optional config fields to update (None values are ignored).
-            add_exclude_patterns: Patterns to add to the existing exclusion list.
-                Duplicates are silently ignored.
-
-        Returns:
-            A tuple of (updated_config, newly_added_patterns) where
-            newly_added_patterns contains only the patterns that were not already
-            present in the repository's exclusion list.
-
-        Raises:
-            RepositoryNotFoundError: If no repository with the given name exists.
-        """
         config = self._config_gateway.load()
         repo = self._find_repository(config, name)
         if repo is None:

@@ -38,7 +38,6 @@ def _get_factory() -> ServiceFactory:
 
 
 def set_factory(factory: ServiceFactory) -> None:
-    """Inject a factory — used by tests to avoid constructing a real ServiceFactory."""
     global _factory
     _factory = factory
 
@@ -69,7 +68,6 @@ def search_fragments(query: str, repository: str | None = None, n_results: int =
 @mcp.tool
 @_mcp_errors(lambda e: [{"error": str(e)}])
 def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[dict]:
-    """Search for documents across indexed repositories, returning top fragments per document."""
     repos = _get_factory().repository_service.resolve_repos(repository)
     results = search_documents_across_repos(_get_factory(), repos, query, n_results)
     return [r.model_dump() for r in results]
@@ -92,7 +90,6 @@ def get_index_status(repository: str | None = None) -> dict:
 
 
 def start_server(port: int | None = None) -> None:
-    """Start the MCP server in HTTP or STDIO mode."""
     if port:
         mcp.run(transport="http", port=port)
     else:

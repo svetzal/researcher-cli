@@ -31,7 +31,6 @@ class FilesystemGateway:
         return sorted(found)
 
     def _is_excluded(self, file_path: Path, exclude_patterns: list[str]) -> bool:
-        """Return True if any component of the relative path matches a pattern."""
         relative = file_path.relative_to(self._base_path)
         return is_path_excluded(relative, exclude_patterns)
 
@@ -45,7 +44,6 @@ class FilesystemGateway:
 
     @_wrap_storage_error("Failed to compute checksum for '{path}': {e}")
     def compute_checksum(self, path: Path) -> str:
-        """Compute SHA-256 checksum of a file."""
         h = hashlib.sha256()
         with open(path, "rb") as f:
             while chunk := f.read(8192):

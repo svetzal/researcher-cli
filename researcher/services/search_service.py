@@ -18,7 +18,6 @@ class SearchService:
         return self._chroma.query_with_embedding(COLLECTION_NAME, embedding, n_results=actual_n)
 
     def search_documents(self, query: str, n_results: int = 5) -> list[DocumentSearchResult]:
-        """Search for documents, grouped and ranked by best fragment match."""
         fragments = self.search_fragments(query, n_results=n_results * 5)
 
         # Group by document path

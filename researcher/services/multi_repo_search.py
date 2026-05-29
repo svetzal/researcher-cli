@@ -35,7 +35,6 @@ def search_fragments_across_repos(
     query: str,
     n_results: int,
 ) -> list[SearchResult]:
-    """Search for fragments across multiple repositories, returning the top N globally by distance."""
     return _search_across_repos(
         factory,
         repos,
@@ -52,7 +51,6 @@ def search_documents_across_repos(
     query: str,
     n_results: int,
 ) -> list[DocumentSearchResult]:
-    """Search for documents across multiple repositories, returning the top N globally by best distance."""
     return _search_across_repos(
         factory,
         repos,
