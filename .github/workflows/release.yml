@@ -27,7 +27,12 @@ jobs:
         run: uv run pytest
 
       - name: Security audit
-        run: uv run pip-audit
+        # CVE-2026-4539: ReDoS in pygments AdlLexer (archetype.py), local-access only,
+        # no upstream fix available yet. Remove --ignore-vuln when pygments >2.19.2 ships a fix.
+        # CVE-2026-45829: ChromaDB Python server pre-auth code execution. researcher-cli
+        # embeds ChromaDB SDK functionality via PersistentClient and does not run or allow
+        # a Chroma server mode. Remove once a patched ChromaDB package is available.
+        run: uv run pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-45829
 
   release:
     needs: check

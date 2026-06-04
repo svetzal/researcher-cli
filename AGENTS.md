@@ -22,11 +22,11 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Minor** (0.x.0): new features, new CLI commands, behavior changes that are backward-compatible
 - **Major** (x.0.0): breaking changes to CLI interface, config format, or MCP API
 
-Releases are driven by git tags. CI (`.github/workflows/ci.yml`) runs lint, format check, tests, and security audit on every push to `main` and on pull requests. The security audit suppresses CVE-2026-4539 (ReDoS in pygments AdlLexer, local-access only, no upstream fix yet — remove `--ignore-vuln CVE-2026-4539` once pygments ships a fix). When a `v*` tag is pushed, the release workflow (`.github/workflows/release.yml`) runs the same CI checks then creates a GitHub Release with notes extracted from CHANGELOG.md.
+Releases are driven by git tags. CI (`.github/workflows/ci.yml`) runs lint, format check, tests, and security audit on every push to `main` and on pull requests. The security audit suppresses CVE-2026-4539 (ReDoS in pygments AdlLexer, local-access only, no upstream fix yet — remove `--ignore-vuln CVE-2026-4539` once pygments ships a fix) and CVE-2026-45829 (ChromaDB Python server pre-auth code execution; researcher-cli embeds ChromaDB SDK functionality via `PersistentClient` and does not run or allow a Chroma server mode — remove `--ignore-vuln CVE-2026-45829` once a patched ChromaDB package is available). When a `v*` tag is pushed, the release workflow (`.github/workflows/release.yml`) runs the same CI checks then creates a GitHub Release with notes extracted from CHANGELOG.md.
 
 To create a new release:
 
-1. Pre-flight: verify all quality gates pass — `uv run ruff check`, `uv run ruff format --check`, `uv run pytest`, `uv run pip-audit --ignore-vuln CVE-2026-4539`
+1. Pre-flight: verify all quality gates pass — `uv run ruff check`, `uv run ruff format --check`, `uv run pytest`, `uv run pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-45829`
 2. Update CHANGELOG.md — rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD` with today's date, add a fresh `[Unreleased]` section above it
 3. Bump the version in `pyproject.toml`
 4. Update skill files in `researcher/bundled_skills/` — ensure content reflects any CLI or behavior changes

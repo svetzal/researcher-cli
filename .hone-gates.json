@@ -17,7 +17,7 @@
     },
     {
       "name": "security-audit",
-      "command": "uv run pip-audit --ignore-vuln CVE-2026-4539",
+      "command": "uv run pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-45829",
       "required": true
     }
   ]

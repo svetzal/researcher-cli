@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Added a scoped security-audit exception for CVE-2026-45829 because researcher-cli only embeds ChromaDB SDK functionality via `PersistentClient` and does not run or allow a Chroma server mode.
+- Updated `aiohttp` 3.13.5→3.14.0 to resolve CVE-2026-34993 and CVE-2026-47265 reported by the live audit.
+
 ### Changed
 
 - Updated dependencies: build 1.4.4→1.5.0, cachetools 7.0.6→7.1.0, cuda-pathfinder 1.5.3→1.5.4, cyclopts 4.11.0→4.11.1, datasets 4.8.4→4.8.5, docling 2.91.0→2.92.0, docling-parse 5.10.0→5.10.1, huggingface-hub 1.11.0→1.13.0, jsonschema-path 0.4.5→0.4.6, miniaudio 1.70→1.71, onnxruntime 1.25.0→1.25.1, opentelemetry-* 1.41.0→1.41.1, opentelemetry-semantic-conventions 0.62b0→0.62b1, packaging 26.1→26.2, python-multipart 0.0.26→0.0.27, ruff 0.15.11→0.15.12, sse-starlette 3.3.4→3.4.1, transformers 5.6.2→5.7.0, tzdata 2026.1→2026.2, xxhash 3.6.0→3.7.0
