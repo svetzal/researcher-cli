@@ -6,7 +6,7 @@ so they can be packed into a portable archive.
 
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from researcher.config import RepositoryConfig
 from researcher.platform import is_apple_silicon
@@ -53,6 +53,15 @@ API_ONLY_PRESETS: set[str] = {"deepseek_ocr"}
 CHROMA_ONNX_MODEL_RELPATH = "onnx_models/all-MiniLM-L6-v2"
 
 DEFAULT_VLM_PRESET = "granite_docling"
+
+
+class ModelRequirements(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    need_docling: bool = False
+    hf_repo_ids: set[str] = Field(default_factory=set)
+    whisper_cache_files: set[str] = Field(default_factory=set)
+    need_chroma: bool = False
 
 
 class ModelCacheEntry(BaseModel):
@@ -109,10 +118,7 @@ def resolve_vlm_preset(vlm_model_value: str | None) -> str:
     return vlm_model_value
 
 
-def _collect_requirements(
-    repos: list[RepositoryConfig], *, apple_silicon: bool | None = None
-) -> tuple[bool, set[str], set[str], bool]:
-    """Returns: (need_docling, hf_repo_ids, whisper_cache_files, need_chroma)"""
+def _collect_requirements(repos: list[RepositoryConfig], *, apple_silicon: bool | None = None) -> ModelRequirements:
     need_docling = False
     need_chroma = False
     hf_repo_ids: set[str] = set()
@@ -128,7 +134,12 @@ def _collect_requirements(
         if repo.embedding_provider == "chromadb":
             need_chroma = True
 
-    return need_docling, hf_repo_ids, whisper_cache_files, need_chroma
+    return ModelRequirements(
+        need_docling=need_docling,
+        hf_repo_ids=hf_repo_ids,
+        whisper_cache_files=whisper_cache_files,
+        need_chroma=need_chroma,
+    )
 
 
 def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str], *, apple_silicon: bool | None = None) -> None:
@@ -171,42 +182,40 @@ def _collect_asr_cache_ids(
 
 
 def _candidate_paths(
-    requirements: tuple[bool, set[str], set[str], bool],
+    requirements: ModelRequirements,
     bases: dict[str, Path],
 ) -> set[Path]:
     """Pure function — no filesystem access."""
-    need_docling, hf_repo_ids, whisper_cache_files, need_chroma = requirements
     candidates: set[Path] = set()
 
-    if need_docling:
+    if requirements.need_docling:
         candidates.add(bases["docling"])
 
-    for repo_id in hf_repo_ids:
+    for repo_id in requirements.hf_repo_ids:
         candidates.add(bases["huggingface"] / hf_repo_id_to_cache_dir(repo_id))
 
-    for cache_file in whisper_cache_files:
+    for cache_file in requirements.whisper_cache_files:
         candidates.add(bases["whisper"] / cache_file)
 
-    if need_chroma:
+    if requirements.need_chroma:
         candidates.add(bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH)
 
     return candidates
 
 
 def build_model_entries(
-    requirements: tuple[bool, set[str], set[str], bool],
+    requirements: ModelRequirements,
     bases: dict[str, Path],
     existing_paths: set[Path],
 ) -> list[ModelCacheEntry]:
     """Pure function — no filesystem access. Only includes entries whose source_path is a member of existing_paths."""
-    need_docling, hf_repo_ids, whisper_cache_files, need_chroma = requirements
     entries: list[ModelCacheEntry] = []
 
     docling_dir = bases["docling"]
-    if need_docling and docling_dir in existing_paths:
+    if requirements.need_docling and docling_dir in existing_paths:
         entries.append(ModelCacheEntry(category="docling", source_path=docling_dir, archive_path="docling/models"))
 
-    for repo_id in sorted(hf_repo_ids):
+    for repo_id in sorted(requirements.hf_repo_ids):
         cache_dir_name = hf_repo_id_to_cache_dir(repo_id)
         hf_path = bases["huggingface"] / cache_dir_name
         if hf_path in existing_paths:
@@ -218,7 +227,7 @@ def build_model_entries(
                 )
             )
 
-    for cache_file in sorted(whisper_cache_files):
+    for cache_file in sorted(requirements.whisper_cache_files):
         whisper_path = bases["whisper"] / cache_file
         if whisper_path in existing_paths:
             entries.append(
@@ -230,7 +239,7 @@ def build_model_entries(
             )
 
     chroma_path = bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH
-    if need_chroma and chroma_path in existing_paths:
+    if requirements.need_chroma and chroma_path in existing_paths:
         entries.append(
             ModelCacheEntry(
                 category="chroma", source_path=chroma_path, archive_path=f"chroma/{CHROMA_ONNX_MODEL_RELPATH}"

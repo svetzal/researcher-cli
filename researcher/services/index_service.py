@@ -14,6 +14,8 @@ from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
 from researcher.models import (
     ChunkResult,
+    FileOutcome,
+    FileProcessResult,
     Fragment,
     FragmentForStorage,
     FragmentWithEmbedding,
@@ -57,11 +59,11 @@ class IndexService:
         files = self._filesystem.list_files(config.file_types, config.exclude_patterns)
 
         for file_path in files:
-            outcome, fragments = self._process_file(file_path, checksums, config, result.errors)
-            if outcome == "indexed":
+            outcome = self._process_file(file_path, checksums, config, result.errors)
+            if outcome.outcome == FileOutcome.INDEXED:
                 result.documents_indexed += 1
-                result.fragments_created += fragments
-            elif outcome == "skipped":
+                result.fragments_created += outcome.fragments_created
+            elif outcome.outcome == FileOutcome.SKIPPED:
                 result.documents_skipped += 1
             else:
                 result.documents_failed += 1
@@ -75,28 +77,28 @@ class IndexService:
         checksums: dict,
         config: RepositoryConfig,
         errors: list[str],
-    ) -> tuple[str, int]:
+    ) -> FileProcessResult:
         path_key = str(file_path)
         try:
             current_checksum = self._filesystem.compute_checksum(file_path)
             if checksums.get(path_key) == current_checksum:
-                return "skipped", 0
+                return FileProcessResult(outcome=FileOutcome.SKIPPED)
 
             if path_key in checksums:
                 self._chroma.delete_by_document(COLLECTION_NAME, path_key)
 
             chunk_result = self.index_file(file_path, config)
             if chunk_result is None:
-                return "skipped", 0
+                return FileProcessResult(outcome=FileOutcome.SKIPPED)
             checksums[path_key] = current_checksum
             fragment_count = len(chunk_result.fragments)
             logger.info("Indexed file", path=path_key, fragments=fragment_count)
-            return "indexed", fragment_count
+            return FileProcessResult(outcome=FileOutcome.INDEXED, fragments_created=fragment_count)
 
         except (StorageError, EmbeddingError, DocumentConversionError) as e:
             errors.append(f"{path_key}: {e}")
             logger.error("Failed to index file", path=path_key, error=str(e))
-            return "failed", 0
+            return FileProcessResult(outcome=FileOutcome.FAILED)
 
     def _is_plain_text(self, file_path: Path) -> bool:
         return file_path.suffix.lstrip(".").lower() in PLAIN_TEXT_EXTENSIONS

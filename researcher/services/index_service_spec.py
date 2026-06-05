@@ -11,6 +11,7 @@ from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
+from researcher.models import FileOutcome
 from researcher.services.index_service import IndexService
 
 
@@ -258,10 +259,10 @@ class DescribeIndexService:
         checksums = {str(file_path): "abc123"}
         errors: list[str] = []
 
-        outcome, fragments = service._process_file(file_path, checksums, None, errors)
+        result = service._process_file(file_path, checksums, None, errors)
 
-        assert outcome == "skipped"
-        assert fragments == 0
+        assert result.outcome == FileOutcome.SKIPPED
+        assert result.fragments_created == 0
         mock_chroma.add_fragments.assert_not_called()
 
     def should_remove_document_from_index(self, service, mock_chroma, mock_checksums):

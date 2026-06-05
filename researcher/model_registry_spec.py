@@ -6,6 +6,7 @@ import pytest
 from researcher.config import RepositoryConfig
 from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import (
+    ModelRequirements,
     build_model_entries,
     hf_repo_id_to_cache_dir,
     resolve_models_for_repos,
@@ -77,7 +78,7 @@ class DescribeBuildModelEntries:
     """Pure unit tests — no filesystem access, no patching."""
 
     def should_return_empty_when_no_requirements(self):
-        requirements = (False, set(), set(), False)
+        requirements = ModelRequirements()
 
         result = build_model_entries(requirements, _FAKE_BASES, set())
 
@@ -85,7 +86,7 @@ class DescribeBuildModelEntries:
 
     def should_include_docling_entry_when_needed_and_present(self):
         docling_path = _FAKE_BASES["docling"]
-        requirements = (True, set(), set(), False)
+        requirements = ModelRequirements(need_docling=True)
 
         result = build_model_entries(requirements, _FAKE_BASES, {docling_path})
 
@@ -95,7 +96,7 @@ class DescribeBuildModelEntries:
         assert result[0].archive_path == "docling/models"
 
     def should_skip_docling_when_not_in_existing_paths(self):
-        requirements = (True, set(), set(), False)
+        requirements = ModelRequirements(need_docling=True)
 
         result = build_model_entries(requirements, _FAKE_BASES, set())
 
@@ -103,7 +104,7 @@ class DescribeBuildModelEntries:
 
     def should_skip_docling_when_not_needed(self):
         docling_path = _FAKE_BASES["docling"]
-        requirements = (False, set(), set(), False)
+        requirements = ModelRequirements()
 
         result = build_model_entries(requirements, _FAKE_BASES, {docling_path})
 
@@ -113,7 +114,7 @@ class DescribeBuildModelEntries:
         repo_id = "ibm-granite/granite-docling-258M"
         cache_dir_name = "models--ibm-granite--granite-docling-258M"
         hf_path = _FAKE_BASES["huggingface"] / cache_dir_name
-        requirements = (False, {repo_id}, set(), False)
+        requirements = ModelRequirements(hf_repo_ids={repo_id})
 
         result = build_model_entries(requirements, _FAKE_BASES, {hf_path})
 
@@ -124,7 +125,7 @@ class DescribeBuildModelEntries:
 
     def should_skip_huggingface_entry_when_not_present(self):
         repo_id = "ibm-granite/granite-docling-258M"
-        requirements = (False, {repo_id}, set(), False)
+        requirements = ModelRequirements(hf_repo_ids={repo_id})
 
         result = build_model_entries(requirements, _FAKE_BASES, set())
 
@@ -132,7 +133,7 @@ class DescribeBuildModelEntries:
 
     def should_include_whisper_entry_when_present(self):
         whisper_path = _FAKE_BASES["whisper"] / "turbo.pt"
-        requirements = (False, set(), {"turbo.pt"}, False)
+        requirements = ModelRequirements(whisper_cache_files={"turbo.pt"})
 
         result = build_model_entries(requirements, _FAKE_BASES, {whisper_path})
 
@@ -142,7 +143,7 @@ class DescribeBuildModelEntries:
         assert result[0].archive_path == "whisper/turbo.pt"
 
     def should_skip_whisper_entry_when_not_present(self):
-        requirements = (False, set(), {"turbo.pt"}, False)
+        requirements = ModelRequirements(whisper_cache_files={"turbo.pt"})
 
         result = build_model_entries(requirements, _FAKE_BASES, set())
 
@@ -150,7 +151,7 @@ class DescribeBuildModelEntries:
 
     def should_include_chroma_entry_when_needed_and_present(self):
         chroma_path = _FAKE_BASES["chroma"] / "onnx_models" / "all-MiniLM-L6-v2"
-        requirements = (False, set(), set(), True)
+        requirements = ModelRequirements(need_chroma=True)
 
         result = build_model_entries(requirements, _FAKE_BASES, {chroma_path})
 
@@ -161,14 +162,14 @@ class DescribeBuildModelEntries:
 
     def should_skip_chroma_when_not_needed(self):
         chroma_path = _FAKE_BASES["chroma"] / "onnx_models" / "all-MiniLM-L6-v2"
-        requirements = (False, set(), set(), False)
+        requirements = ModelRequirements()
 
         result = build_model_entries(requirements, _FAKE_BASES, {chroma_path})
 
         assert result == []
 
     def should_skip_chroma_when_not_present(self):
-        requirements = (False, set(), set(), True)
+        requirements = ModelRequirements(need_chroma=True)
 
         result = build_model_entries(requirements, _FAKE_BASES, set())
 
@@ -178,7 +179,7 @@ class DescribeBuildModelEntries:
         repo_ids = {"org/z-model", "org/a-model"}
         z_path = _FAKE_BASES["huggingface"] / "models--org--z-model"
         a_path = _FAKE_BASES["huggingface"] / "models--org--a-model"
-        requirements = (False, repo_ids, set(), False)
+        requirements = ModelRequirements(hf_repo_ids=repo_ids)
 
         result = build_model_entries(requirements, _FAKE_BASES, {z_path, a_path})
 
@@ -186,7 +187,7 @@ class DescribeBuildModelEntries:
         assert hf_paths == [a_path, z_path]
 
     def should_sort_whisper_entries_alphabetically(self):
-        requirements = (False, set(), {"turbo.pt", "base.pt"}, False)
+        requirements = ModelRequirements(whisper_cache_files={"turbo.pt", "base.pt"})
         base_path = _FAKE_BASES["whisper"] / "base.pt"
         turbo_path = _FAKE_BASES["whisper"] / "turbo.pt"
 
@@ -202,7 +203,9 @@ class DescribeBuildModelEntries:
         hf_path = _FAKE_BASES["huggingface"] / cache_dir
         whisper_path = _FAKE_BASES["whisper"] / "tiny.pt"
         chroma_path = _FAKE_BASES["chroma"] / "onnx_models" / "all-MiniLM-L6-v2"
-        requirements = (True, {repo_id}, {"tiny.pt"}, True)
+        requirements = ModelRequirements(
+            need_docling=True, hf_repo_ids={repo_id}, whisper_cache_files={"tiny.pt"}, need_chroma=True
+        )
         existing = {docling_path, hf_path, whisper_path, chroma_path}
 
         result = build_model_entries(requirements, _FAKE_BASES, existing)

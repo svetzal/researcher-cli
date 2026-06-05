@@ -1,6 +1,20 @@
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class FileOutcome(StrEnum):
+    INDEXED = "indexed"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+
+
+class FileProcessResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    outcome: FileOutcome
+    fragments_created: int = 0
 
 
 class DocumentMetadata(BaseModel):
