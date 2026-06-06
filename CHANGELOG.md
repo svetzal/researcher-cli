@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependencies: aiohappyeyeballs 2.6.1→2.6.2, cachetools 7.1.3→7.1.4, certifi 2026.4.22→2026.5.20, click 8.4.0→8.4.1, cyclopts 4.14.0→4.15.0, docling 2.94.0→2.95.0, docling-core 2.76.0→2.77.0, docling-slim 2.94.0→2.95.0, huggingface-hub 1.15.0→1.16.1, idna 3.15→3.16, jsonschema-path 0.4.6→0.5.0, kubernetes 35.0.0→36.0.0, opentelemetry-* 1.41.1→1.42.1, opentelemetry-semantic-conventions 0.62b1→0.63b1, pathable 0.5.0→0.6.0, pyjwt 2.12.1→2.13.0, ruff 0.15.13→0.15.14, starlette 1.0.0→1.0.1, transformers 5.8.1→5.9.0, yarl 1.23.0→1.24.2
 - Updated dependencies: cyclopts 4.15.0→4.16.0, soupsieve 2.8.3→2.8.4, uvicorn 0.47.0→0.48.0
 - Updated dependencies: docling 2.95.0→2.96.0, docling-parse 5.11.0→6.2.0, docling-slim 2.95.0→2.96.0, huggingface-hub 1.16.4→1.17.0, idna 3.16→3.17, rpds-py 0.30.0→2026.5.1, ruff 0.15.14→0.15.15, starlette 1.1.0→1.2.0
+- Updated dependencies: datasets 4.8.5→5.0.0, docling-core 2.78.1→2.79.0, fastmcp 3.4.0→3.4.2, fsspec 2026.2.0→2026.4.0, huggingface-hub 1.17.0→1.18.0, mlx-vlm 0.6.1→0.6.2, structlog 25.5.0→26.1.0, tqdm 4.67.3→4.68.1
 
 ## [0.5.4] - 2026-04-20
 
