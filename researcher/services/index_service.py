@@ -128,29 +128,27 @@ class IndexService:
 
         return ChunkResult(document_path=path_key, fragments=fragments)
 
+    def _base_storage_payloads(self, path_key: str, fragments: list[Fragment]) -> list[dict]:
+        return [
+            {
+                "id": f"{path_key}::{i}",
+                "text": fragment.text,
+                "metadata": {"document_path": path_key, "fragment_index": fragment.fragment_index},
+            }
+            for i, fragment in enumerate(fragments)
+        ]
+
     def _build_storage_fragments(
         self,
         path_key: str,
         fragments: list[Fragment],
         embeddings: list[list[float]] | None,
     ) -> list[FragmentForStorage] | list[FragmentWithEmbedding]:
+        payloads = self._base_storage_payloads(path_key, fragments)
         if embeddings is None:
-            return [
-                FragmentForStorage(
-                    id=f"{path_key}::{i}",
-                    text=fragment.text,
-                    metadata={"document_path": path_key, "fragment_index": fragment.fragment_index},
-                )
-                for i, fragment in enumerate(fragments)
-            ]
+            return [FragmentForStorage(**p) for p in payloads]
         return [
-            FragmentWithEmbedding(
-                id=f"{path_key}::{i}",
-                text=fragment.text,
-                metadata={"document_path": path_key, "fragment_index": fragment.fragment_index},
-                embedding=embedding,
-            )
-            for i, (fragment, embedding) in enumerate(zip(fragments, embeddings, strict=True))
+            FragmentWithEmbedding(**p, embedding=embedding) for p, embedding in zip(payloads, embeddings, strict=True)
         ]
 
     def _store_fragments(self, path_key: str, fragments: list[Fragment], embedding_provider: str) -> None:

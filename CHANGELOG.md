@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- De-duplicated fragment storage construction in `IndexService._build_storage_fragments` by extracting `_base_storage_payloads`; extracted `LazyClientEmbeddingGateway` base class shared by `OpenAIEmbeddingGateway` and `OllamaEmbeddingGateway` to eliminate duplicate `__init__` and lazy-client resolution (internal refactor, no behavior change)
+
 - De-duplicated shared option declarations in `repo add`/`repo update` via per-option factory helpers (internal refactor, no behavior change)
 
 - Replaced anonymous `tuple[bool, set[str], set[str], bool]` in `model_registry.py` with named `ModelRequirements` pydantic model; replaced `tuple[str, int]` return from `IndexService._process_file` and magic-string status comparisons with `FileOutcome` enum and `FileProcessResult` model (internal refactor, no behavior change)
