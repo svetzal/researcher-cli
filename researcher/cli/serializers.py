@@ -26,27 +26,43 @@ def serialize_index_stats(stats: IndexStats) -> dict:
     }
 
 
+def _repo_identity(repos: list[RepositoryConfig]) -> tuple[str | None, list[str]]:
+    return (repos[0].name if len(repos) == 1 else None, [r.name for r in repos])
+
+
+def _search_envelope(
+    query: str,
+    mode: str,
+    repository: str | None,
+    repos_searched: list[str],
+    results: list[dict],
+) -> dict:
+    return {
+        "query": query,
+        "mode": mode,
+        "repository": repository,
+        "repos_searched": repos_searched,
+        "result_count": len(results),
+        "results": results,
+    }
+
+
 def serialize_fragment_search(
     repos: list[RepositoryConfig],
     query: str,
     results: list[SearchResult],
 ) -> dict:
-    return {
-        "query": query,
-        "mode": "fragments",
-        "repository": repos[0].name if len(repos) == 1 else None,
-        "repos_searched": [r.name for r in repos],
-        "result_count": len(results),
-        "results": [
-            {
-                "document_path": r.document_path,
-                "fragment_index": r.fragment_index,
-                "distance": r.distance,
-                "text": r.text,
-            }
-            for r in results
-        ],
-    }
+    results_data = [
+        {
+            "document_path": r.document_path,
+            "fragment_index": r.fragment_index,
+            "distance": r.distance,
+            "text": r.text,
+        }
+        for r in results
+    ]
+    repository, repos_searched = _repo_identity(repos)
+    return _search_envelope(query, "fragments", repository, repos_searched, results_data)
 
 
 def serialize_document_search(
@@ -71,25 +87,12 @@ def serialize_document_search(
                 else None,
             }
         )
-    return {
-        "query": query,
-        "mode": "documents",
-        "repository": repos[0].name if len(repos) == 1 else None,
-        "repos_searched": [r.name for r in repos],
-        "result_count": len(results),
-        "results": results_data,
-    }
+    repository, repos_searched = _repo_identity(repos)
+    return _search_envelope(query, "documents", repository, repos_searched, results_data)
 
 
 def serialize_empty_search(query: str, mode: str, repo: str | None) -> dict:
-    return {
-        "query": query,
-        "mode": mode,
-        "repository": repo,
-        "repos_searched": [],
-        "result_count": 0,
-        "results": [],
-    }
+    return _search_envelope(query, mode, repo, [], [])
 
 
 def serialize_pack_result(result: PackResult) -> dict:

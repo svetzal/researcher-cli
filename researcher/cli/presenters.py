@@ -80,9 +80,15 @@ def present_repo_list(repos: list[RepositoryConfig], console: Console) -> None:
     console.print(table)
 
 
-def present_fragment_results(results: list[SearchResult], console: Console) -> None:
+def _no_results(results: list, console: Console) -> bool:
     if not results:
         console.print("[dim]No results found.[/dim]")
+        return True
+    return False
+
+
+def present_fragment_results(results: list[SearchResult], console: Console) -> None:
+    if _no_results(results, console):
         return
     for result in results:
         console.print(
@@ -96,8 +102,7 @@ def present_fragment_results(results: list[SearchResult], console: Console) -> N
 
 
 def present_document_results(results: list[DocumentSearchResult], console: Console) -> None:
-    if not results:
-        console.print("[dim]No results found.[/dim]")
+    if _no_results(results, console):
         return
     for doc_result in results:
         top_fragment = doc_result.top_fragments[0] if doc_result.top_fragments else None
