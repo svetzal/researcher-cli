@@ -171,7 +171,7 @@ ASR (Whisper) models are currently **not included** in pack/unpack at all. With 
 - On non-Apple: collect the standard openai-whisper model repo ID
 - Whisper models are cached by HuggingFace, so they fit the existing `huggingface` category in the archive
 
-**Update `_collect_requirements()`** to call `_collect_asr_repo_ids()` for repos that have audio ASR configured.
+**Update `collect_requirements()`** to call `_collect_asr_repo_ids()` for repos that have audio ASR configured.
 
 Note: This depends on understanding exactly how docling caches Whisper models (whether via HuggingFace hub or a custom path). If Whisper models use a different cache layout, the collection logic will need to account for that. Investigate the actual cache paths before implementing.
 

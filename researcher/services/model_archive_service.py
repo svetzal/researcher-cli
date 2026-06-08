@@ -12,9 +12,9 @@ from researcher.exceptions import ModelArchiveError
 from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import (
     ModelCacheEntry,
-    _candidate_paths,
-    _collect_requirements,
     build_model_entries,
+    candidate_paths,
+    collect_requirements,
 )
 
 
@@ -40,8 +40,8 @@ class ModelArchiveService:
     def pack(self, repos: list[RepositoryConfig], output_path: Path) -> PackResult:
         """Raises ModelArchiveError if no model cache directories are found on disk."""
         bases = self._cache.resolve_cache_base_dirs()
-        requirements = _collect_requirements(repos)
-        candidates = _candidate_paths(requirements, bases)
+        requirements = collect_requirements(repos)
+        candidates = candidate_paths(requirements, bases)
         existing = self._cache.existing_paths(candidates)
         entries = build_model_entries(requirements, bases, existing)
 

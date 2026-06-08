@@ -118,7 +118,7 @@ def resolve_vlm_preset(vlm_model_value: str | None) -> str:
     return vlm_model_value
 
 
-def _collect_requirements(repos: list[RepositoryConfig], *, apple_silicon: bool | None = None) -> ModelRequirements:
+def collect_requirements(repos: list[RepositoryConfig], *, apple_silicon: bool | None = None) -> ModelRequirements:
     need_docling = False
     need_chroma = False
     hf_repo_ids: set[str] = set()
@@ -181,7 +181,7 @@ def _collect_asr_cache_ids(
             whisper_cache_files.add(cache_file)
 
 
-def _candidate_paths(
+def candidate_paths(
     requirements: ModelRequirements,
     bases: dict[str, Path],
 ) -> set[Path]:
@@ -256,7 +256,7 @@ def resolve_models_for_repos(
     apple_silicon: bool | None = None,
 ) -> list[ModelCacheEntry]:
     """Only includes entries that exist on disk."""
-    requirements = _collect_requirements(repos, apple_silicon=apple_silicon)
-    candidates = _candidate_paths(requirements, cache_base_dirs)
+    requirements = collect_requirements(repos, apple_silicon=apple_silicon)
+    candidates = candidate_paths(requirements, cache_base_dirs)
     existing = {p for p in candidates if p.is_dir() or p.is_file()}
     return build_model_entries(requirements, cache_base_dirs, existing)

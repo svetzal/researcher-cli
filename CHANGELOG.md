@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Promoted `collect_requirements` and `candidate_paths` in `model_registry` to the public API (removed underscore prefixes); `ModelArchiveService` no longer imports private symbols across the module boundary
+
 - De-duplicated fragment storage construction in `IndexService._build_storage_fragments` by extracting `_base_storage_payloads`; extracted `LazyClientEmbeddingGateway` base class shared by `OpenAIEmbeddingGateway` and `OllamaEmbeddingGateway` to eliminate duplicate `__init__` and lazy-client resolution (internal refactor, no behavior change)
 
 - De-duplicated shared option declarations in `repo add`/`repo update` via per-option factory helpers (internal refactor, no behavior change)
