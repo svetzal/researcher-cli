@@ -1,81 +1,17 @@
-import re
 from importlib.metadata import version as pkg_version
 from importlib.resources import files
 from pathlib import Path
 
 import typer
-from packaging.version import Version
 
 from researcher.cli.output import JSON_OPTION, cli_output, console
+from researcher.services.skill_versioning import decide_skill_action, stamp_version
 
 SKILLS = ["researcher-admin", "researcher-find"]
 
 
 def _get_package_version() -> str:
     return pkg_version("researcher-cli")
-
-
-def _parse_frontmatter_version(text: str) -> str | None:
-    """Extract version from YAML frontmatter (researcher-version or metadata.version)."""
-    match = re.match(r"^---\s*\n(.*?\n)---", text, re.DOTALL)
-    if not match:
-        return None
-    frontmatter = match.group(1)
-    for line in frontmatter.splitlines():
-        if line.startswith("researcher-version:"):
-            return line.split(":", 1)[1].strip()
-    # Fallback: check metadata.version
-    meta_match = re.search(r"^metadata:\s*\n((?:[ \t]+\S.*\n)*)", frontmatter, re.MULTILINE)
-    if meta_match:
-        for line in meta_match.group(1).splitlines():
-            stripped = line.strip()
-            if stripped.startswith("version:"):
-                return stripped.split(":", 1)[1].strip().strip('"').strip("'")
-    return None
-
-
-def _stamp_version(source_text: str, version: str) -> str:
-    """Insert researcher-version and update metadata.version in YAML frontmatter."""
-    match = re.match(r"^(---\s*\n)(.*?\n)(---)", source_text, re.DOTALL)
-    if not match:
-        return source_text
-    frontmatter = match.group(2)
-    # Update metadata.version if present
-    frontmatter = re.sub(
-        r'(metadata:\s*\n(?:[ \t]+\S.*\n)*?[ \t]+version:\s*)("[^"]*"|\'[^\']*\'|\S+)',
-        rf'\g<1>"{version}"',
-        frontmatter,
-    )
-    return f"{match.group(1)}{frontmatter}researcher-version: {version}\n{match.group(3)}{source_text[match.end() :]}"
-
-
-def _decide_skill_action(
-    dest: Path,
-    current_version: str,
-    *,
-    force: bool,
-) -> tuple[str, str | None]:
-    """Return (action, message) for a skill: action is 'install', 'skip', or 'refuse'."""
-    if not dest.exists():
-        return "install", None
-
-    existing_version = _parse_frontmatter_version(dest.read_text())
-    if existing_version is None:
-        return "install", None  # no version field → no guard applies
-
-    existing = Version(existing_version)
-    current = Version(current_version)
-
-    if existing > current:
-        if force:
-            return "install", None
-        return "refuse", (
-            f"Installed skill is from researcher v{existing_version} "
-            f"but this binary is v{current_version}. Use --force to downgrade."
-        )
-    if existing == current:
-        return "skip", f"up-to-date at v{current_version}"
-    return "install", None  # upgrade path
 
 
 def run_init(
@@ -97,7 +33,8 @@ def run_init(
         source = bundled.joinpath(skill_name, "SKILL.md")
         source_text = source.read_text()
 
-        action, _message = _decide_skill_action(dest, current_version, force=force)
+        existing_text = dest.read_text() if dest.exists() else None
+        action, _message = decide_skill_action(existing_text, current_version, force=force)
 
         if action == "refuse":
             refused.append(skill_name)
@@ -105,7 +42,7 @@ def run_init(
             skipped.append(skill_name)
         else:
             dest.parent.mkdir(parents=True, exist_ok=True)
-            stamped = _stamp_version(source_text, current_version)
+            stamped = stamp_version(source_text, current_version)
             dest.write_text(stamped)
             installed.append(skill_name)
 

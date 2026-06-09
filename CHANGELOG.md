@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Moved skill version-stamping and install-decision logic (`parse_frontmatter_version`, `stamp_version`, `decide_skill_action`) from the CLI layer into a dedicated `researcher.services.skill_versioning` module; `init_commands` now delegates to the service (internal refactor, no behavior change)
+
 - Promoted `collect_requirements` and `candidate_paths` in `model_registry` to the public API (removed underscore prefixes); `ModelArchiveService` no longer imports private symbols across the module boundary
 
 - De-duplicated fragment storage construction in `IndexService._build_storage_fragments` by extracting `_base_storage_payloads`; extracted `LazyClientEmbeddingGateway` base class shared by `OpenAIEmbeddingGateway` and `OllamaEmbeddingGateway` to eliminate duplicate `__init__` and lazy-client resolution (internal refactor, no behavior change)
