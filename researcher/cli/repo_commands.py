@@ -41,6 +41,24 @@ def _audio_asr_model_option() -> str:
     return typer.Option(None, "--audio-asr-model", help=_AUDIO_ASR_MODEL_HELP)
 
 
+def _build_repo_options(
+    file_types: list[str] | None,
+    embedding_provider: str | None,
+    embedding_model: str | None,
+    image_pipeline: str | None,
+    image_vlm_model: str | None,
+    audio_asr_model: str | None,
+) -> RepoConfigOptions:
+    return RepoConfigOptions(
+        file_types=file_types,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+        image_pipeline=image_pipeline,
+        image_vlm_model=image_vlm_model,
+        audio_asr_model=audio_asr_model,
+    )
+
+
 repo_app = typer.Typer(help="Manage document repositories.")
 
 make_service_factory_callback(repo_app)
@@ -73,13 +91,8 @@ def add_repo(
     repo = factory.repository_service.add_repository(
         name=name,
         path=path,
-        options=RepoConfigOptions(
-            file_types=types,
-            embedding_provider=embedding_provider,
-            embedding_model=embedding_model,
-            image_pipeline=image_pipeline,
-            image_vlm_model=image_vlm_model,
-            audio_asr_model=audio_asr_model,
+        options=_build_repo_options(
+            types, embedding_provider, embedding_model, image_pipeline, image_vlm_model, audio_asr_model
         ),
         exclude_patterns=exclude or [],
     )
@@ -134,13 +147,8 @@ def update_repo(
     types = [t.strip() for t in file_types.split(",")] if file_types else None
     repo, added_patterns = factory.repository_service.update_repository(
         name=name,
-        options=RepoConfigOptions(
-            file_types=types,
-            embedding_provider=embedding_provider,
-            embedding_model=embedding_model,
-            image_pipeline=image_pipeline,
-            image_vlm_model=image_vlm_model,
-            audio_asr_model=audio_asr_model,
+        options=_build_repo_options(
+            types, embedding_provider, embedding_model, image_pipeline, image_vlm_model, audio_asr_model
         ),
         add_exclude_patterns=exclude or [],
     )

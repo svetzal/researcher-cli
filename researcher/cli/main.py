@@ -47,6 +47,13 @@ def _resolve_repos_or_exit(
         return factory.repository_service.resolve_repos(repo_name)
 
 
+def _repos_or_empty(factory: ServiceFactory, repo_name: str | None, json_output: bool) -> list[RepositoryConfig]:
+    """Return resolved repos, or an empty list when none are configured."""
+    if not factory.repository_service.list_repositories():
+        return []
+    return _resolve_repos_or_exit(factory, repo_name, json_output)
+
+
 make_service_factory_callback(app)
 
 
@@ -67,7 +74,7 @@ def index_command(
     force: bool = typer.Option(False, "--force", help="Re-index all files, ignoring checksums"),
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    repos = factory.repository_service.list_repositories()
+    repos = _repos_or_empty(factory, repo_name, json_output)
 
     if not repos:
         cli_output(
@@ -76,8 +83,6 @@ def index_command(
             json_output=json_output,
         )
         raise typer.Exit(0)
-
-    repos = _resolve_repos_or_exit(factory, repo_name, json_output)
 
     repo_results: list[dict] = []
     for repo in repos:
@@ -120,13 +125,11 @@ def status_command(
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    repos = factory.repository_service.list_repositories()
+    repos = _repos_or_empty(factory, repo_name, json_output)
 
     if not repos:
         cli_output({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
         return
-
-    repos = _resolve_repos_or_exit(factory, repo_name, json_output)
 
     repo_stats = [serialize_index_stats(factory.index_service(repo).get_stats()) for repo in repos]
 
@@ -149,17 +152,15 @@ def search_command(
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    all_repos = factory.repository_service.list_repositories()
+    search_repos = _repos_or_empty(factory, repo, json_output)
 
-    if not all_repos:
+    if not search_repos:
         cli_output(
             serialize_empty_search(query, mode, repo),
             "[yellow]No repositories configured.[/yellow]",
             json_output=json_output,
         )
         raise typer.Exit(0)
-
-    search_repos = _resolve_repos_or_exit(factory, repo, json_output)
 
     if mode == "fragments":
         run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)

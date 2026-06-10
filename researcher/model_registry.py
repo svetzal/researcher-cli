@@ -142,6 +142,10 @@ def collect_requirements(repos: list[RepositoryConfig], *, apple_silicon: bool |
     )
 
 
+def _resolve_apple_silicon(apple_silicon: bool | None) -> bool:
+    return apple_silicon if apple_silicon is not None else is_apple_silicon()
+
+
 def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str], *, apple_silicon: bool | None = None) -> None:
     """On Apple Silicon, only packs the MLX variant (what docling will use).
     On other platforms, only packs the default (Transformers) variant.
@@ -152,7 +156,7 @@ def _collect_vlm_repo_ids(repo: RepositoryConfig, hf_repo_ids: set[str], *, appl
     repo_ids = VLM_PRESET_REPOS.get(preset)
     if repo_ids:
         default_id, mlx_id = repo_ids
-        _apple = apple_silicon if apple_silicon is not None else is_apple_silicon()
+        _apple = _resolve_apple_silicon(apple_silicon)
         if _apple and mlx_id:
             hf_repo_ids.add(mlx_id)
         else:
@@ -170,7 +174,7 @@ def _collect_asr_cache_ids(
     On other platforms, openai-whisper caches .pt files in ~/.cache/whisper/.
     """
     model_name = repo.audio_asr_model
-    _apple = apple_silicon if apple_silicon is not None else is_apple_silicon()
+    _apple = _resolve_apple_silicon(apple_silicon)
     if _apple:
         repo_id = ASR_MLX_REPO_IDS.get(model_name)
         if repo_id:
