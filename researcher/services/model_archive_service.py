@@ -74,13 +74,13 @@ class ModelArchiveService:
             raise ModelArchiveError(f"Archive not found: {archive_path}")
 
         bases = self._cache.resolve_cache_base_dirs()
-        category_roots = self._build_category_roots(bases)
-        files_extracted, manifest_data = self._process_archive_members(archive_path, category_roots)
+        prefix_roots = self._build_prefix_roots(bases)
+        files_extracted, manifest_data = self._process_archive_members(archive_path, prefix_roots)
         entries_restored = len(manifest_data.get("entries", [])) if manifest_data else 0
 
         return UnpackResult(entries_restored=entries_restored, files_extracted=files_extracted)
 
-    def _build_category_roots(self, bases: dict[str, Path]) -> dict[str, Path]:
+    def _build_prefix_roots(self, bases: dict[str, Path]) -> dict[str, Path]:
         return {
             "docling/models": bases["docling"],
             "huggingface/hub": bases["huggingface"],
@@ -88,7 +88,7 @@ class ModelArchiveService:
             "whisper": bases["whisper"],
         }
 
-    def _process_archive_members(self, archive_path: Path, category_roots: dict[str, Path]) -> tuple[int, dict | None]:
+    def _process_archive_members(self, archive_path: Path, prefix_roots: dict[str, Path]) -> tuple[int, dict | None]:
         files_extracted = 0
         has_manifest = False
         manifest_data: dict | None = None
@@ -104,7 +104,7 @@ class ModelArchiveService:
                         manifest_data = json.loads(f.read().decode("utf-8"))
                     continue
 
-                dest_path = self._resolve_extraction_path(member.name, category_roots)
+                dest_path = self._resolve_extraction_path(member.name, prefix_roots)
                 if dest_path is None:
                     continue
 
@@ -140,8 +140,8 @@ class ModelArchiveService:
                 count += 1
         return count
 
-    def _resolve_extraction_path(self, member_name: str, category_roots: dict[str, Path]) -> Path | None:
-        for prefix, root in category_roots.items():
+    def _resolve_extraction_path(self, member_name: str, prefix_roots: dict[str, Path]) -> Path | None:
+        for prefix, root in prefix_roots.items():
             if member_name.startswith(prefix + "/") or member_name == prefix:
                 relative = member_name[len(prefix) :].lstrip("/")
                 if relative:

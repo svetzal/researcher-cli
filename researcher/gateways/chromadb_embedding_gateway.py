@@ -9,12 +9,12 @@ _wrap_embedding_error = wrap_gateway_error(EmbeddingError)
 
 class ChromaDbEmbeddingGateway(EmbeddingGateway):
     def __init__(self, embedding_fn: Any = None) -> None:
-        self._ef: Any = embedding_fn
+        self._embedding_fn: Any = embedding_fn
 
     @_wrap_embedding_error("ChromaDB default embedding failed: {e}")
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
-        if self._ef is None:
+        if self._embedding_fn is None:
             from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 
-            self._ef = DefaultEmbeddingFunction()
-        return list(self._ef(texts))
+            self._embedding_fn = DefaultEmbeddingFunction()
+        return list(self._embedding_fn(texts))

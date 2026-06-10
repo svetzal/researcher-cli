@@ -78,26 +78,26 @@ class IndexService:
         config: RepositoryConfig,
         errors: list[str],
     ) -> FileProcessResult:
-        path_key = str(file_path)
+        document_path = str(file_path)
         try:
             current_checksum = self._filesystem.compute_checksum(file_path)
-            if checksums.get(path_key) == current_checksum:
+            if checksums.get(document_path) == current_checksum:
                 return FileProcessResult(outcome=FileOutcome.SKIPPED)
 
-            if path_key in checksums:
-                self._chroma.delete_by_document(COLLECTION_NAME, path_key)
+            if document_path in checksums:
+                self._chroma.delete_by_document(COLLECTION_NAME, document_path)
 
             chunk_result = self.index_file(file_path, config)
             if chunk_result is None:
                 return FileProcessResult(outcome=FileOutcome.SKIPPED)
-            checksums[path_key] = current_checksum
+            checksums[document_path] = current_checksum
             fragment_count = len(chunk_result.fragments)
-            logger.info("Indexed file", path=path_key, fragments=fragment_count)
+            logger.info("Indexed file", path=document_path, fragments=fragment_count)
             return FileProcessResult(outcome=FileOutcome.INDEXED, fragments_created=fragment_count)
 
         except (StorageError, EmbeddingError, DocumentConversionError) as e:
-            errors.append(f"{path_key}: {e}")
-            logger.error("Failed to index file", path=path_key, error=str(e))
+            errors.append(f"{document_path}: {e}")
+            logger.error("Failed to index file", path=document_path, error=str(e))
             return FileProcessResult(outcome=FileOutcome.FAILED)
 
     def _is_plain_text(self, file_path: Path) -> bool:
@@ -108,57 +108,57 @@ class IndexService:
 
         Returns None when the file requires docling but docling is unavailable.
         """
-        path_key = str(file_path)
+        document_path = str(file_path)
 
         if self._is_plain_text(file_path):
             text = self._filesystem.read_file(file_path)
-            fragments = chunk_plain_text(text, path_key)
+            fragments = chunk_plain_text(text, document_path)
         elif self._docling is not None:
             document = self._docling.convert(file_path)
             raw_chunks = self._docling.chunk(document)
-            fragments = fragments_from_chunks(raw_chunks, path_key)
+            fragments = fragments_from_chunks(raw_chunks, document_path)
         else:
-            logger.warning("Skipping non-plain-text file (docling unavailable)", path=path_key)
+            logger.warning("Skipping non-plain-text file (docling unavailable)", path=document_path)
             return None
 
         if not fragments:
-            return ChunkResult(document_path=path_key, fragments=[])
+            return ChunkResult(document_path=document_path, fragments=[])
 
-        self._store_fragments(path_key, fragments, config.embedding_provider)
+        self._store_fragments(document_path, fragments, config.embedding_provider)
 
-        return ChunkResult(document_path=path_key, fragments=fragments)
+        return ChunkResult(document_path=document_path, fragments=fragments)
 
-    def _base_storage_payloads(self, path_key: str, fragments: list[Fragment]) -> list[dict]:
+    def _base_storage_payloads(self, document_path: str, fragments: list[Fragment]) -> list[dict]:
         return [
             {
-                "id": f"{path_key}::{i}",
+                "id": f"{document_path}::{i}",
                 "text": fragment.text,
-                "metadata": {"document_path": path_key, "fragment_index": fragment.fragment_index},
+                "metadata": {"document_path": document_path, "fragment_index": fragment.fragment_index},
             }
             for i, fragment in enumerate(fragments)
         ]
 
     def _build_storage_fragments(
         self,
-        path_key: str,
+        document_path: str,
         fragments: list[Fragment],
         embeddings: list[list[float]] | None,
     ) -> list[FragmentForStorage] | list[FragmentWithEmbedding]:
-        payloads = self._base_storage_payloads(path_key, fragments)
+        payloads = self._base_storage_payloads(document_path, fragments)
         if embeddings is None:
             return [FragmentForStorage(**p) for p in payloads]
         return [
             FragmentWithEmbedding(**p, embedding=embedding) for p, embedding in zip(payloads, embeddings, strict=True)
         ]
 
-    def _store_fragments(self, path_key: str, fragments: list[Fragment], embedding_provider: str) -> None:
+    def _store_fragments(self, document_path: str, fragments: list[Fragment], embedding_provider: str) -> None:
         if embedding_provider == "chromadb":
-            storage_fragments = self._build_storage_fragments(path_key, fragments, None)
+            storage_fragments = self._build_storage_fragments(document_path, fragments, None)
             self._chroma.add_fragments(COLLECTION_NAME, storage_fragments)
         else:
             texts = [f.text for f in fragments]
             embeddings = self._embedding.embed_texts(texts)
-            storage_fragments = self._build_storage_fragments(path_key, fragments, embeddings)
+            storage_fragments = self._build_storage_fragments(document_path, fragments, embeddings)
             self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
 
     def remove_document(self, document_path: str) -> None:
@@ -187,14 +187,14 @@ class IndexService:
         base_path = Path(config.path)
         all_paths = self._get_all_document_paths(COLLECTION_NAME)
         count = 0
-        for path_str in all_paths:
-            path = Path(path_str)
+        for document_path in all_paths:
+            path = Path(document_path)
             try:
                 relative = path.relative_to(base_path)
             except ValueError:
                 continue
             if is_path_excluded(relative, config.exclude_patterns):
-                self.remove_document(path_str)
+                self.remove_document(document_path)
                 count += 1
         return count
 
