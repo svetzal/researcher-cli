@@ -44,7 +44,7 @@ class ServiceFactory:
             import docling.document_converter  # noqa: F401
 
             return True
-        except Exception:
+        except Exception:  # graceful degradation: any import failure means docling is absent
             logging.getLogger(__name__).warning(
                 "docling unavailable — only plain text files (.md, .txt) will be indexed"
             )

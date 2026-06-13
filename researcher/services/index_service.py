@@ -191,7 +191,7 @@ class IndexService:
             path = Path(document_path)
             try:
                 relative = path.relative_to(base_path)
-            except ValueError:
+            except ValueError:  # path not under repo root → not a purge candidate
                 continue
             if is_path_excluded(relative, config.exclude_patterns):
                 self.remove_document(document_path)

@@ -1,7 +1,6 @@
-import functools
-
 import fastmcp
 
+from researcher.error_boundary import handle_boundary_errors
 from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_facade import get_repo_status, index_file_in_repo, remove_from_repo
@@ -14,17 +13,7 @@ mcp = fastmcp.FastMCP("researcher")
 
 
 def _mcp_errors(on_error):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except ResearcherError as e:
-                return on_error(e)
-
-        return wrapper
-
-    return decorator
+    return handle_boundary_errors(ResearcherError, on_error=lambda e, **_: on_error(e))
 
 
 _factory: ServiceFactory | None = None

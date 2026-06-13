@@ -1,11 +1,11 @@
 import contextlib
-import functools
 import json
 from collections.abc import Callable
 
 import typer
 from rich.console import Console
 
+from researcher.error_boundary import handle_boundary_errors
 from researcher.service_factory import ServiceFactory
 
 console = Console()
@@ -55,16 +55,11 @@ def cli_exit_on_error(*exception_types, json_output: bool):
 def cli_errors(*exception_types):
     """Decorator that wraps a Typer command, catching exception_types and routing through cli_error."""
 
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            json_output = kwargs.get("json_output", False)
-            with cli_exit_on_error(*exception_types, json_output=json_output):
-                return func(*args, **kwargs)
+    def _on_error(e, **kwargs):
+        cli_error(str(e), json_output=kwargs.get("json_output", False))
+        raise typer.Exit(1) from None
 
-        return wrapper
-
-    return decorator
+    return handle_boundary_errors(*exception_types, on_error=_on_error)
 
 
 JSON_OPTION: bool = typer.Option(False, "--json", "-j", help="Output as JSON")
