@@ -5,7 +5,7 @@ import chromadb
 from researcher.chroma_parsing import parse_query_results
 from researcher.exceptions import StorageError
 from researcher.gateways.error_wrapper import wrap_gateway_error
-from researcher.models import FragmentForStorage, FragmentWithEmbedding, SearchResult
+from researcher.models import FragmentWithEmbedding, SearchResult
 
 _wrap_storage_error = wrap_gateway_error(StorageError)
 
@@ -16,29 +16,7 @@ class ChromaGateway:
         self._client = chromadb.PersistentClient(path=str(persist_directory))
 
     def _collection(self, name: str):
-        return self._client.get_or_create_collection(name=name)
-
-    def _raw_collection(self, name: str):
         return self._client.get_or_create_collection(name=name, embedding_function=None)
-
-    @_wrap_storage_error("Failed to get or create collection '{name}': {e}")
-    def get_or_create_collection(self, name: str):
-        return self._collection(name)
-
-    @_wrap_storage_error("Failed to add fragments to '{collection_name}': {e}")
-    def add_fragments(self, collection_name: str, fragments: list[FragmentForStorage]) -> None:
-        """Upsert fragments using ChromaDB's built-in embedding function.
-
-        Uses upsert rather than add so that a desync between the checksum cache
-        and ChromaDB (e.g. from an interrupted previous run) never causes a
-        duplicate-ID error.
-        """
-        collection = self._collection(collection_name)
-        collection.upsert(
-            ids=[f.id for f in fragments],
-            documents=[f.text for f in fragments],
-            metadatas=[f.metadata for f in fragments],
-        )
 
     @_wrap_storage_error("Failed to add fragments with embeddings to '{collection_name}': {e}")
     def add_fragments_with_embeddings(self, collection_name: str, fragments: list[FragmentWithEmbedding]) -> None:
@@ -48,7 +26,7 @@ class ChromaGateway:
         and ChromaDB (e.g. from an interrupted previous run) never causes a
         duplicate-ID error.
         """
-        collection = self._raw_collection(collection_name)
+        collection = self._collection(collection_name)
         collection.upsert(
             ids=[f.id for f in fragments],
             documents=[f.text for f in fragments],
@@ -56,18 +34,11 @@ class ChromaGateway:
             embeddings=[f.embedding for f in fragments],
         )
 
-    @_wrap_storage_error("Failed to query collection '{collection_name}': {e}")
-    def query(self, collection_name: str, query_text: str, n_results: int = 10) -> list[SearchResult]:
-        """Query the collection using text (ChromaDB handles embedding)."""
-        collection = self._collection(collection_name)
-        results = collection.query(query_texts=[query_text], n_results=n_results)
-        return self._parse_query_results(results)
-
     @_wrap_storage_error("Failed to query collection '{collection_name}' with embedding: {e}")
     def query_with_embedding(
         self, collection_name: str, query_embedding: list[float], n_results: int = 10
     ) -> list[SearchResult]:
-        collection = self._raw_collection(collection_name)
+        collection = self._collection(collection_name)
         results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
         return self._parse_query_results(results)
 

@@ -5,7 +5,6 @@ from researcher.models import (
     DocumentMetadata,
     DocumentSearchResult,
     Fragment,
-    FragmentForStorage,
     FragmentWithEmbedding,
     IndexingResult,
     IndexStats,
@@ -34,14 +33,6 @@ class DescribeFragment:
 
         assert fragment.text == "Hello world"
         assert fragment.fragment_index == 0
-
-
-class DescribeFragmentForStorage:
-    def should_create_with_metadata_dict(self):
-        fragment = FragmentForStorage(id="f1", text="text", metadata={"key": "value"})
-
-        assert fragment.id == "f1"
-        assert fragment.metadata["key"] == "value"
 
 
 class DescribeFragmentWithEmbedding:

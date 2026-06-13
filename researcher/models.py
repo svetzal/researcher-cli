@@ -38,14 +38,6 @@ class Fragment(BaseModel):
     fragment_index: int
 
 
-class FragmentForStorage(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    id: str
-    text: str
-    metadata: dict
-
-
 class FragmentWithEmbedding(BaseModel):
     model_config = ConfigDict(frozen=True)
 

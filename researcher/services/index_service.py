@@ -17,7 +17,6 @@ from researcher.models import (
     FileOutcome,
     FileProcessResult,
     Fragment,
-    FragmentForStorage,
     FragmentWithEmbedding,
     IndexingResult,
     IndexStats,
@@ -124,7 +123,7 @@ class IndexService:
         if not fragments:
             return ChunkResult(document_path=document_path, fragments=[])
 
-        self._store_fragments(document_path, fragments, config.embedding_provider)
+        self._store_fragments(document_path, fragments)
 
         return ChunkResult(document_path=document_path, fragments=fragments)
 
@@ -142,24 +141,18 @@ class IndexService:
         self,
         document_path: str,
         fragments: list[Fragment],
-        embeddings: list[list[float]] | None,
-    ) -> list[FragmentForStorage] | list[FragmentWithEmbedding]:
+        embeddings: list[list[float]],
+    ) -> list[FragmentWithEmbedding]:
         payloads = self._base_storage_payloads(document_path, fragments)
-        if embeddings is None:
-            return [FragmentForStorage(**p) for p in payloads]
         return [
             FragmentWithEmbedding(**p, embedding=embedding) for p, embedding in zip(payloads, embeddings, strict=True)
         ]
 
-    def _store_fragments(self, document_path: str, fragments: list[Fragment], embedding_provider: str) -> None:
-        if embedding_provider == "chromadb":
-            storage_fragments = self._build_storage_fragments(document_path, fragments, None)
-            self._chroma.add_fragments(COLLECTION_NAME, storage_fragments)
-        else:
-            texts = [f.text for f in fragments]
-            embeddings = self._embedding.embed_texts(texts)
-            storage_fragments = self._build_storage_fragments(document_path, fragments, embeddings)
-            self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
+    def _store_fragments(self, document_path: str, fragments: list[Fragment]) -> None:
+        texts = [f.text for f in fragments]
+        embeddings = self._embedding.embed_texts(texts)
+        storage_fragments = self._build_storage_fragments(document_path, fragments, embeddings)
+        self._chroma.add_fragments_with_embeddings(COLLECTION_NAME, storage_fragments)
 
     def remove_document(self, document_path: str) -> None:
         self._chroma.delete_by_document(COLLECTION_NAME, document_path)

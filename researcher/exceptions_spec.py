@@ -54,7 +54,7 @@ def should_model_archive_error_be_researcher_error():
 # ---------------------------------------------------------------------------
 
 
-def should_chroma_gateway_query_raise_storage_error(tmp_path):
+def should_chroma_gateway_count_raise_storage_error(tmp_path):
     from researcher.gateways.chroma_gateway import ChromaGateway
 
     gw = ChromaGateway(tmp_path)
@@ -62,7 +62,7 @@ def should_chroma_gateway_query_raise_storage_error(tmp_path):
         patch.object(gw._client, "get_or_create_collection", side_effect=RuntimeError("boom")),
         pytest.raises(StorageError) as exc_info,
     ):
-        gw.query("col", "hello")
+        gw.count("col")
     assert exc_info.value.__cause__ is not None
 
 

@@ -31,7 +31,9 @@ class DescribeIndexService:
 
     @pytest.fixture
     def mock_embedding(self):
-        return Mock(spec=EmbeddingGateway)
+        m = Mock(spec=EmbeddingGateway)
+        m.embed_texts.side_effect = lambda texts: [[0.1, 0.2, 0.3]] * len(texts)
+        return m
 
     @pytest.fixture
     def mock_chroma(self):
@@ -219,6 +221,21 @@ class DescribeIndexService:
         assert result.documents_indexed == 1
         assert result.fragments_created == 1
 
+    def should_use_gateway_embeddings_for_chromadb_provider(
+        self, service, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums
+    ):
+        repo_config = RepositoryConfig(name="test-repo", path="/tmp/docs", embedding_provider="chromadb")
+        file_path = Path("/tmp/docs/doc.pdf")
+        mock_filesystem.list_files.return_value = [file_path]
+        mock_filesystem.compute_checksum.return_value = "checksum"
+        mock_docling.convert.return_value = "mock_document"
+        mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
+
+        service.index_repository(repo_config)
+
+        mock_embedding.embed_texts.assert_called_once()
+        mock_chroma.add_fragments_with_embeddings.assert_called_once()
+
     def should_purge_excluded_documents_during_indexing(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
     ):
@@ -263,7 +280,7 @@ class DescribeIndexService:
 
         assert result.outcome == FileOutcome.SKIPPED
         assert result.fragments_created == 0
-        mock_chroma.add_fragments.assert_not_called()
+        mock_chroma.add_fragments_with_embeddings.assert_not_called()
 
     def should_remove_document_from_index(self, service, mock_chroma, mock_checksums):
         mock_checksums.load.return_value = {"/path/to/doc.md": "abc123"}
