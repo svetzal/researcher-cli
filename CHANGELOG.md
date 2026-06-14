@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added optional `docling_available` parameter to `ServiceFactory.__init__` for injecting docling availability in tests and library consumers; default behavior (real import probe) is unchanged
+
 - Unified the index write path so all embedding providers (including `chromadb`) embed through the injected `EmbeddingGateway`; removed the provider-specific branch in `IndexService._store_fragments` and collapsed `ChromaGateway` to a single collection accessor with pre-computed embeddings (internal refactor, no behavior change)
 
 - Moved skill version-stamping and install-decision logic (`parse_frontmatter_version`, `stamp_version`, `decide_skill_action`) from the CLI layer into a dedicated `researcher.services.skill_versioning` module; `init_commands` now delegates to the service (internal refactor, no behavior change)

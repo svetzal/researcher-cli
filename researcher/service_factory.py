@@ -23,8 +23,9 @@ from researcher.services.search_service import SearchService
 class ServiceFactory:
     """Composition root — wires all service and gateway dependencies."""
 
-    def __init__(self, config_dir: Path | None = None):
+    def __init__(self, config_dir: Path | None = None, docling_available: bool | None = None):
         self._config_dir = config_dir or DEFAULT_CONFIG_DIR
+        self._docling_available_override = docling_available
 
     @cached_property
     def config_gateway(self) -> ConfigGateway:
@@ -40,6 +41,8 @@ class ServiceFactory:
 
     @cached_property
     def _docling_available(self) -> bool:
+        if self._docling_available_override is not None:
+            return self._docling_available_override
         try:
             import docling.document_converter  # noqa: F401
 

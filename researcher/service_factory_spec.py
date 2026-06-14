@@ -1,3 +1,4 @@
+import sys
 import tempfile
 from pathlib import Path
 
@@ -85,26 +86,41 @@ class DescribeServiceFactory:
 
         assert service1 is not service2
 
-    def should_create_index_service_with_vlm_pipeline(self, factory, temp_dir):
-        factory.__dict__["_docling_available"] = True
+    def should_create_index_service_with_vlm_pipeline(self, temp_dir):
+        factory = ServiceFactory(config_dir=temp_dir, docling_available=True)
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir), image_pipeline="vlm", image_vlm_model="smoldocling")
 
         service = factory.index_service(repo)
 
         assert isinstance(service, IndexService)
 
-    def should_create_index_service_with_default_pipeline(self, factory, temp_dir):
-        factory.__dict__["_docling_available"] = True
+    def should_create_index_service_with_default_pipeline(self, temp_dir):
+        factory = ServiceFactory(config_dir=temp_dir, docling_available=True)
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
 
         service = factory.index_service(repo)
 
         assert isinstance(service, IndexService)
 
-    def should_create_index_service_without_docling_when_unavailable(self, factory, temp_dir):
-        factory.__dict__["_docling_available"] = False
+    def should_create_index_service_without_docling_when_unavailable(self, temp_dir):
+        factory = ServiceFactory(config_dir=temp_dir, docling_available=False)
         repo = RepositoryConfig(name="my-repo", path=str(temp_dir))
 
         service = factory.index_service(repo)
 
         assert isinstance(service, IndexService)
+
+    def should_probe_real_import_when_docling_available_not_overridden(self, temp_dir, monkeypatch):
+        monkeypatch.setitem(sys.modules, "docling.document_converter", None)
+        factory = ServiceFactory(config_dir=temp_dir)
+
+        assert factory._docling_available is False
+
+    def should_detect_docling_present_via_probe_when_not_overridden(self, temp_dir, monkeypatch):
+        import types
+
+        fake_module = types.ModuleType("docling.document_converter")
+        monkeypatch.setitem(sys.modules, "docling.document_converter", fake_module)
+        factory = ServiceFactory(config_dir=temp_dir)
+
+        assert factory._docling_available is True
