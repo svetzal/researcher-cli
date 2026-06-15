@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import chromadb
-
 from researcher.chroma_parsing import parse_query_results
 from researcher.exceptions import StorageError
 from researcher.gateways.error_wrapper import wrap_gateway_error
@@ -13,6 +11,9 @@ _wrap_storage_error = wrap_gateway_error(StorageError)
 class ChromaGateway:
     @_wrap_storage_error("Failed to open ChromaDB store at {persist_directory}: {e}")
     def __init__(self, persist_directory: Path):
+        # Lazy import: chromadb loads ML components on import; defer until first use
+        import chromadb
+
         self._client = chromadb.PersistentClient(path=str(persist_directory))
 
     def _collection(self, name: str):

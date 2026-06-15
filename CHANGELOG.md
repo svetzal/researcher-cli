@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `init` now routes all destination filesystem writes (`file_exists`, `make_directories`, `write_file`) through `FilesystemGateway`, enforcing the gateway boundary and enabling injection for testing
+
+- `init_command` now carries the `@cli_errors(StorageError)` decorator so filesystem failures produce a consistent `Error: …` message (exit 1) or `{"error": …}` JSON instead of an unhandled traceback
+
+- `ChromaGateway` now imports `chromadb` lazily inside `__init__` rather than at module level, matching the pattern used by `DoclingGateway` and allowing the module to load cleanly when `chromadb` is not installed
+
 - Added optional `docling_available` parameter to `ServiceFactory.__init__` for injecting docling availability in tests and library consumers; default behavior (real import probe) is unchanged
 
 - Unified the index write path so all embedding providers (including `chromadb`) embed through the injected `EmbeddingGateway`; removed the provider-specific branch in `IndexService._store_fragments` and collapsed `ChromaGateway` to a single collection accessor with pre-computed embeddings (internal refactor, no behavior change)

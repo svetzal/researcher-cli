@@ -1,8 +1,15 @@
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+from typer.testing import CliRunner
 
 from researcher.cli.init_commands import run_init
+from researcher.cli.main import app
+from researcher.exceptions import StorageError
+from researcher.gateways.filesystem_gateway import FilesystemGateway
 
 
 class DescribeRunInit:
@@ -147,3 +154,33 @@ class DescribeRunInit:
             assert "version" in parsed
             assert parsed["version"] == "0.4.0"
             assert parsed["target_dir"] == str(target)
+
+    def should_propagate_storage_error_from_gateway(self):
+        stub_gateway = Mock(spec=FilesystemGateway)
+        stub_gateway.file_exists.return_value = False
+        stub_gateway.make_directories.return_value = None
+        stub_gateway.write_file.side_effect = StorageError("disk full")
+
+        with tempfile.TemporaryDirectory() as tmp, pytest.raises(StorageError, match="disk full"):
+            run_init(Path(tmp), _version="0.4.0", filesystem_gateway=stub_gateway)
+
+
+runner = CliRunner()
+
+
+class DescribeInitCommand:
+    def should_exit_1_and_print_error_on_storage_error(self):
+        with patch("researcher.cli.init_commands.run_init", side_effect=StorageError("no space left")):
+            result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 1
+        assert "no space left" in result.output
+
+    def should_output_json_error_on_storage_error_with_json_flag(self):
+        with patch("researcher.cli.init_commands.run_init", side_effect=StorageError("no space left")):
+            result = runner.invoke(app, ["init", "--json"])
+
+        assert result.exit_code == 1
+        parsed = json.loads(result.output)
+        assert "error" in parsed
+        assert "no space left" in parsed["error"]

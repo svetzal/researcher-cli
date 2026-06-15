@@ -4,7 +4,9 @@ from pathlib import Path
 
 import typer
 
-from researcher.cli.output import JSON_OPTION, cli_output, console
+from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console
+from researcher.exceptions import StorageError
+from researcher.gateways.filesystem_gateway import FilesystemGateway
 from researcher.services.skill_versioning import decide_skill_action, stamp_version
 
 SKILLS = ["researcher-admin", "researcher-find"]
@@ -19,7 +21,9 @@ def run_init(
     *,
     force: bool = False,
     _version: str | None = None,
+    filesystem_gateway: FilesystemGateway | None = None,
 ) -> dict:
+    gw = filesystem_gateway if filesystem_gateway is not None else FilesystemGateway(base_path=target_dir)
     skills_dir = target_dir / ".claude" / "skills"
     bundled = files("researcher.bundled_skills")
     current_version = _version or _get_package_version()
@@ -33,7 +37,7 @@ def run_init(
         source = bundled.joinpath(skill_name, "SKILL.md")
         source_text = source.read_text()
 
-        existing_text = dest.read_text() if dest.exists() else None
+        existing_text = gw.read_file(dest) if gw.file_exists(dest) else None
         action, _message = decide_skill_action(existing_text, current_version, force=force)
 
         if action == "refuse":
@@ -41,9 +45,9 @@ def run_init(
         elif action == "skip":
             skipped.append(skill_name)
         else:
-            dest.parent.mkdir(parents=True, exist_ok=True)
+            gw.make_directories(dest.parent)
             stamped = stamp_version(source_text, current_version)
-            dest.write_text(stamped)
+            gw.write_file(dest, stamped)
             installed.append(skill_name)
 
     return {
@@ -76,6 +80,7 @@ def _print_init_results(result: dict) -> None:
     )
 
 
+@cli_errors(StorageError)
 def init_command(
     force: bool = typer.Option(
         False,

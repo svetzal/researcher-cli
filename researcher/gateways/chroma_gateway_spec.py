@@ -1,8 +1,11 @@
+import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
+from researcher.exceptions import StorageError
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.models import FragmentWithEmbedding
 
@@ -105,3 +108,13 @@ class DescribeChromaGateway:
         results = gateway.query_with_embedding("empty-collection", [1.0, 0.0, 0.0], n_results=5)
 
         assert results == []
+
+    def should_import_module_without_chromadb_present_at_module_level(self):
+        # The module must be importable even if chromadb were absent at import time
+        import researcher.gateways.chroma_gateway as mod
+
+        assert mod.ChromaGateway is not None
+
+    def should_raise_storage_error_when_chromadb_unavailable(self, temp_dir):
+        with patch.dict(sys.modules, {"chromadb": None}), pytest.raises(StorageError):
+            ChromaGateway(persist_directory=temp_dir)

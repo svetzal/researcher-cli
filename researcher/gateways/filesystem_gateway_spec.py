@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from researcher.exceptions import StorageError
 from researcher.gateways.filesystem_gateway import FilesystemGateway
 
 
@@ -96,3 +97,26 @@ class DescribeFilesystemGateway:
 
         assert gateway.file_exists(path) is True
         assert gateway.file_exists(temp_dir / "missing.txt") is False
+
+    def should_write_and_read_file_round_trip(self, gateway, temp_dir):
+        path = temp_dir / "output.txt"
+
+        gateway.write_file(path, "hello round trip")
+
+        assert gateway.read_file(path) == "hello round trip"
+
+    def should_create_nested_directories(self, gateway, temp_dir):
+        nested = temp_dir / "a" / "b" / "c"
+
+        gateway.make_directories(nested)
+
+        assert nested.is_dir()
+
+    def should_raise_storage_error_on_write_failure(self, gateway, temp_dir):
+        # Make the parent path a file so writing into it as a dir fails
+        blocker = temp_dir / "blocker"
+        blocker.write_text("I am a file")
+        bad_path = blocker / "child.txt"
+
+        with pytest.raises(StorageError):
+            gateway.write_file(bad_path, "content")

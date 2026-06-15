@@ -53,3 +53,11 @@ class FilesystemGateway:
     @_wrap_storage_error("Failed to check existence of '{path}': {e}")
     def file_exists(self, path: Path) -> bool:
         return path.exists()
+
+    @_wrap_storage_error("Failed to write '{path}': {e}")
+    def write_file(self, path: Path, content: str) -> None:
+        path.write_text(content, encoding="utf-8")
+
+    @_wrap_storage_error("Failed to create directory '{path}': {e}")
+    def make_directories(self, path: Path) -> None:
+        path.mkdir(parents=True, exist_ok=True)
