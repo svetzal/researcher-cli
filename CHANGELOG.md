@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Refactored `IndexService` tests to assert observable indexing outcomes instead of private-method calls and mock invocation counts
+
 - `init` now routes all destination filesystem writes (`file_exists`, `make_directories`, `write_file`) through `FilesystemGateway`, enforcing the gateway boundary and enabling injection for testing
 
 - `init_command` now carries the `@cli_errors(StorageError)` decorator so filesystem failures produce a consistent `Error: …` message (exit 1) or `{"error": …}` JSON instead of an unhandled traceback

@@ -11,7 +11,7 @@ from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
-from researcher.models import FileOutcome
+from researcher.path_exclusion import is_path_excluded
 from researcher.services.index_service import IndexService
 
 
@@ -74,6 +74,7 @@ class DescribeIndexService:
 
         assert result.documents_skipped == 1
         assert result.documents_indexed == 0
+        assert result.fragments_created == 0
 
     def should_reindex_unchanged_files_when_force_is_true(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
@@ -89,7 +90,7 @@ class DescribeIndexService:
         assert result.documents_skipped == 0
         assert result.documents_indexed == 1
 
-    def should_pass_exclude_patterns_to_list_files(
+    def should_exclude_files_matching_exclude_patterns(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
     ):
         repo_config = RepositoryConfig(
@@ -98,34 +99,36 @@ class DescribeIndexService:
             embedding_provider="chromadb",
             exclude_patterns=["node_modules", ".*"],
         )
-        captured: list[tuple] = []
+        base = Path("/tmp/docs")
+        candidates = [Path("/tmp/docs/node_modules/dep.md"), Path("/tmp/docs/readme.md")]
 
-        def _capture(file_types, patterns):
-            captured.append((file_types, patterns))
-            return []
+        def _filtered_list(file_types, patterns):
+            return [p for p in candidates if not is_path_excluded(p.relative_to(base), patterns)]
 
-        mock_filesystem.list_files.side_effect = _capture
+        mock_filesystem.list_files.side_effect = _filtered_list
+        mock_filesystem.compute_checksum.return_value = "new_checksum"
+        mock_filesystem.read_file.return_value = "# Content"
 
-        service.index_repository(repo_config)
+        result = service.index_repository(repo_config)
 
-        assert len(captured) == 1
-        assert captured[0] == (repo_config.file_types, ["node_modules", ".*"])
+        assert result.documents_indexed == 1
 
-    def should_pass_default_exclude_patterns_to_list_files(
+    def should_exclude_dotfiles_by_default(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
     ):
-        captured: list[tuple] = []
+        base = Path("/tmp/docs")
+        candidates = [Path("/tmp/docs/.hidden.md"), Path("/tmp/docs/readme.md")]
 
-        def _capture(file_types, patterns):
-            captured.append((file_types, patterns))
-            return []
+        def _filtered_list(file_types, patterns):
+            return [p for p in candidates if not is_path_excluded(p.relative_to(base), patterns)]
 
-        mock_filesystem.list_files.side_effect = _capture
+        mock_filesystem.list_files.side_effect = _filtered_list
+        mock_filesystem.compute_checksum.return_value = "new_checksum"
+        mock_filesystem.read_file.return_value = "# Content"
 
-        service.index_repository(repo_config)
+        result = service.index_repository(repo_config)
 
-        assert len(captured) == 1
-        assert captured[0] == (repo_config.file_types, [".*"])
+        assert result.documents_indexed == 1
 
     def should_index_new_files(self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config):
         file_path = Path("/tmp/docs/doc.pdf")
@@ -221,7 +224,7 @@ class DescribeIndexService:
         assert result.documents_indexed == 1
         assert result.fragments_created == 1
 
-    def should_use_gateway_embeddings_for_chromadb_provider(
+    def should_index_and_store_fragments_for_chromadb_provider(
         self, service, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums
     ):
         repo_config = RepositoryConfig(name="test-repo", path="/tmp/docs", embedding_provider="chromadb")
@@ -231,10 +234,10 @@ class DescribeIndexService:
         mock_docling.convert.return_value = "mock_document"
         mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
 
-        service.index_repository(repo_config)
+        result = service.index_repository(repo_config)
 
-        mock_embedding.embed_texts.assert_called_once()
-        mock_chroma.add_fragments_with_embeddings.assert_called_once()
+        assert result.documents_indexed == 1
+        assert result.fragments_created == 1
 
     def should_purge_excluded_documents_during_indexing(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
@@ -269,18 +272,6 @@ class DescribeIndexService:
         assert deleted_docs == [("documents", "/tmp/docs/node_modules/dep.md")]
         # The purged document should be removed from the saved checksums
         assert "/tmp/docs/node_modules/dep.md" not in saved_checksum_maps[-1]
-
-    def should_return_skipped_in_process_file_for_unchanged_checksum(self, service, mock_filesystem, mock_chroma):
-        file_path = Path("/tmp/docs/doc.md")
-        mock_filesystem.compute_checksum.return_value = "abc123"
-        checksums = {str(file_path): "abc123"}
-        errors: list[str] = []
-
-        result = service._process_file(file_path, checksums, None, errors)
-
-        assert result.outcome == FileOutcome.SKIPPED
-        assert result.fragments_created == 0
-        mock_chroma.add_fragments_with_embeddings.assert_not_called()
 
     def should_remove_document_from_index(self, service, mock_chroma, mock_checksums):
         mock_checksums.load.return_value = {"/path/to/doc.md": "abc123"}
