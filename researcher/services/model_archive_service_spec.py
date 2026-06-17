@@ -1,7 +1,5 @@
 import json
-import tarfile
 import tempfile
-from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
@@ -9,7 +7,7 @@ import pytest
 
 from researcher.config import RepositoryConfig
 from researcher.exceptions import ModelArchiveError
-from researcher.gateways.model_cache_gateway import ModelCacheGateway
+from researcher.gateways.model_cache_gateway import ArchiveMember, ModelCacheGateway
 from researcher.model_registry import ModelCacheEntry
 from researcher.services.model_archive_service import ModelArchiveService, PackResult, UnpackResult
 
@@ -22,18 +20,16 @@ _FAKE_BASES = {
 }
 
 
-def _make_open_archive_mock(members: list[tarfile.TarInfo], extractfile_map: dict[str, bytes]) -> MagicMock:
+def _make_open_archive_ctx() -> tuple[MagicMock, MagicMock]:
     """Build a context-manager mock for ModelCacheGateway.open_archive."""
     mock_tar = MagicMock()
-    mock_tar.getmembers.return_value = members
-    mock_tar.extractfile.side_effect = lambda m: BytesIO(extractfile_map[m.name]) if m.name in extractfile_map else None
     ctx = MagicMock()
     ctx.__enter__ = Mock(return_value=mock_tar)
     ctx.__exit__ = Mock(return_value=False)
     return ctx, mock_tar
 
 
-def _make_create_archive_mock() -> tuple[MagicMock, MagicMock]:
+def _make_create_archive_ctx() -> tuple[MagicMock, MagicMock]:
     """Build a context-manager mock for ModelCacheGateway.create_archive."""
     mock_tar = MagicMock()
     ctx = MagicMock()
@@ -76,10 +72,9 @@ class DescribeModelArchiveServicePack:
         docling_path = _FAKE_BASES["docling"]
         mock_cache.existing_paths.return_value = {docling_path}
         mock_cache.is_file.return_value = False
-        ctx, mock_tar = _make_create_archive_mock()
+        mock_cache.list_tree.return_value = []
+        ctx, _ = _make_create_archive_ctx()
         mock_cache.create_archive.return_value = ctx
-        mock_tar.add.return_value = None
-        mock_tar.addfile.return_value = None
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="standard")
 
         result = service.pack([repo], output_path)
@@ -92,19 +87,18 @@ class DescribeModelArchiveServicePack:
         docling_path = _FAKE_BASES["docling"]
         mock_cache.existing_paths.return_value = {docling_path}
         mock_cache.is_file.return_value = False
-        ctx, mock_tar = _make_create_archive_mock()
+        mock_cache.list_tree.return_value = []
+        ctx, _ = _make_create_archive_ctx()
         mock_cache.create_archive.return_value = ctx
-        mock_tar.add.return_value = None
         repo = RepositoryConfig(name="my-repo", path="/tmp/test", image_pipeline="standard")
-        captured_addfile: list[tuple] = []
-        mock_tar.addfile.side_effect = lambda *args: captured_addfile.append(args)
+        captured_add_bytes: list[tuple] = []
+        mock_cache.add_bytes.side_effect = lambda *args: captured_add_bytes.append(args)
 
         service.pack([repo], output_path)
 
-        # First addfile call is the manifest
-        tar_info, file_obj = captured_addfile[0]
-        assert tar_info.name == "manifest.json"
-        manifest = json.loads(file_obj.read().decode("utf-8"))
+        _, name, data = captured_add_bytes[0]
+        assert name == "manifest.json"
+        manifest = json.loads(data.decode("utf-8"))
         assert manifest["version"] == 1
         assert "my-repo" in manifest["source_repos"]
 
@@ -113,10 +107,9 @@ class DescribeModelArchiveServicePack:
         docling_path = _FAKE_BASES["docling"]
         mock_cache.existing_paths.return_value = {docling_path}
         mock_cache.is_file.return_value = False
-        ctx, mock_tar = _make_create_archive_mock()
+        mock_cache.list_tree.return_value = []
+        ctx, _ = _make_create_archive_ctx()
         mock_cache.create_archive.return_value = ctx
-        # Simulate no files in the directory (rglob returns nothing)
-        mock_tar.add.return_value = None
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="standard")
 
         result = service.pack([repo], output_path)
@@ -128,9 +121,8 @@ class DescribeModelArchiveServicePack:
         whisper_path = _FAKE_BASES["whisper"] / "turbo.pt"
         mock_cache.existing_paths.return_value = {whisper_path}
         mock_cache.is_file.return_value = True
-        ctx, mock_tar = _make_create_archive_mock()
+        ctx, _ = _make_create_archive_ctx()
         mock_cache.create_archive.return_value = ctx
-        mock_tar.add.return_value = None
         repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="turbo")
 
         with pytest.MonkeyPatch().context() as mp:
@@ -144,7 +136,8 @@ class DescribeModelArchiveServicePack:
         docling_path = _FAKE_BASES["docling"]
         mock_cache.existing_paths.return_value = {docling_path}
         mock_cache.is_file.return_value = False
-        ctx, _ = _make_create_archive_mock()
+        mock_cache.list_tree.return_value = []
+        ctx, _ = _make_create_archive_ctx()
         mock_cache.create_archive.return_value = ctx
         repo = RepositoryConfig(name="test", path="/tmp/test", image_pipeline="standard")
 
@@ -167,12 +160,11 @@ class DescribeModelArchiveServiceUnpack:
     def archive_path(self):
         return Path("/fake/archive/models.tar.gz")
 
-    def _make_manifest_member(self, entries: list[dict]) -> tuple[tarfile.TarInfo, bytes]:
+    def _make_manifest_member(self, entries: list[dict]) -> tuple[ArchiveMember, bytes]:
         manifest = {"version": 1, "source_repos": ["test"], "entries": entries}
         data = json.dumps(manifest).encode("utf-8")
-        info = tarfile.TarInfo(name="manifest.json")
-        info.size = len(data)
-        return info, data
+        member = ArchiveMember(name="manifest.json", is_file=True, is_dir=False)
+        return member, data
 
     def should_raise_for_missing_archive(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = False
@@ -183,10 +175,11 @@ class DescribeModelArchiveServiceUnpack:
     def should_raise_for_missing_manifest(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = True
         mock_cache.resolve_cache_base_dirs.return_value = _FAKE_BASES
-        file_info = tarfile.TarInfo(name="random/file.txt")
-        file_info.type = tarfile.REGTYPE
-        ctx, _ = _make_open_archive_mock([file_info], {})
+        file_member = ArchiveMember(name="random/file.txt", is_file=True, is_dir=False)
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [file_member]
+        mock_cache.extract_member_bytes.return_value = None
 
         with pytest.raises(ModelArchiveError, match=r"missing manifest\.json"):
             service.unpack(archive_path)
@@ -194,11 +187,13 @@ class DescribeModelArchiveServiceUnpack:
     def should_return_unpack_result_with_entries_restored(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = True
         mock_cache.resolve_cache_base_dirs.return_value = _FAKE_BASES
-        manifest_info, manifest_bytes = self._make_manifest_member(
+        manifest_member, manifest_bytes = self._make_manifest_member(
             [{"category": "docling", "archive_path": "docling/models"}]
         )
-        ctx, _ = _make_open_archive_mock([manifest_info], {"manifest.json": manifest_bytes})
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [manifest_member]
+        mock_cache.extract_member_bytes.return_value = manifest_bytes
 
         result = service.unpack(archive_path)
 
@@ -208,17 +203,16 @@ class DescribeModelArchiveServiceUnpack:
     def should_extract_file_members_to_correct_paths(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = True
         mock_cache.resolve_cache_base_dirs.return_value = _FAKE_BASES
-        manifest_info, manifest_bytes = self._make_manifest_member(
+        manifest_member, manifest_bytes = self._make_manifest_member(
             [{"category": "docling", "archive_path": "docling/models"}]
         )
-        file_info = tarfile.TarInfo(name="docling/models/layout/model.onnx")
-        file_info.type = tarfile.REGTYPE
+        file_member = ArchiveMember(name="docling/models/layout/model.onnx", is_file=True, is_dir=False)
         file_data = b"fake-model-data"
-        ctx, _ = _make_open_archive_mock(
-            [manifest_info, file_info],
-            {"manifest.json": manifest_bytes, "docling/models/layout/model.onnx": file_data},
-        )
+        extract_map = {"manifest.json": manifest_bytes, "docling/models/layout/model.onnx": file_data}
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [manifest_member, file_member]
+        mock_cache.extract_member_bytes.side_effect = lambda tar, name: extract_map.get(name)
         written_files: list[tuple] = []
         mock_cache.write_file.side_effect = lambda dest, data: written_files.append((dest, data))
 
@@ -232,13 +226,14 @@ class DescribeModelArchiveServiceUnpack:
     def should_create_directory_members(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = True
         mock_cache.resolve_cache_base_dirs.return_value = _FAKE_BASES
-        manifest_info, manifest_bytes = self._make_manifest_member(
+        manifest_member, manifest_bytes = self._make_manifest_member(
             [{"category": "docling", "archive_path": "docling/models"}]
         )
-        dir_info = tarfile.TarInfo(name="docling/models/layout")
-        dir_info.type = tarfile.DIRTYPE
-        ctx, _ = _make_open_archive_mock([manifest_info, dir_info], {"manifest.json": manifest_bytes})
+        dir_member = ArchiveMember(name="docling/models/layout", is_file=False, is_dir=True)
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [manifest_member, dir_member]
+        mock_cache.extract_member_bytes.return_value = manifest_bytes
         created_dirs: list[Path] = []
         mock_cache.make_dirs.side_effect = lambda dest: created_dirs.append(dest)
 
@@ -251,11 +246,12 @@ class DescribeModelArchiveServiceUnpack:
     def should_skip_members_with_unknown_prefix(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = True
         mock_cache.resolve_cache_base_dirs.return_value = _FAKE_BASES
-        manifest_info, manifest_bytes = self._make_manifest_member([])
-        unknown_info = tarfile.TarInfo(name="unknown_category/something.bin")
-        unknown_info.type = tarfile.REGTYPE
-        ctx, _ = _make_open_archive_mock([manifest_info, unknown_info], {"manifest.json": manifest_bytes})
+        manifest_member, manifest_bytes = self._make_manifest_member([])
+        unknown_member = ArchiveMember(name="unknown_category/something.bin", is_file=True, is_dir=False)
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [manifest_member, unknown_member]
+        mock_cache.extract_member_bytes.return_value = manifest_bytes
 
         result = service.unpack(archive_path)
 
@@ -264,19 +260,22 @@ class DescribeModelArchiveServiceUnpack:
     def should_count_zero_entries_when_manifest_has_empty_list(self, service, mock_cache, archive_path):
         mock_cache.archive_exists.return_value = True
         mock_cache.resolve_cache_base_dirs.return_value = _FAKE_BASES
-        manifest_info, manifest_bytes = self._make_manifest_member([])
-        ctx, _ = _make_open_archive_mock([manifest_info], {"manifest.json": manifest_bytes})
+        manifest_member, manifest_bytes = self._make_manifest_member([])
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [manifest_member]
+        mock_cache.extract_member_bytes.return_value = manifest_bytes
 
         result = service.unpack(archive_path)
 
         assert result.entries_restored == 0
 
     def should_raise_in_process_archive_members_for_missing_manifest(self, service, mock_cache, archive_path):
-        file_info = tarfile.TarInfo(name="random/file.txt")
-        file_info.type = tarfile.REGTYPE
-        ctx, _ = _make_open_archive_mock([file_info], {})
+        file_member = ArchiveMember(name="random/file.txt", is_file=True, is_dir=False)
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [file_member]
+        mock_cache.extract_member_bytes.return_value = None
         category_roots = {
             "docling/models": _FAKE_BASES["docling"],
             "huggingface/hub": _FAKE_BASES["huggingface"],
@@ -291,11 +290,13 @@ class DescribeModelArchiveServiceUnpack:
         """Manifest is captured during the first pass — no second open."""
         mock_cache.archive_exists.return_value = True
         mock_cache.resolve_cache_base_dirs.return_value = _FAKE_BASES
-        manifest_info, manifest_bytes = self._make_manifest_member(
+        manifest_member, manifest_bytes = self._make_manifest_member(
             [{"category": "docling", "archive_path": "docling/models"}]
         )
-        ctx, _ = _make_open_archive_mock([manifest_info], {"manifest.json": manifest_bytes})
+        ctx, _ = _make_open_archive_ctx()
         mock_cache.open_archive.return_value = ctx
+        mock_cache.read_members.return_value = [manifest_member]
+        mock_cache.extract_member_bytes.return_value = manifest_bytes
 
         result = service.unpack(archive_path)
 

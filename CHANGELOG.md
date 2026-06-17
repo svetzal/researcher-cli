@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pushed all `tarfile` internals (`TarInfo`, `addfile`, `add`, `getmembers`, `extractfile`) and filesystem tree-walking (`rglob`) behind `ModelCacheGateway` via new `add_bytes`, `add_path`, `list_tree`, `read_members`, and `extract_member_bytes` methods; `ModelArchiveService` now operates purely on domain values (`ArchiveMember`) with no direct I/O
+
 - Refactored `IndexService` tests to assert observable indexing outcomes instead of private-method calls and mock invocation counts
 
 - `init` now routes all destination filesystem writes (`file_exists`, `make_directories`, `write_file`) through `FilesystemGateway`, enforcing the gateway boundary and enabling injection for testing

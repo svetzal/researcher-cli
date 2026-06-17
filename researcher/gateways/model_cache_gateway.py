@@ -1,5 +1,16 @@
 import tarfile
+from io import BytesIO
 from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict
+
+
+class ArchiveMember(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    is_file: bool
+    is_dir: bool
 
 
 class ModelCacheGateway:
@@ -25,13 +36,35 @@ class ModelCacheGateway:
         return archive_path.is_file()
 
     def is_file(self, path: Path) -> bool:
-        """Check if a path is a file (vs directory)."""
         return path.is_file()
 
     def write_file(self, dest_path: Path, data: bytes) -> None:
-        """Write bytes to a destination path, creating parents."""
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         dest_path.write_bytes(data)
 
     def make_dirs(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
+
+    def add_bytes(self, tar: tarfile.TarFile, name: str, data: bytes) -> None:
+        info = tarfile.TarInfo(name=name)
+        info.size = len(data)
+        tar.addfile(info, BytesIO(data))
+
+    def add_path(self, tar: tarfile.TarFile, source: Path, arcname: str, recursive: bool = True) -> None:
+        tar.add(str(source), arcname=arcname, recursive=recursive)
+
+    def list_tree(self, source: Path) -> list[Path]:
+        return sorted(source.rglob("*"))
+
+    def read_members(self, tar: tarfile.TarFile) -> list[ArchiveMember]:
+        return [ArchiveMember(name=m.name, is_file=m.isfile(), is_dir=m.isdir()) for m in tar.getmembers()]
+
+    def extract_member_bytes(self, tar: tarfile.TarFile, name: str) -> bytes | None:
+        try:
+            member = tar.getmember(name)
+        except KeyError:
+            return None
+        f = tar.extractfile(member)
+        if f is None:
+            return None
+        return f.read()

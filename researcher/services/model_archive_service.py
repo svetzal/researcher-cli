@@ -1,15 +1,13 @@
 """Service for packing and unpacking model cache directories into portable archives."""
 
 import json
-import tarfile
-from io import BytesIO
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
 from researcher.config import RepositoryConfig
 from researcher.exceptions import ModelArchiveError
-from researcher.gateways.model_cache_gateway import ModelCacheGateway
+from researcher.gateways.model_cache_gateway import ArchiveMember, ModelCacheGateway
 from researcher.model_registry import (
     ModelCacheEntry,
     build_model_entries,
@@ -50,17 +48,13 @@ class ModelArchiveService:
 
         total_files = 0
         with self._cache.create_archive(output_path) as tar:
-            # Write manifest
             manifest = self._build_manifest(repos, entries)
             manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
-            info = tarfile.TarInfo(name="manifest.json")
-            info.size = len(manifest_bytes)
-            tar.addfile(info, BytesIO(manifest_bytes))
+            self._cache.add_bytes(tar, "manifest.json", manifest_bytes)
 
-            # Add each model cache entry (directory or file)
             for entry in entries:
                 if self._cache.is_file(entry.source_path):
-                    tar.add(str(entry.source_path), arcname=entry.archive_path)
+                    self._cache.add_path(tar, entry.source_path, entry.archive_path)
                     total_files += 1
                 else:
                     file_count = self._add_directory_to_tar(tar, entry.source_path, entry.archive_path)
@@ -94,14 +88,14 @@ class ModelArchiveService:
         manifest_data: dict | None = None
 
         with self._cache.open_archive(archive_path) as tar:
-            members = tar.getmembers()
+            members = self._cache.read_members(tar)
 
             for member in members:
                 if member.name == "manifest.json":
                     has_manifest = True
-                    f = tar.extractfile(member)
-                    if f:
-                        manifest_data = json.loads(f.read().decode("utf-8"))
+                    data = self._cache.extract_member_bytes(tar, member.name)
+                    if data:
+                        manifest_data = json.loads(data.decode("utf-8"))
                     continue
 
                 dest_path = self._resolve_extraction_path(member.name, prefix_roots)
@@ -109,7 +103,7 @@ class ModelArchiveService:
                     continue
 
                 self._extract_member(tar, member, dest_path)
-                if member.isfile():
+                if member.is_file:
                     files_extracted += 1
 
             if not has_manifest:
@@ -130,13 +124,13 @@ class ModelArchiveService:
             ],
         }
 
-    def _add_directory_to_tar(self, tar: tarfile.TarFile, source: Path, archive_prefix: str) -> int:
+    def _add_directory_to_tar(self, tar, source: Path, archive_prefix: str) -> int:
         count = 0
-        for item in sorted(source.rglob("*")):
+        for item in self._cache.list_tree(source):
             rel = item.relative_to(source)
             arcname = f"{archive_prefix}/{rel}"
-            tar.add(str(item), arcname=arcname, recursive=False)
-            if item.is_file():
+            self._cache.add_path(tar, item, arcname, recursive=False)
+            if self._cache.is_file(item):
                 count += 1
         return count
 
@@ -149,10 +143,10 @@ class ModelArchiveService:
                 return root
         return None
 
-    def _extract_member(self, tar: tarfile.TarFile, member: tarfile.TarInfo, dest_path: Path) -> None:
-        if member.isdir():
+    def _extract_member(self, tar, member: ArchiveMember, dest_path: Path) -> None:
+        if member.is_dir:
             self._cache.make_dirs(dest_path)
-        elif member.isfile():
-            source = tar.extractfile(member)
-            if source is not None:
-                self._cache.write_file(dest_path, source.read())
+        elif member.is_file:
+            data = self._cache.extract_member_bytes(tar, member.name)
+            if data is not None:
+                self._cache.write_file(dest_path, data)
