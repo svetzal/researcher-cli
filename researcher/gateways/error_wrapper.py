@@ -3,6 +3,8 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from researcher.exceptions import EmbeddingError, StorageError
+
 
 def wrap_gateway_error(exception_class: type[Exception]) -> Callable[[str], Callable]:
     """Factory that creates a decorator-factory for a specific exception class.
@@ -40,3 +42,7 @@ def wrap_gateway_error(exception_class: type[Exception]) -> Callable[[str], Call
         return decorator
 
     return decorator_factory
+
+
+wrap_storage_error = wrap_gateway_error(StorageError)
+wrap_embedding_error = wrap_gateway_error(EmbeddingError)

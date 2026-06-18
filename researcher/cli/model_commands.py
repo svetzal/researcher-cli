@@ -7,6 +7,7 @@ from researcher.cli.output import (
     cli_errors,
     cli_output,
     console,
+    exit_no_repos,
     make_service_factory_callback,
 )
 from researcher.cli.presenters import present_pack_result
@@ -30,12 +31,11 @@ def pack_command(
     repos = factory.repository_service.list_repositories()
 
     if not repos:
-        cli_output(
+        exit_no_repos(
             {"repositories": []},
             "[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]",
             json_output=json_output,
         )
-        raise typer.Exit(0)
 
     service = factory.model_archive_service()
     result = service.pack(repos, output)

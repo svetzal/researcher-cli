@@ -1,8 +1,5 @@
-from researcher.exceptions import EmbeddingError
 from researcher.gateways.embedding_gateway import LazyClientEmbeddingGateway
-from researcher.gateways.error_wrapper import wrap_gateway_error
-
-_wrap_embedding_error = wrap_gateway_error(EmbeddingError)
+from researcher.gateways.error_wrapper import wrap_embedding_error
 
 
 class OpenAIEmbeddingGateway(LazyClientEmbeddingGateway):
@@ -11,7 +8,7 @@ class OpenAIEmbeddingGateway(LazyClientEmbeddingGateway):
 
         return openai.OpenAI()
 
-    @_wrap_embedding_error("OpenAI embedding failed for model '{self._model}': {e}")
+    @wrap_embedding_error("OpenAI embedding failed for model '{self._model}': {e}")
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         client = self._resolve_client()
         response = client.embeddings.create(input=texts, model=self._model)

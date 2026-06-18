@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Internal de-duplication: replaced five thin `typer.Option` wrapper functions in `repo_commands.py` with `Annotated` type aliases; consolidated the repeated no-repos guard into a shared `exit_no_repos` helper in `output.py` (used by `index`, `status`, `search`, and `models pack`); pre-built `wrap_storage_error` and `wrap_embedding_error` instances in `error_wrapper.py` so the six affected gateways import them directly instead of reconstructing them locally (refactor only, no behavior change)
+
 - Pushed all `tarfile` internals (`TarInfo`, `addfile`, `add`, `getmembers`, `extractfile`) and filesystem tree-walking (`rglob`) behind `ModelCacheGateway` via new `add_bytes`, `add_path`, `list_tree`, `read_members`, and `extract_member_bytes` methods; `ModelArchiveService` now operates purely on domain values (`ArchiveMember`) with no direct I/O
 
 - Refactored `IndexService` tests to assert observable indexing outcomes instead of private-method calls and mock invocation counts

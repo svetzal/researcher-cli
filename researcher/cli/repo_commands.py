@@ -1,3 +1,5 @@
+from typing import Annotated
+
 import typer
 
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
@@ -21,24 +23,11 @@ _AUDIO_ASR_MODEL_HELP = (
 )
 
 
-def _embedding_provider_option(default: str | None) -> str:
-    return typer.Option(default, "--embedding-provider", help=_EMBEDDING_PROVIDER_HELP)
-
-
-def _embedding_model_option() -> str:
-    return typer.Option(None, "--embedding-model", help=_EMBEDDING_MODEL_HELP)
-
-
-def _image_pipeline_option(default: str | None) -> str:
-    return typer.Option(default, "--image-pipeline", help=_IMAGE_PIPELINE_HELP)
-
-
-def _image_vlm_model_option() -> str:
-    return typer.Option(None, "--image-vlm-model", help=_IMAGE_VLM_MODEL_HELP)
-
-
-def _audio_asr_model_option() -> str:
-    return typer.Option(None, "--audio-asr-model", help=_AUDIO_ASR_MODEL_HELP)
+EmbeddingProviderOpt = Annotated[str | None, typer.Option("--embedding-provider", help=_EMBEDDING_PROVIDER_HELP)]
+EmbeddingModelOpt = Annotated[str | None, typer.Option("--embedding-model", help=_EMBEDDING_MODEL_HELP)]
+ImagePipelineOpt = Annotated[str | None, typer.Option("--image-pipeline", help=_IMAGE_PIPELINE_HELP)]
+ImageVlmModelOpt = Annotated[str | None, typer.Option("--image-vlm-model", help=_IMAGE_VLM_MODEL_HELP)]
+AudioAsrModelOpt = Annotated[str | None, typer.Option("--audio-asr-model", help=_AUDIO_ASR_MODEL_HELP)]
 
 
 def _build_repo_options(
@@ -73,17 +62,17 @@ def add_repo(
     file_types: str = typer.Option(
         ",".join(_DEFAULTS.file_types), "--file-types", help="Comma-separated file extensions"
     ),
-    embedding_provider: str = _embedding_provider_option(_DEFAULTS.embedding_provider),
-    embedding_model: str = _embedding_model_option(),
+    embedding_provider: EmbeddingProviderOpt = _DEFAULTS.embedding_provider,
+    embedding_model: EmbeddingModelOpt = None,
     exclude: list[str] = typer.Option(
         None,
         "--exclude",
         "-e",
         help="Glob pattern to exclude (repeatable, e.g. --exclude node_modules --exclude '.*')",
     ),
-    image_pipeline: str = _image_pipeline_option(_DEFAULTS.image_pipeline),
-    image_vlm_model: str = _image_vlm_model_option(),
-    audio_asr_model: str = _audio_asr_model_option(),
+    image_pipeline: ImagePipelineOpt = _DEFAULTS.image_pipeline,
+    image_vlm_model: ImageVlmModelOpt = None,
+    audio_asr_model: AudioAsrModelOpt = None,
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj
@@ -125,8 +114,8 @@ def update_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
     file_types: str = typer.Option(None, "--file-types", help="Comma-separated file extensions (replaces existing)"),
-    embedding_provider: str = _embedding_provider_option(None),
-    embedding_model: str = _embedding_model_option(),
+    embedding_provider: EmbeddingProviderOpt = None,
+    embedding_model: EmbeddingModelOpt = None,
     exclude: list[str] = typer.Option(
         None,
         "--exclude",
@@ -138,9 +127,9 @@ def update_repo(
         "--no-purge",
         help="Skip purging previously-indexed files that match the new exclusion patterns.",
     ),
-    image_pipeline: str = _image_pipeline_option(None),
-    image_vlm_model: str = _image_vlm_model_option(),
-    audio_asr_model: str = _audio_asr_model_option(),
+    image_pipeline: ImagePipelineOpt = None,
+    image_vlm_model: ImageVlmModelOpt = None,
+    audio_asr_model: AudioAsrModelOpt = None,
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj

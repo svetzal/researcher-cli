@@ -10,6 +10,7 @@ from researcher.cli.output import (
     cli_exit_on_error,
     cli_output,
     console,
+    exit_no_repos,
     make_service_factory_callback,
 )
 from researcher.cli.presenters import present_index_results, present_status
@@ -77,12 +78,11 @@ def index_command(
     repos = _repos_or_empty(factory, repo_name, json_output)
 
     if not repos:
-        cli_output(
+        exit_no_repos(
             {"repositories": []},
             "[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]",
             json_output=json_output,
         )
-        raise typer.Exit(0)
 
     repo_results: list[dict] = []
     for repo in repos:
@@ -128,8 +128,7 @@ def status_command(
     repos = _repos_or_empty(factory, repo_name, json_output)
 
     if not repos:
-        cli_output({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
-        return
+        exit_no_repos({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
 
     repo_stats = [serialize_index_stats(factory.index_service(repo).get_stats()) for repo in repos]
 
@@ -155,12 +154,11 @@ def search_command(
     search_repos = _repos_or_empty(factory, repo, json_output)
 
     if not search_repos:
-        cli_output(
+        exit_no_repos(
             serialize_empty_search(query, mode, repo),
             "[yellow]No repositories configured.[/yellow]",
             json_output=json_output,
         )
-        raise typer.Exit(0)
 
     if mode == "fragments":
         run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)

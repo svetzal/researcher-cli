@@ -65,6 +65,12 @@ def cli_errors(*exception_types):
 JSON_OPTION: bool = typer.Option(False, "--json", "-j", help="Output as JSON")
 
 
+def exit_no_repos(payload: dict, message: str, *, json_output: bool) -> None:
+    """Emit payload/message and exit cleanly when no repositories are configured."""
+    cli_output(payload, message, json_output=json_output)
+    raise typer.Exit(0)
+
+
 def make_service_factory_callback(typer_app: typer.Typer) -> None:
     @typer_app.callback()
     def _callback(ctx: typer.Context) -> None:
