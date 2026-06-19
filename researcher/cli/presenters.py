@@ -2,12 +2,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from researcher.cli.payloads import IndexResultPayload, IndexStatsPayload
 from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, SearchResult
 from researcher.services.model_archive_service import PackResult
 
 
-def present_index_results(repo_results: list[dict], console: Console) -> None:
+def present_index_results(repo_results: list[IndexResultPayload], console: Console) -> None:
     for serialized in repo_results:
         console.print(
             f"[green]✓[/green] [bold]{serialized['repository']}[/bold]: {serialized['documents_indexed']} indexed, "
@@ -18,7 +19,7 @@ def present_index_results(repo_results: list[dict], console: Console) -> None:
             console.print(f"  [red]✗[/red] {error}")
 
 
-def present_status(repo_stats: list[dict], console: Console) -> None:
+def present_status(repo_stats: list[IndexStatsPayload], console: Console) -> None:
     for stat in repo_stats:
         table = Table(show_header=False, box=None)
         table.add_column("Key", style="bold")

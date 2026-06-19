@@ -1,7 +1,13 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import NotRequired, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class ChromaMetadata(TypedDict):
+    document_path: str
+    fragment_index: NotRequired[int]
 
 
 class FileOutcome(StrEnum):
@@ -43,7 +49,7 @@ class FragmentWithEmbedding(BaseModel):
 
     id: str
     text: str
-    metadata: dict
+    metadata: ChromaMetadata
     embedding: list[float]
 
 

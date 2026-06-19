@@ -37,7 +37,9 @@ class DescribeFragment:
 
 class DescribeFragmentWithEmbedding:
     def should_create_with_embedding(self):
-        fragment = FragmentWithEmbedding(id="f1", text="text", metadata={}, embedding=[0.1, 0.2, 0.3])
+        fragment = FragmentWithEmbedding(
+            id="f1", text="text", metadata={"document_path": "doc.md"}, embedding=[0.1, 0.2, 0.3]
+        )
 
         assert len(fragment.embedding) == 3
         assert fragment.embedding[0] == 0.1

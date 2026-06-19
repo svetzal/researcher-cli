@@ -1,11 +1,23 @@
 from pathlib import Path
 
+from researcher.cli.payloads import (
+    DocumentSearchResultPayload,
+    FragmentResultPayload,
+    IndexResultPayload,
+    IndexStatsPayload,
+    PackEntryPayload,
+    PackResultPayload,
+    RepositoriesWrapper,
+    SearchEnvelope,
+    TopFragmentPayload,
+    UnpackResultPayload,
+)
 from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
 from researcher.services.model_archive_service import PackResult, UnpackResult
 
 
-def serialize_index_result(repo_name: str, result: IndexingResult) -> dict:
+def serialize_index_result(repo_name: str, result: IndexingResult) -> IndexResultPayload:
     return {
         "repository": repo_name,
         "documents_indexed": result.documents_indexed,
@@ -17,7 +29,7 @@ def serialize_index_result(repo_name: str, result: IndexingResult) -> dict:
     }
 
 
-def serialize_index_stats(stats: IndexStats) -> dict:
+def serialize_index_stats(stats: IndexStats) -> IndexStatsPayload:
     return {
         "repository_name": stats.repository_name,
         "total_documents": stats.total_documents,
@@ -35,8 +47,8 @@ def _search_envelope(
     mode: str,
     repository: str | None,
     repos_searched: list[str],
-    results: list[dict],
-) -> dict:
+    results: list[FragmentResultPayload] | list[DocumentSearchResultPayload],
+) -> SearchEnvelope:
     return {
         "query": query,
         "mode": mode,
@@ -51,8 +63,8 @@ def serialize_fragment_search(
     repos: list[RepositoryConfig],
     query: str,
     results: list[SearchResult],
-) -> dict:
-    results_data = [
+) -> SearchEnvelope:
+    results_data: list[FragmentResultPayload] = [
         {
             "document_path": r.document_path,
             "fragment_index": r.fragment_index,
@@ -69,41 +81,47 @@ def serialize_document_search(
     repos: list[RepositoryConfig],
     query: str,
     results: list[DocumentSearchResult],
-) -> dict:
-    results_data = []
+) -> SearchEnvelope:
+    results_data: list[DocumentSearchResultPayload] = []
     for doc_result in results:
         top = doc_result.top_fragments[0] if doc_result.top_fragments else None
+        top_payload: TopFragmentPayload | None = (
+            {
+                "text": top.text,
+                "fragment_index": top.fragment_index,
+                "distance": top.distance,
+            }
+            if top
+            else None
+        )
         results_data.append(
             {
                 "document_path": doc_result.document_path,
                 "best_distance": doc_result.best_distance,
                 "fragment_count": len(doc_result.top_fragments),
-                "top_fragment": {
-                    "text": top.text,
-                    "fragment_index": top.fragment_index,
-                    "distance": top.distance,
-                }
-                if top
-                else None,
+                "top_fragment": top_payload,
             }
         )
     repository, repos_searched = _repo_identity(repos)
     return _search_envelope(query, "documents", repository, repos_searched, results_data)
 
 
-def serialize_empty_search(query: str, mode: str, repo: str | None) -> dict:
+def serialize_empty_search(query: str, mode: str, repo: str | None) -> SearchEnvelope:
     return _search_envelope(query, mode, repo, [], [])
 
 
-def serialize_pack_result(result: PackResult) -> dict:
+def serialize_pack_result(result: PackResult) -> PackResultPayload:
+    entries: list[PackEntryPayload] = [
+        {"category": entry.category, "archive_path": entry.archive_path} for entry in result.entries
+    ]
     return {
         "archive": str(result.archive_path),
         "total_files": result.total_files,
-        "entries": [{"category": entry.category, "archive_path": entry.archive_path} for entry in result.entries],
+        "entries": entries,
     }
 
 
-def serialize_unpack_result(archive: Path, result: UnpackResult) -> dict:
+def serialize_unpack_result(archive: Path, result: UnpackResult) -> UnpackResultPayload:
     return {
         "archive": str(archive),
         "entries_restored": result.entries_restored,
@@ -111,5 +129,5 @@ def serialize_unpack_result(archive: Path, result: UnpackResult) -> dict:
     }
 
 
-def build_json_results_wrapper(results: list[dict]) -> dict:
+def build_json_results_wrapper(results: list[IndexResultPayload]) -> RepositoriesWrapper:
     return {"repositories": results}

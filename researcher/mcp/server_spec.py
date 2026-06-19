@@ -34,7 +34,7 @@ class DescribeMcpServer:
         result = list_repositories()
 
         assert len(result) == 1
-        assert result[0]["name"] == "test-repo"
+        assert result[0].name == "test-repo"
 
     def should_list_multiple_repositories(self, mock_factory):
         mock_factory.repository_service.list_repositories.return_value = [
@@ -45,7 +45,7 @@ class DescribeMcpServer:
         result = list_repositories()
 
         assert len(result) == 2
-        names = [r["name"] for r in result]
+        names = [r.name for r in result]
         assert "repo1" in names
         assert "repo2" in names
 
@@ -61,7 +61,7 @@ class DescribeMcpServer:
         result = search_fragments("query")
 
         assert len(result) == 1
-        assert result[0]["fragment_id"] == "f1"
+        assert result[0].fragment_id == "f1"
 
     def should_search_documents_across_repos(self, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
@@ -76,7 +76,7 @@ class DescribeMcpServer:
         result = search_documents("query")
 
         assert len(result) == 1
-        assert result[0]["document_path"] == "doc.md"
+        assert result[0].document_path == "doc.md"
 
     def should_get_index_status_for_single_repo(self, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")

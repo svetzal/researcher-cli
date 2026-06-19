@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Boundary payloads now carry explicit typed contracts: CLI serializers return named `TypedDict` types (`IndexResultPayload`, `IndexStatsPayload`, `SearchEnvelope`, `PackResultPayload`, etc.) instead of bare `dict`; CLI presenter signatures consume those types; `FragmentWithEmbedding.metadata` is now typed as `ChromaMetadata` (a `TypedDict` with `document_path` and optional `fragment_index`); MCP tools `search_fragments` and `search_documents` return Pydantic models directly instead of `list[dict]`, and `list_repositories` returns `list[RepositoryConfig]` — FastMCP derives the wire schema from the models with no wire-format change (internal clarity change, no behavior change)
+
 - Internal de-duplication: replaced five thin `typer.Option` wrapper functions in `repo_commands.py` with `Annotated` type aliases; consolidated the repeated no-repos guard into a shared `exit_no_repos` helper in `output.py` (used by `index`, `status`, `search`, and `models pack`); pre-built `wrap_storage_error` and `wrap_embedding_error` instances in `error_wrapper.py` so the six affected gateways import them directly instead of reconstructing them locally (refactor only, no behavior change)
 
 - Pushed all `tarfile` internals (`TarInfo`, `addfile`, `add`, `getmembers`, `extractfile`) and filesystem tree-walking (`rglob`) behind `ModelCacheGateway` via new `add_bytes`, `add_path`, `list_tree`, `read_members`, and `extract_member_bytes` methods; `ModelArchiveService` now operates purely on domain values (`ArchiveMember`) with no direct I/O

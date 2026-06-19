@@ -1,7 +1,10 @@
 import fastmcp
 
+from researcher.cli.payloads import IndexStatsPayload, IndexStatusWrapper
+from researcher.config import RepositoryConfig
 from researcher.error_boundary import handle_boundary_errors
 from researcher.exceptions import ResearcherError
+from researcher.models import DocumentSearchResult, SearchResult
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_facade import get_repo_status, index_file_in_repo, remove_from_repo
 from researcher.services.multi_repo_search import (
@@ -48,30 +51,27 @@ def remove_from_index(repository: str, document_path: str) -> str:
 
 @mcp.tool
 @_mcp_errors(lambda e: [{"error": str(e)}])
-def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[dict]:
+def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[SearchResult]:
     repos = _get_factory().repository_service.resolve_repos(repository)
-    results = search_fragments_across_repos(_get_factory(), repos, query, n_results)
-    return [r.model_dump() for r in results]
+    return search_fragments_across_repos(_get_factory(), repos, query, n_results)
 
 
 @mcp.tool
 @_mcp_errors(lambda e: [{"error": str(e)}])
-def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[dict]:
+def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[DocumentSearchResult]:
     repos = _get_factory().repository_service.resolve_repos(repository)
-    results = search_documents_across_repos(_get_factory(), repos, query, n_results)
-    return [r.model_dump() for r in results]
+    return search_documents_across_repos(_get_factory(), repos, query, n_results)
 
 
 @mcp.tool
 @_mcp_errors(lambda e: [{"error": str(e)}])
-def list_repositories() -> list[dict]:
-    repos = _get_factory().repository_service.list_repositories()
-    return [r.model_dump() for r in repos]
+def list_repositories() -> list[RepositoryConfig]:
+    return _get_factory().repository_service.list_repositories()
 
 
 @mcp.tool
 @_mcp_errors(lambda e: {"error": str(e)})
-def get_index_status(repository: str | None = None) -> dict:
+def get_index_status(repository: str | None = None) -> IndexStatsPayload | IndexStatusWrapper:
     statuses = [s.model_dump(mode="json") for s in get_repo_status(_get_factory(), repository)]
     if len(statuses) == 1:
         return statuses[0]
