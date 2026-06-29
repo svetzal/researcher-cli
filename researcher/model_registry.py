@@ -4,6 +4,7 @@ Resolves which model cache directories are needed for a set of repository config
 so they can be packed into a portable archive.
 """
 
+from collections.abc import Iterator
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -185,26 +186,49 @@ def _collect_asr_cache_ids(
             whisper_cache_files.add(cache_file)
 
 
+def _iter_model_specs(requirements: ModelRequirements, bases: dict[str, Path]) -> Iterator[ModelCacheEntry]:
+    """Single source of truth for the four model-cache categories.
+
+    Yields one ModelCacheEntry per required cache item in deterministic order:
+    docling → huggingface (sorted by repo_id) → whisper (sorted by filename) → chroma.
+    Adding a category requires editing only this function (plus the ModelRequirements field that flags it).
+    """
+    if requirements.need_docling:
+        yield ModelCacheEntry(
+            category="docling",
+            source_path=bases["docling"],
+            archive_path="docling/models",
+        )
+
+    for repo_id in sorted(requirements.hf_repo_ids):
+        cache_dir_name = hf_repo_id_to_cache_dir(repo_id)
+        yield ModelCacheEntry(
+            category="huggingface",
+            source_path=bases["huggingface"] / cache_dir_name,
+            archive_path=f"huggingface/hub/{cache_dir_name}",
+        )
+
+    for cache_file in sorted(requirements.whisper_cache_files):
+        yield ModelCacheEntry(
+            category="whisper",
+            source_path=bases["whisper"] / cache_file,
+            archive_path=f"whisper/{cache_file}",
+        )
+
+    if requirements.need_chroma:
+        yield ModelCacheEntry(
+            category="chroma",
+            source_path=bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH,
+            archive_path=f"chroma/{CHROMA_ONNX_MODEL_RELPATH}",
+        )
+
+
 def candidate_paths(
     requirements: ModelRequirements,
     bases: dict[str, Path],
 ) -> set[Path]:
     """Pure function — no filesystem access."""
-    candidates: set[Path] = set()
-
-    if requirements.need_docling:
-        candidates.add(bases["docling"])
-
-    for repo_id in requirements.hf_repo_ids:
-        candidates.add(bases["huggingface"] / hf_repo_id_to_cache_dir(repo_id))
-
-    for cache_file in requirements.whisper_cache_files:
-        candidates.add(bases["whisper"] / cache_file)
-
-    if requirements.need_chroma:
-        candidates.add(bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH)
-
-    return candidates
+    return {spec.source_path for spec in _iter_model_specs(requirements, bases)}
 
 
 def build_model_entries(
@@ -213,44 +237,7 @@ def build_model_entries(
     existing_paths: set[Path],
 ) -> list[ModelCacheEntry]:
     """Pure function — no filesystem access. Only includes entries whose source_path is a member of existing_paths."""
-    entries: list[ModelCacheEntry] = []
-
-    docling_dir = bases["docling"]
-    if requirements.need_docling and docling_dir in existing_paths:
-        entries.append(ModelCacheEntry(category="docling", source_path=docling_dir, archive_path="docling/models"))
-
-    for repo_id in sorted(requirements.hf_repo_ids):
-        cache_dir_name = hf_repo_id_to_cache_dir(repo_id)
-        hf_path = bases["huggingface"] / cache_dir_name
-        if hf_path in existing_paths:
-            entries.append(
-                ModelCacheEntry(
-                    category="huggingface",
-                    source_path=hf_path,
-                    archive_path=f"huggingface/hub/{cache_dir_name}",
-                )
-            )
-
-    for cache_file in sorted(requirements.whisper_cache_files):
-        whisper_path = bases["whisper"] / cache_file
-        if whisper_path in existing_paths:
-            entries.append(
-                ModelCacheEntry(
-                    category="whisper",
-                    source_path=whisper_path,
-                    archive_path=f"whisper/{cache_file}",
-                )
-            )
-
-    chroma_path = bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH
-    if requirements.need_chroma and chroma_path in existing_paths:
-        entries.append(
-            ModelCacheEntry(
-                category="chroma", source_path=chroma_path, archive_path=f"chroma/{CHROMA_ONNX_MODEL_RELPATH}"
-            )
-        )
-
-    return entries
+    return [spec for spec in _iter_model_specs(requirements, bases) if spec.source_path in existing_paths]
 
 
 def resolve_models_for_repos(
