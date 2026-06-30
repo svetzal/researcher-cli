@@ -29,15 +29,16 @@ jobs:
       - name: Security audit
         # CVE-2026-4539: ReDoS in pygments AdlLexer (archetype.py), local-access only,
         # no upstream fix available yet. Remove --ignore-vuln when pygments >2.19.2 ships a fix.
-        # CVE-2026-45829: ChromaDB Python server pre-auth code execution. researcher-cli
-        # embeds ChromaDB SDK functionality via PersistentClient and does not run or allow
-        # a Chroma server mode. Remove once a patched ChromaDB package is available.
+        # CVE-2026-45829 / PYSEC-2026-311: ChromaDB Python server pre-auth code execution.
+        # researcher-cli embeds ChromaDB SDK functionality via PersistentClient and does not
+        # run or allow a Chroma server mode. PYSEC-2026-311 is the PYSEC alias for the same
+        # underlying vulnerability. Remove both once a patched ChromaDB package is available.
         # CVE-2025-3000: segfault in torch.jit.script when scripting a class with a list
         # attribute. torch is transitive (docling-ibm-models); researcher-cli never calls
         # torch.jit.script/TorchScript, and the bug is a local low-impact crash, not an
         # attacker-input path. No upstream fix exists. Remove once a patched torch ships or
         # if researcher-cli ever uses TorchScript.
-        run: uv run pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-45829 --ignore-vuln CVE-2025-3000
+        run: uv run pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-45829 --ignore-vuln PYSEC-2026-311 --ignore-vuln CVE-2025-3000
 
   release:
     needs: check

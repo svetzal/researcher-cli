@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added a scoped security-audit exception for CVE-2026-45829 because researcher-cli only embeds ChromaDB SDK functionality via `PersistentClient` and does not run or allow a Chroma server mode.
 - Updated `aiohttp` 3.13.5→3.14.0 to resolve CVE-2026-34993 and CVE-2026-47265 reported by the live audit.
+- Added suppression for PYSEC-2026-311 (the PYSEC database alias for CVE-2026-45829, same ChromaDB pre-auth code execution vulnerability) to pip-audit invocations in CI, release workflow, hone gates, and project documentation; no patched chromadb release is available.
 
 ### Changed
 
