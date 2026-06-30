@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from researcher.config import RepositoryConfig, ResearcherConfig
 
 
@@ -49,6 +52,23 @@ class DescribeRepositoryConfig:
         config = RepositoryConfig(name="test", path="/tmp/docs", audio_asr_model="small")
 
         assert config.audio_asr_model == "small"
+
+    def should_reject_invalid_image_pipeline(self):
+        with pytest.raises(ValidationError):
+            RepositoryConfig(name="test", path="/tmp/docs", image_pipeline="ocr")
+
+    def should_reject_invalid_embedding_provider(self):
+        with pytest.raises(ValidationError):
+            RepositoryConfig(name="test", path="/tmp/docs", embedding_provider="local")
+
+    def should_accept_none_audio_asr_model(self):
+        config = RepositoryConfig(name="test", path="/tmp/docs", audio_asr_model=None)
+
+        assert config.audio_asr_model is None
+
+    def should_reject_invalid_audio_asr_model(self):
+        with pytest.raises(ValidationError):
+            RepositoryConfig(name="test", path="/tmp/docs", audio_asr_model="huge")
 
 
 class DescribeResearcherConfig:

@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict
 
+from researcher.enums import EmbeddingProvider
+
 
 class EmbeddingProviderConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -10,7 +12,7 @@ class EmbeddingProviderConfig(BaseModel):
     model: str
 
 
-def resolve_embedding_config(provider: str, model: str | None) -> EmbeddingProviderConfig:
+def resolve_embedding_config(provider: EmbeddingProvider, model: str | None) -> EmbeddingProviderConfig:
     """Resolve the embedding provider configuration.
 
     Args:

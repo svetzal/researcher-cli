@@ -405,3 +405,8 @@ class DescribeSearchCommandJsonOutput:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "results" in data
+
+    def should_reject_invalid_mode(self, mock_factory):
+        result = runner.invoke(app, ["search", "query", "--mode", "bogus"], obj=mock_factory)
+
+        assert result.exit_code != 0

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `--mode`, `--embedding-provider`, `--image-pipeline`, and `--audio-asr-model` CLI options now reject invalid values at the CLI/config boundary with a clear error instead of silently degrading; the four closed value sets (`EmbeddingProvider`, `ImagePipeline`, `AudioAsrModel`, `SearchMode`) are defined as `(str, enum.Enum)` types in `researcher.enums` and enforce their members through Pydantic validation on `RepositoryConfig` and Typer `Choice` rendering on repo commands and the search command
+
 ### Security
 
 - Added a scoped security-audit exception for CVE-2026-45829 because researcher-cli only embeds ChromaDB SDK functionality via `PersistentClient` and does not run or allow a Chroma server mode.

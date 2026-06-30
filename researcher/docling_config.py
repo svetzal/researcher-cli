@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from researcher.asr_config import resolve_asr_spec_name
+from researcher.enums import AudioAsrModel, ImagePipeline
 from researcher.model_registry import resolve_vlm_preset
 
 
@@ -74,18 +75,18 @@ def build_document_converter(config: ConverterConfig) -> Any:
 
 
 def build_converter_config(
-    image_pipeline: str,
+    image_pipeline: ImagePipeline,
     image_vlm_model: str | None,
-    audio_asr_model: str,
+    audio_asr_model: AudioAsrModel | None,
     *,
     apple_silicon: bool | None = None,
 ) -> ConverterConfig:
     """Build a ConverterConfig from user-facing parameters.
 
     Args:
-        image_pipeline: The image processing pipeline to use ("vlm" or "standard").
+        image_pipeline: The image processing pipeline to use.
         image_vlm_model: An optional VLM model override. Falls back to default preset.
-        audio_asr_model: The ASR model name for audio transcription. Empty string disables ASR.
+        audio_asr_model: The ASR model for audio transcription. Empty string disables ASR.
         apple_silicon: Override platform detection. If None, detects automatically.
 
     Returns:

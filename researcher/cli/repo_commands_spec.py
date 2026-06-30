@@ -90,6 +90,25 @@ class DescribeRepoAddCommand:
         data = json.loads(result.output)
         assert data["exclude_patterns"] == ["dist"]
 
+    def should_reject_invalid_image_pipeline(self, mock_factory):
+        result = runner.invoke(repo_app, ["add", "my-repo", "/tmp/docs", "--image-pipeline", "bogus"], obj=mock_factory)
+
+        assert result.exit_code != 0
+
+    def should_reject_invalid_audio_asr_model(self, mock_factory):
+        result = runner.invoke(
+            repo_app, ["add", "my-repo", "/tmp/docs", "--audio-asr-model", "bogus"], obj=mock_factory
+        )
+
+        assert result.exit_code != 0
+
+    def should_reject_invalid_embedding_provider(self, mock_factory):
+        result = runner.invoke(
+            repo_app, ["add", "my-repo", "/tmp/docs", "--embedding-provider", "bogus"], obj=mock_factory
+        )
+
+        assert result.exit_code != 0
+
 
 class DescribeRepoRemoveCommand:
     def should_remove_repository(self, mock_factory):

@@ -23,6 +23,7 @@ from researcher.cli.serializers import (
     serialize_index_stats,
 )
 from researcher.config import RepositoryConfig
+from researcher.enums import SearchMode
 from researcher.exceptions import ResearcherError
 from researcher.models import IndexingResult
 from researcher.service_factory import ServiceFactory
@@ -147,7 +148,9 @@ def search_command(
     repo: str | None = typer.Option(None, "--repo", "-r", help="Limit search to this repository"),
     fragments: int = typer.Option(10, "--fragments", "-f", help="Number of fragment results"),
     documents: int = typer.Option(5, "--documents", "-d", help="Number of document results"),
-    mode: str = typer.Option("documents", "--mode", "-m", help="Search mode: 'fragments' or 'documents'"),
+    mode: SearchMode = typer.Option(
+        SearchMode.DOCUMENTS, "--mode", "-m", help="Search mode: 'fragments' or 'documents'"
+    ),
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj

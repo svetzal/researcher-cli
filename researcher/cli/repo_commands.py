@@ -5,6 +5,7 @@ import typer
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
 from researcher.cli.presenters import present_repo_list, present_repo_update
 from researcher.config import RepoConfigOptions, RepositoryConfig
+from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
@@ -23,20 +24,22 @@ _AUDIO_ASR_MODEL_HELP = (
 )
 
 
-EmbeddingProviderOpt = Annotated[str | None, typer.Option("--embedding-provider", help=_EMBEDDING_PROVIDER_HELP)]
+EmbeddingProviderOpt = Annotated[
+    EmbeddingProvider | None, typer.Option("--embedding-provider", help=_EMBEDDING_PROVIDER_HELP)
+]
 EmbeddingModelOpt = Annotated[str | None, typer.Option("--embedding-model", help=_EMBEDDING_MODEL_HELP)]
-ImagePipelineOpt = Annotated[str | None, typer.Option("--image-pipeline", help=_IMAGE_PIPELINE_HELP)]
+ImagePipelineOpt = Annotated[ImagePipeline | None, typer.Option("--image-pipeline", help=_IMAGE_PIPELINE_HELP)]
 ImageVlmModelOpt = Annotated[str | None, typer.Option("--image-vlm-model", help=_IMAGE_VLM_MODEL_HELP)]
-AudioAsrModelOpt = Annotated[str | None, typer.Option("--audio-asr-model", help=_AUDIO_ASR_MODEL_HELP)]
+AudioAsrModelOpt = Annotated[AudioAsrModel | None, typer.Option("--audio-asr-model", help=_AUDIO_ASR_MODEL_HELP)]
 
 
 def _build_repo_options(
     file_types: list[str] | None,
-    embedding_provider: str | None,
+    embedding_provider: EmbeddingProvider | None,
     embedding_model: str | None,
-    image_pipeline: str | None,
+    image_pipeline: ImagePipeline | None,
     image_vlm_model: str | None,
-    audio_asr_model: str | None,
+    audio_asr_model: AudioAsrModel | None,
 ) -> RepoConfigOptions:
     return RepoConfigOptions(
         file_types=file_types,

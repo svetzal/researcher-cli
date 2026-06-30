@@ -34,8 +34,8 @@ class DescribeBuildConverterConfig:
 
         assert result.asr == AsrFormatConfig(spec_name="WHISPER_TINY")
 
-    def should_return_no_asr_config_when_model_is_empty(self):
-        result = build_converter_config("standard", None, "", apple_silicon=False)
+    def should_return_no_asr_config_when_model_is_none(self):
+        result = build_converter_config("standard", None, None, apple_silicon=False)
 
         assert result.asr is None
 

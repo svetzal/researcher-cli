@@ -399,8 +399,8 @@ class DescribeResolveModelsForRepos:
         assert len(whisper_entries) == 1
         assert whisper_entries[0].archive_path == "whisper/turbo.pt"
 
-    def should_skip_whisper_when_asr_model_empty(self, fake_bases):
-        repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model="")
+    def should_skip_whisper_when_asr_model_is_none(self, fake_bases):
+        repo = RepositoryConfig(name="test", path="/tmp/test", audio_asr_model=None)
 
         result = resolve_models_for_repos([repo], cache_base_dirs=fake_bases, apple_silicon=False)
 
