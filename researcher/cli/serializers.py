@@ -18,15 +18,7 @@ from researcher.services.model_archive_service import PackResult, UnpackResult
 
 
 def serialize_index_result(repo_name: str, result: IndexingResult) -> IndexResultPayload:
-    return {
-        "repository": repo_name,
-        "documents_indexed": result.documents_indexed,
-        "documents_skipped": result.documents_skipped,
-        "documents_failed": result.documents_failed,
-        "documents_purged": result.documents_purged,
-        "fragments_created": result.fragments_created,
-        "errors": result.errors,
-    }
+    return {"repository": repo_name, **result.model_dump()}
 
 
 def serialize_index_stats(stats: IndexStats) -> IndexStatsPayload:
@@ -84,7 +76,7 @@ def serialize_document_search(
 ) -> SearchEnvelope:
     results_data: list[DocumentSearchResultPayload] = []
     for doc_result in results:
-        top = doc_result.top_fragments[0] if doc_result.top_fragments else None
+        top = doc_result.top_fragment
         top_payload: TopFragmentPayload | None = (
             {
                 "text": top.text,
@@ -98,7 +90,7 @@ def serialize_document_search(
             {
                 "document_path": doc_result.document_path,
                 "best_distance": doc_result.best_distance,
-                "fragment_count": len(doc_result.top_fragments),
+                "fragment_count": doc_result.fragment_count,
                 "top_fragment": top_payload,
             }
         )

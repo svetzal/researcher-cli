@@ -7,14 +7,19 @@ from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, SearchResult
 from researcher.services.model_archive_service import PackResult
 
+_INDEX_COUNT_LABELS = [
+    ("documents_indexed", "indexed"),
+    ("documents_skipped", "skipped"),
+    ("documents_failed", "failed"),
+    ("documents_purged", "purged"),
+    ("fragments_created", "fragments"),
+]
+
 
 def present_index_results(repo_results: list[IndexResultPayload], console: Console) -> None:
     for serialized in repo_results:
-        console.print(
-            f"[green]✓[/green] [bold]{serialized['repository']}[/bold]: {serialized['documents_indexed']} indexed, "
-            f"{serialized['documents_skipped']} skipped, {serialized['documents_failed']} failed, "
-            f"{serialized['documents_purged']} purged, {serialized['fragments_created']} fragments"
-        )
+        counts = ", ".join(f"{serialized[key]} {label}" for key, label in _INDEX_COUNT_LABELS)
+        console.print(f"[green]✓[/green] [bold]{serialized['repository']}[/bold]: {counts}")
         for error in serialized["errors"]:
             console.print(f"  [red]✗[/red] {error}")
 
@@ -106,7 +111,7 @@ def present_document_results(results: list[DocumentSearchResult], console: Conso
     if _no_results(results, console):
         return
     for doc_result in results:
-        top_fragment = doc_result.top_fragments[0] if doc_result.top_fragments else None
+        top_fragment = doc_result.top_fragment
         if top_fragment and len(top_fragment.text) > 200:
             preview = top_fragment.text[:200] + "..."
         else:
@@ -115,7 +120,7 @@ def present_document_results(results: list[DocumentSearchResult], console: Conso
             Panel(
                 preview,
                 title=f"[bold]{doc_result.document_path}[/bold]",
-                subtitle=(f"best distance: {doc_result.best_distance:.4f} | {len(doc_result.top_fragments)} fragments"),
+                subtitle=(f"best distance: {doc_result.best_distance:.4f} | {doc_result.fragment_count} fragments"),
                 border_style="green",
             )
         )

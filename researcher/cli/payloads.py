@@ -2,6 +2,7 @@ from typing import TypedDict
 
 
 class IndexResultPayload(TypedDict):
+    # JSON wire-type contract: must mirror IndexingResult fields plus repository.
     repository: str
     documents_indexed: int
     documents_skipped: int

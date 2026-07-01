@@ -67,6 +67,32 @@ class DescribeDocumentSearchResult:
         assert result.document_path == "doc.md"
         assert len(result.top_fragments) == 1
 
+    def should_return_first_fragment_as_top_fragment(self):
+        first = SearchResult(fragment_id="f1", text="first", document_path="doc.md", fragment_index=0, distance=0.1)
+        second = SearchResult(fragment_id="f2", text="second", document_path="doc.md", fragment_index=1, distance=0.2)
+        result = DocumentSearchResult(document_path="doc.md", top_fragments=[first, second], best_distance=0.1)
+
+        assert result.top_fragment is first
+
+    def should_return_none_as_top_fragment_when_empty(self):
+        result = DocumentSearchResult(document_path="doc.md", top_fragments=[], best_distance=0.5)
+
+        assert result.top_fragment is None
+
+    def should_return_fragment_count_matching_list_length(self):
+        fragments = [
+            SearchResult(fragment_id=f"f{i}", text="t", document_path="doc.md", fragment_index=i, distance=0.1)
+            for i in range(3)
+        ]
+        result = DocumentSearchResult(document_path="doc.md", top_fragments=fragments, best_distance=0.1)
+
+        assert result.fragment_count == 3
+
+    def should_return_zero_fragment_count_when_empty(self):
+        result = DocumentSearchResult(document_path="doc.md", top_fragments=[], best_distance=0.5)
+
+        assert result.fragment_count == 0
+
 
 class DescribeIndexingResult:
     def should_default_errors_to_empty_list(self):

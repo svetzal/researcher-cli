@@ -72,6 +72,14 @@ class DocumentSearchResult(BaseModel):
     top_fragments: list[SearchResult]
     best_distance: float
 
+    @property
+    def top_fragment(self) -> "SearchResult | None":
+        return self.top_fragments[0] if self.top_fragments else None
+
+    @property
+    def fragment_count(self) -> int:
+        return len(self.top_fragments)
+
 
 class ChunkResult(BaseModel):
     model_config = ConfigDict(frozen=True)
