@@ -59,3 +59,39 @@ class DescribeDoclingGatewayChunk:
         gateway = DoclingGateway(chunker=fake_chunker)
         with pytest.raises(DocumentConversionError, match="Failed to chunk"):
             gateway.chunk(object())
+
+
+class DescribeDoclingGatewayLazyInit:
+    @pytest.fixture(autouse=True)
+    def _require_docling(self):
+        pytest.importorskip("docling")
+
+    def should_build_real_converter_on_first_get(self):
+        from docling.document_converter import DocumentConverter
+
+        gateway = DoclingGateway(image_pipeline="standard", audio_asr_model="turbo")
+        converter = gateway._get_converter()
+
+        assert isinstance(converter, DocumentConverter)
+
+    def should_cache_converter_across_calls(self):
+        gateway = DoclingGateway(image_pipeline="standard", audio_asr_model="turbo")
+        first = gateway._get_converter()
+        second = gateway._get_converter()
+
+        assert first is second
+
+    def should_build_real_chunker_on_first_get(self):
+        from docling.chunking import HybridChunker
+
+        gateway = DoclingGateway(image_pipeline="standard", audio_asr_model="turbo")
+        chunker = gateway._get_chunker()
+
+        assert isinstance(chunker, HybridChunker)
+
+    def should_cache_chunker_across_calls(self):
+        gateway = DoclingGateway(image_pipeline="standard", audio_asr_model="turbo")
+        first = gateway._get_chunker()
+        second = gateway._get_chunker()
+
+        assert first is second

@@ -1,4 +1,12 @@
-from researcher.docling_config import AsrFormatConfig, ConverterConfig, VlmFormatConfig, build_converter_config
+import pytest
+
+from researcher.docling_config import (
+    AsrFormatConfig,
+    ConverterConfig,
+    VlmFormatConfig,
+    build_converter_config,
+    build_document_converter,
+)
 from researcher.model_registry import DEFAULT_VLM_PRESET
 
 
@@ -59,3 +67,53 @@ class DescribeBuildConverterConfig:
             vlm=VlmFormatConfig(preset="smoldocling"),
             asr=AsrFormatConfig(spec_name="WHISPER_TINY_MLX"),
         )
+
+
+class DescribeBuildDocumentConverter:
+    @pytest.fixture(autouse=True)
+    def _require_docling(self):
+        pytest.importorskip("docling")
+
+    def should_return_document_converter_for_standard_config(self):
+        from docling.datamodel.base_models import InputFormat
+        from docling.document_converter import DocumentConverter
+        from docling.pipeline.vlm_pipeline import VlmPipeline
+
+        config = ConverterConfig(vlm=None, asr=None)
+        converter = build_document_converter(config)
+
+        assert isinstance(converter, DocumentConverter)
+        image_opt = converter.format_to_options.get(InputFormat.IMAGE)
+        assert image_opt is None or image_opt.pipeline_cls is not VlmPipeline
+
+    def should_wire_vlm_pipeline_for_image_when_vlm_configured(self):
+        from docling.datamodel.base_models import InputFormat
+        from docling.pipeline.vlm_pipeline import VlmPipeline
+
+        config = ConverterConfig(vlm=VlmFormatConfig(preset="granite_docling"), asr=None)
+        converter = build_document_converter(config)
+
+        assert converter.format_to_options[InputFormat.IMAGE].pipeline_cls is VlmPipeline
+
+    def should_wire_asr_pipeline_for_audio_when_asr_configured(self):
+        from docling.datamodel.base_models import InputFormat
+        from docling.pipeline.asr_pipeline import AsrPipeline
+
+        config = ConverterConfig(vlm=None, asr=AsrFormatConfig(spec_name="WHISPER_TURBO"))
+        converter = build_document_converter(config)
+
+        assert converter.format_to_options[InputFormat.AUDIO].pipeline_cls is AsrPipeline
+
+    def should_wire_both_pipelines_when_vlm_and_asr_both_configured(self):
+        from docling.datamodel.base_models import InputFormat
+        from docling.pipeline.asr_pipeline import AsrPipeline
+        from docling.pipeline.vlm_pipeline import VlmPipeline
+
+        config = ConverterConfig(
+            vlm=VlmFormatConfig(preset="granite_docling"),
+            asr=AsrFormatConfig(spec_name="WHISPER_TURBO"),
+        )
+        converter = build_document_converter(config)
+
+        assert converter.format_to_options[InputFormat.IMAGE].pipeline_cls is VlmPipeline
+        assert converter.format_to_options[InputFormat.AUDIO].pipeline_cls is AsrPipeline

@@ -44,3 +44,11 @@ class DescribeOllamaEmbeddingGateway:
         gateway = OllamaEmbeddingGateway(model="mxbai-embed-large", client=_Fake())
         result = gateway.embed_texts(["test"])
         assert result == [[0.5]]
+
+
+class DescribeOllamaEmbeddingGatewayCreateClient:
+    def should_return_ollama_module(self):
+        ollama = pytest.importorskip("ollama")
+        gateway = OllamaEmbeddingGateway(model="nomic-embed-text")
+        client = gateway._create_client()
+        assert client is ollama

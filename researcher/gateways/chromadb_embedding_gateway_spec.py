@@ -40,3 +40,14 @@ class DescribeChromaDbEmbeddingGateway:
         result2 = gateway.embed_texts(["second"])
         assert result1 == [[1.0]]
         assert result2 == [[2.0]]
+
+
+class DescribeChromaDbEmbeddingGatewayDefaultEmbeddingFunction:
+    @pytest.mark.slow
+    def should_embed_texts_with_real_default_embedding_function(self):
+        pytest.importorskip("chromadb")
+        gateway = ChromaDbEmbeddingGateway()
+        result = gateway.embed_texts(["hello", "world"])
+        assert len(result) == 2
+        assert len(result[0]) == len(result[1])
+        assert len(result[0]) > 0

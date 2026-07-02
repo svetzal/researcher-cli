@@ -6,6 +6,8 @@ import pytest
 from researcher.config import RepositoryConfig
 from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import (
+    API_ONLY_PRESETS,
+    VLM_PRESET_REPOS,
     ModelRequirements,
     build_model_entries,
     hf_repo_id_to_cache_dir,
@@ -435,3 +437,15 @@ class DescribeResolveModelsForRepos:
 
         categories = {e.category for e in result}
         assert categories == {"docling", "huggingface", "chroma"}
+
+
+class DescribeVlmPresetValidity:
+    @pytest.fixture(autouse=True)
+    def _require_docling(self):
+        pytest.importorskip("docling")
+
+    @pytest.mark.parametrize("preset", [k for k in VLM_PRESET_REPOS if k not in API_ONLY_PRESETS])
+    def should_resolve_preset_without_error(self, preset):
+        from docling.datamodel.pipeline_options import VlmConvertOptions
+
+        VlmConvertOptions.from_preset(preset)

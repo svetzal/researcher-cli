@@ -57,3 +57,13 @@ class DescribeOpenAIEmbeddingGateway:
         result = gateway.embed_texts(["query"])
         assert result == [[0.5, 0.6]]
         assert calls[0] == "text-embedding-ada-002"
+
+
+class DescribeOpenAIEmbeddingGatewayCreateClient:
+    def should_return_openai_client(self, monkeypatch):
+        openai = pytest.importorskip("openai")
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        gateway = OpenAIEmbeddingGateway(model="text-embedding-3-small")
+        client = gateway._create_client()
+        assert isinstance(client, openai.OpenAI)
+        assert hasattr(client, "embeddings")

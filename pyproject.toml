@@ -48,6 +48,7 @@ python_files = ["*_spec.py"]
 python_classes = ["Describe*"]
 python_functions = ["should_*"]
 addopts = "--cov=researcher --cov-report=term-missing --cov-fail-under=90"
+markers = ["slow: marks tests as slow (e.g., model download on first run)"]
 
 [dependency-groups]
 dev = [
