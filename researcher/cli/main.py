@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -25,9 +27,8 @@ from researcher.cli.serializers import (
 from researcher.config import RepositoryConfig
 from researcher.enums import SearchMode
 from researcher.exceptions import ResearcherError
-from researcher.models import IndexingResult
 from researcher.service_factory import ServiceFactory
-from researcher.services.index_facade import remove_from_repo
+from researcher.services.index_facade import index_repos, remove_from_repo
 
 app = typer.Typer(
     name="researcher",
@@ -59,12 +60,12 @@ def _repos_or_empty(factory: ServiceFactory, repo_name: str | None, json_output:
 make_service_factory_callback(app)
 
 
-def _index_with_spinner(factory: ServiceFactory, repo: RepositoryConfig, force: bool) -> IndexingResult:
+@contextmanager
+def _spinner_for_repo(repo: RepositoryConfig):
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
         task = progress.add_task(f"Indexing [bold]{repo.name}[/bold]...", total=None)
-        result = factory.index_service(repo).index_repository(repo, force=force)
+        yield
         progress.remove_task(task)
-    return result
 
 
 @app.command("index")
@@ -85,13 +86,9 @@ def index_command(
             json_output=json_output,
         )
 
-    repo_results: list[dict] = []
-    for repo in repos:
-        if json_output:
-            result = factory.index_service(repo).index_repository(repo, force=force)
-        else:
-            result = _index_with_spinner(factory, repo, force)
-        repo_results.append(serialize_index_result(repo.name, result))
+    on_repo = None if json_output else _spinner_for_repo
+    results = index_repos(factory, repos, force=force, on_repo=on_repo)
+    repo_results = [serialize_index_result(name, result) for name, result in results]
 
     cli_output(
         build_json_results_wrapper(repo_results),

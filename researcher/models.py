@@ -4,6 +4,8 @@ from typing import NotRequired, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from researcher.config import RepositoryConfig
+
 
 class ChromaMetadata(TypedDict):
     document_path: str
@@ -106,3 +108,12 @@ class IndexStats(BaseModel):
     total_documents: int
     total_fragments: int
     last_indexed: datetime | None
+
+
+class RepoUpdateOutcome(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    repo: RepositoryConfig
+    added_patterns: list[str]
+    purged: int
+    no_purge: bool

@@ -9,6 +9,7 @@ from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
 from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
+from researcher.services.index_facade import update_repo_with_purge
 
 _DEFAULTS = RepositoryConfig(name="", path="")
 _vlm_names = ", ".join(sorted(set(VLM_PRESET_REPOS.keys()) | API_ONLY_PRESETS))
@@ -137,21 +138,13 @@ def update_repo(
 ) -> None:
     factory: ServiceFactory = ctx.obj
     types = [t.strip() for t in file_types.split(",")] if file_types else None
-    repo, added_patterns = factory.repository_service.update_repository(
-        name=name,
-        options=_build_repo_options(
-            types, embedding_provider, embedding_model, image_pipeline, image_vlm_model, audio_asr_model
-        ),
-        add_exclude_patterns=exclude or [],
+    options = _build_repo_options(
+        types, embedding_provider, embedding_model, image_pipeline, image_vlm_model, audio_asr_model
     )
-    purged = 0
-    if added_patterns and not no_purge:
-        index_svc = factory.index_service(repo)
-        purged = index_svc.purge_excluded_documents(repo)
-
+    outcome = update_repo_with_purge(factory, name, options, exclude or [], no_purge)
     cli_output(
-        repo.model_dump() | {"purged_documents": purged},
-        lambda: present_repo_update(repo, added_patterns, purged, no_purge, console),
+        outcome.repo.model_dump() | {"purged_documents": outcome.purged},
+        lambda: present_repo_update(outcome.repo, outcome.added_patterns, outcome.purged, outcome.no_purge, console),
         json_output=json_output,
     )
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Index and repo-update orchestration moved from the CLI into the service/facade layer: `update_repo_with_purge` and `index_repos` now live in `researcher/services/index_facade.py`; CLI commands `index` and `repo update` are reduced to presentation wiring with no domain branching (internal refactor, no behavior change)
+
 ### Fixed
 
 - Added test coverage for imperative-shell branching logic that was previously untested: `build_document_converter` (VLM-only, ASR-only, both, and standard branches in `docling_config.py`); `DoclingGateway`'s real converter and chunker construction via `_get_converter`/`_get_chunker` including memoization; all 10 VLM preset names validated against `VlmConvertOptions.from_preset`; all 12 ASR model/platform combinations validated against `docling.datamodel.asr_model_specs`; `ChromaDbEmbeddingGateway`'s real `DefaultEmbeddingFunction` path exercised end-to-end; `_create_client` paths for `OpenAIEmbeddingGateway` and `OllamaEmbeddingGateway` guarded with `importorskip` and exercised when the optional packages are available
