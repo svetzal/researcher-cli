@@ -2,9 +2,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from researcher.cli.payloads import IndexResultPayload, IndexStatsPayload
 from researcher.config import RepositoryConfig
-from researcher.models import DocumentSearchResult, SearchResult
+from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
 from researcher.services.model_archive_service import PackResult
 
 _INDEX_COUNT_LABELS = [
@@ -16,23 +15,23 @@ _INDEX_COUNT_LABELS = [
 ]
 
 
-def present_index_results(repo_results: list[IndexResultPayload], console: Console) -> None:
-    for serialized in repo_results:
-        counts = ", ".join(f"{serialized[key]} {label}" for key, label in _INDEX_COUNT_LABELS)
-        console.print(f"[green]✓[/green] [bold]{serialized['repository']}[/bold]: {counts}")
-        for error in serialized["errors"]:
+def present_index_results(repo_results: list[tuple[str, IndexingResult]], console: Console) -> None:
+    for name, result in repo_results:
+        counts = ", ".join(f"{getattr(result, key)} {label}" for key, label in _INDEX_COUNT_LABELS)
+        console.print(f"[green]✓[/green] [bold]{name}[/bold]: {counts}")
+        for error in result.errors:
             console.print(f"  [red]✗[/red] {error}")
 
 
-def present_status(repo_stats: list[IndexStatsPayload], console: Console) -> None:
+def present_status(repo_stats: list[IndexStats], console: Console) -> None:
     for stat in repo_stats:
         table = Table(show_header=False, box=None)
         table.add_column("Key", style="bold")
         table.add_column("Value")
-        table.add_row("Repository", stat["repository_name"])
-        table.add_row("Documents", str(stat["total_documents"]))
-        table.add_row("Fragments", str(stat["total_fragments"]))
-        table.add_row("Last Indexed", stat["last_indexed"] or "[dim]never[/dim]")
+        table.add_row("Repository", stat.repository_name)
+        table.add_row("Documents", str(stat.total_documents))
+        table.add_row("Fragments", str(stat.total_fragments))
+        table.add_row("Last Indexed", stat.last_indexed.isoformat() if stat.last_indexed else "[dim]never[/dim]")
         console.print(table)
 
 

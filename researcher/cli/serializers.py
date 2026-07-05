@@ -1,33 +1,24 @@
 from pathlib import Path
 
 from researcher.cli.payloads import (
-    DocumentSearchResultPayload,
-    FragmentResultPayload,
-    IndexResultPayload,
-    IndexStatsPayload,
     PackEntryPayload,
     PackResultPayload,
     RepositoriesWrapper,
     SearchEnvelope,
-    TopFragmentPayload,
     UnpackResultPayload,
 )
+from researcher.cli.wire import DocumentWireResult, FragmentWireResult
 from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
 from researcher.services.model_archive_service import PackResult, UnpackResult
 
 
-def serialize_index_result(repo_name: str, result: IndexingResult) -> IndexResultPayload:
+def serialize_index_result(repo_name: str, result: IndexingResult) -> dict[str, object]:
     return {"repository": repo_name, **result.model_dump()}
 
 
-def serialize_index_stats(stats: IndexStats) -> IndexStatsPayload:
-    return {
-        "repository_name": stats.repository_name,
-        "total_documents": stats.total_documents,
-        "total_fragments": stats.total_fragments,
-        "last_indexed": stats.last_indexed.isoformat() if stats.last_indexed else None,
-    }
+def serialize_index_stats(stats: IndexStats) -> dict[str, object]:
+    return stats.model_dump(mode="json")
 
 
 def _repo_identity(repos: list[RepositoryConfig]) -> tuple[str | None, list[str]]:
@@ -39,7 +30,7 @@ def _search_envelope(
     mode: str,
     repository: str | None,
     repos_searched: list[str],
-    results: list[FragmentResultPayload] | list[DocumentSearchResultPayload],
+    results: list[dict[str, object]],
 ) -> SearchEnvelope:
     return {
         "query": query,
@@ -56,15 +47,7 @@ def serialize_fragment_search(
     query: str,
     results: list[SearchResult],
 ) -> SearchEnvelope:
-    results_data: list[FragmentResultPayload] = [
-        {
-            "document_path": r.document_path,
-            "fragment_index": r.fragment_index,
-            "distance": r.distance,
-            "text": r.text,
-        }
-        for r in results
-    ]
+    results_data = [FragmentWireResult.from_domain(r).model_dump(mode="json") for r in results]
     repository, repos_searched = _repo_identity(repos)
     return _search_envelope(query, "fragments", repository, repos_searched, results_data)
 
@@ -74,26 +57,7 @@ def serialize_document_search(
     query: str,
     results: list[DocumentSearchResult],
 ) -> SearchEnvelope:
-    results_data: list[DocumentSearchResultPayload] = []
-    for doc_result in results:
-        top = doc_result.top_fragment
-        top_payload: TopFragmentPayload | None = (
-            {
-                "text": top.text,
-                "fragment_index": top.fragment_index,
-                "distance": top.distance,
-            }
-            if top
-            else None
-        )
-        results_data.append(
-            {
-                "document_path": doc_result.document_path,
-                "best_distance": doc_result.best_distance,
-                "fragment_count": doc_result.fragment_count,
-                "top_fragment": top_payload,
-            }
-        )
+    results_data = [DocumentWireResult.from_domain(r).model_dump(mode="json") for r in results]
     repository, repos_searched = _repo_identity(repos)
     return _search_envelope(query, "documents", repository, repos_searched, results_data)
 
@@ -121,5 +85,5 @@ def serialize_unpack_result(archive: Path, result: UnpackResult) -> UnpackResult
     }
 
 
-def build_json_results_wrapper(results: list[IndexResultPayload]) -> RepositoriesWrapper:
+def build_json_results_wrapper(results: list[dict[str, object]]) -> RepositoriesWrapper:
     return {"repositories": results}

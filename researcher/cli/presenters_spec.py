@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from researcher.cli.presenters import (
     present_status,
 )
 from researcher.conftest import make_repo, make_search_result
-from researcher.models import DocumentSearchResult
+from researcher.models import DocumentSearchResult, IndexingResult, IndexStats
 from researcher.services.model_archive_service import PackResult
 
 
@@ -22,17 +23,19 @@ def _make_console() -> Console:
 
 
 class DescribePresentIndexResults:
-    def should_display_summary_from_serialized_results(self):
+    def should_display_summary_from_domain_models(self):
         repo_results = [
-            {
-                "repository": "my-notes",
-                "documents_indexed": 3,
-                "documents_skipped": 10,
-                "documents_failed": 0,
-                "documents_purged": 0,
-                "fragments_created": 15,
-                "errors": [],
-            }
+            (
+                "my-notes",
+                IndexingResult(
+                    documents_indexed=3,
+                    documents_skipped=10,
+                    documents_failed=0,
+                    documents_purged=0,
+                    fragments_created=15,
+                    errors=[],
+                ),
+            )
         ]
         console = _make_console()
 
@@ -43,17 +46,19 @@ class DescribePresentIndexResults:
         assert "10 skipped" in output
         assert "my-notes" in output
 
-    def should_display_errors_from_serialized_results(self):
+    def should_display_errors_from_domain_models(self):
         repo_results = [
-            {
-                "repository": "my-notes",
-                "documents_indexed": 0,
-                "documents_skipped": 0,
-                "documents_failed": 1,
-                "documents_purged": 0,
-                "fragments_created": 0,
-                "errors": ["Failed to parse bad.pdf"],
-            }
+            (
+                "my-notes",
+                IndexingResult(
+                    documents_indexed=0,
+                    documents_skipped=0,
+                    documents_failed=1,
+                    documents_purged=0,
+                    fragments_created=0,
+                    errors=["Failed to parse bad.pdf"],
+                ),
+            )
         ]
         console = _make_console()
 
@@ -65,12 +70,12 @@ class DescribePresentIndexResults:
 class DescribePresentStatus:
     def should_display_all_stat_fields(self):
         stats = [
-            {
-                "repository_name": "my-notes",
-                "total_documents": 42,
-                "total_fragments": 318,
-                "last_indexed": "2026-02-20T10:00:00",
-            }
+            IndexStats(
+                repository_name="my-notes",
+                total_documents=42,
+                total_fragments=318,
+                last_indexed=datetime(2026, 2, 20, 10, 0, 0),
+            )
         ]
         console = _make_console()
 
@@ -84,12 +89,12 @@ class DescribePresentStatus:
 
     def should_show_never_when_last_indexed_is_none(self):
         stats = [
-            {
-                "repository_name": "fresh-repo",
-                "total_documents": 0,
-                "total_fragments": 0,
-                "last_indexed": None,
-            }
+            IndexStats(
+                repository_name="fresh-repo",
+                total_documents=0,
+                total_fragments=0,
+                last_indexed=None,
+            )
         ]
         console = _make_console()
 

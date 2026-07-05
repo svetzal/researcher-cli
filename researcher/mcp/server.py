@@ -1,6 +1,6 @@
 import fastmcp
 
-from researcher.cli.payloads import IndexStatsPayload, IndexStatusWrapper
+from researcher.cli.payloads import IndexStatusWrapper
 from researcher.config import RepositoryConfig
 from researcher.error_boundary import handle_boundary_errors
 from researcher.exceptions import ResearcherError
@@ -71,7 +71,7 @@ def list_repositories() -> list[RepositoryConfig]:
 
 @mcp.tool
 @_mcp_errors(lambda e: {"error": str(e)})
-def get_index_status(repository: str | None = None) -> IndexStatsPayload | IndexStatusWrapper:
+def get_index_status(repository: str | None = None) -> dict[str, object] | IndexStatusWrapper:
     statuses = [s.model_dump(mode="json") for s in get_repo_status(_get_factory(), repository)]
     if len(statuses) == 1:
         return statuses[0]

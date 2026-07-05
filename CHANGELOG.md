@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Serialization layer now derives JSON payloads from domain models rather than parallel TypedDicts, so adding a model field no longer requires coordinated edits across serializers/presenters/payloads; `IndexResultPayload`, `IndexStatsPayload`, `FragmentResultPayload`, `TopFragmentPayload`, and `DocumentSearchResultPayload` TypedDicts have been removed; search wire shapes are declared once as Pydantic models (`FragmentWireResult`, `TopFragmentWire`, `DocumentWireResult`) in `researcher/cli/wire.py`; `present_status` and `present_index_results` now consume domain models directly instead of pre-serialized dicts
+
+### Changed
+
 - Index and repo-update orchestration moved from the CLI into the service/facade layer: `update_repo_with_purge` and `index_repos` now live in `researcher/services/index_facade.py`; CLI commands `index` and `repo update` are reduced to presentation wiring with no domain branching (internal refactor, no behavior change)
 
 ### Fixed

@@ -70,6 +70,20 @@ class DescribeSerializeIndexResult:
         assert data["documents_failed"] == 1
         assert "Failed to parse file.md" in data["errors"]
 
+    def should_expose_every_indexing_result_field(self):
+        result = IndexingResult(
+            documents_indexed=1,
+            documents_skipped=2,
+            documents_failed=0,
+            documents_purged=0,
+            fragments_created=5,
+            errors=[],
+        )
+
+        serialized = serialize_index_result("r", result)
+
+        assert set(serialized) == {"repository"} | set(IndexingResult.model_fields)
+
 
 class DescribeSerializeIndexStats:
     def should_include_all_fields(self):
@@ -89,6 +103,13 @@ class DescribeSerializeIndexStats:
         data = serialize_index_stats(stats)
 
         assert data["last_indexed"] == "2026-02-20T10:00:00"
+
+    def should_expose_every_index_stats_field(self):
+        stats = IndexStats(repository_name="r", total_documents=1, total_fragments=10, last_indexed=None)
+
+        serialized = serialize_index_stats(stats)
+
+        assert set(serialized) == set(IndexStats.model_fields)
 
 
 class DescribeSerializeFragmentSearch:

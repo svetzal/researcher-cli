@@ -88,11 +88,10 @@ def index_command(
 
     on_repo = None if json_output else _spinner_for_repo
     results = index_repos(factory, repos, force=force, on_repo=on_repo)
-    repo_results = [serialize_index_result(name, result) for name, result in results]
 
     cli_output(
-        build_json_results_wrapper(repo_results),
-        lambda: present_index_results(repo_results, console),
+        build_json_results_wrapper([serialize_index_result(name, r) for name, r in results]),
+        lambda: present_index_results(results, console),
         json_output=json_output,
     )
 
@@ -128,11 +127,11 @@ def status_command(
     if not repos:
         exit_no_repos({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
 
-    repo_stats = [serialize_index_stats(factory.index_service(repo).get_stats()) for repo in repos]
+    stats = [factory.index_service(repo).get_stats() for repo in repos]
 
     cli_output(
-        build_json_results_wrapper(repo_stats),
-        lambda: present_status(repo_stats, console),
+        build_json_results_wrapper([serialize_index_stats(s) for s in stats]),
+        lambda: present_status(stats, console),
         json_output=json_output,
     )
 
