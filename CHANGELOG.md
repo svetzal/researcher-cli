@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: fastmcp 3.4.2 → 3.4.3, fastmcp-slim 3.4.2 → 3.4.3, grpcio 1.81.1 → 1.82.0
+
+### Changed
+
 - MCP server injects `ServiceFactory` via `build_server(factory)` instead of a module-level mutable singleton; `ResearcherTools` class holds the injected factory; `set_factory()` test-only seam removed; `start_server` constructs the factory locally and passes it to `build_server` (internal refactor, no behavior change)
 
 - Serialization layer now derives JSON payloads from domain models rather than parallel TypedDicts, so adding a model field no longer requires coordinated edits across serializers/presenters/payloads; `IndexResultPayload`, `IndexStatsPayload`, `FragmentResultPayload`, `TopFragmentPayload`, and `DocumentSearchResultPayload` TypedDicts have been removed; search wire shapes are declared once as Pydantic models (`FragmentWireResult`, `TopFragmentWire`, `DocumentWireResult`) in `researcher/cli/wire.py`; `present_status` and `present_index_results` now consume domain models directly instead of pre-serialized dicts
