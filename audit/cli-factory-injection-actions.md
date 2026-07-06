@@ -25,7 +25,7 @@ A single shared `researcher/conftest.py` provides `Mock(spec=ServiceFactory)` to
 |---|---|---|
 | `checksum_gateway.py` | `datetime.fromtimestamp(mtime, tz=datetime.UTC)` | Naive datetime is deprecated in 3.12; UTC alias is idiomatic 3.11+ |
 | `embedding_gateway.py` | `_dispatch` dict replaces `if/elif/else` | Eliminates implicit fall-through to openai; unknown providers now raise explicitly |
-| `mcp/server.py` | `_factory = None` + `_get_factory()` + `set_factory()` | Prevents real `ServiceFactory()` from being constructed at module import time during tests; keeps the same lazy-singleton semantics in production |
+| `mcp/server.py` | `_factory = None` + `_get_factory()` + `set_factory()` | Prevented real `ServiceFactory()` from being constructed at module import time during tests; subsequently replaced by `build_server(factory)` constructor injection — `set_factory()` and the mutable singleton are gone |
 
 ### What did NOT change
 
@@ -41,7 +41,8 @@ via runner.invoke(app, ..., obj=mock_factory), removing all 37 patch blocks
 across the CLI test suite. A shared researcher/conftest.py provides the
 mock_factory fixture to every test package.
 
-Also: MCP server adopts _get_factory()/_set_factory() lazy pattern; 
-ChecksumGateway.last_modified uses timezone-aware UTC datetime; 
+Also: MCP server adopts _get_factory()/_set_factory() lazy pattern (later
+replaced by build_server(factory) constructor injection);
+ChecksumGateway.last_modified uses timezone-aware UTC datetime;
 EmbeddingGateway uses a dispatch dict for provider selection.
 ```
