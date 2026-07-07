@@ -1,13 +1,10 @@
 from pathlib import Path
 
 from researcher.cli.payloads import (
-    PackEntryPayload,
-    PackResultPayload,
     RepositoriesWrapper,
     SearchEnvelope,
-    UnpackResultPayload,
 )
-from researcher.cli.wire import DocumentWireResult, FragmentWireResult
+from researcher.cli.wire import DocumentWireResult, FragmentWireResult, PackResultWire, UnpackResultWire
 from researcher.config import RepositoryConfig
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
 from researcher.services.model_archive_service import PackResult, UnpackResult
@@ -66,23 +63,12 @@ def serialize_empty_search(query: str, mode: str, repo: str | None) -> SearchEnv
     return _search_envelope(query, mode, repo, [], [])
 
 
-def serialize_pack_result(result: PackResult) -> PackResultPayload:
-    entries: list[PackEntryPayload] = [
-        {"category": entry.category, "archive_path": entry.archive_path} for entry in result.entries
-    ]
-    return {
-        "archive": str(result.archive_path),
-        "total_files": result.total_files,
-        "entries": entries,
-    }
+def serialize_pack_result(result: PackResult) -> dict[str, object]:
+    return PackResultWire.from_domain(result).model_dump(mode="json")
 
 
-def serialize_unpack_result(archive: Path, result: UnpackResult) -> UnpackResultPayload:
-    return {
-        "archive": str(archive),
-        "entries_restored": result.entries_restored,
-        "files_extracted": result.files_extracted,
-    }
+def serialize_unpack_result(archive: Path, result: UnpackResult) -> dict[str, object]:
+    return UnpackResultWire.from_domain(archive, result).model_dump(mode="json")
 
 
 def build_json_results_wrapper(results: list[dict[str, object]]) -> RepositoriesWrapper:

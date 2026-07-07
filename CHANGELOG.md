@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Unify JSON serialization on derived Pydantic wire models; remove parallel pack/unpack TypedDict payloads (`PackEntryPayload`, `PackResultPayload`, `UnpackResultPayload`) in favour of `PackEntryWire`, `PackResultWire`, and `UnpackResultWire` in `researcher/cli/wire.py`
+
 - Updated dependencies: fastmcp 3.4.2 → 3.4.3, fastmcp-slim 3.4.2 → 3.4.3, grpcio 1.81.1 → 1.82.0
 
 ### Changed
