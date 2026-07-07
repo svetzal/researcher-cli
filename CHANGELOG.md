@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: cffi 2.0.0 → 2.1.0, charset-normalizer 3.4.7 → 3.4.8, docling-parse 7.5.0 → 7.6.0, filelock 3.29.5 → 3.29.6, mlx-vlm 0.6.3 → 0.6.4, uvicorn 0.50.0 → 0.50.2, xxhash 3.8.0 → 3.8.1
+
+### Changed
+
 - Unify JSON serialization on derived Pydantic wire models; remove parallel pack/unpack TypedDict payloads (`PackEntryPayload`, `PackResultPayload`, `UnpackResultPayload`) in favour of `PackEntryWire`, `PackResultWire`, and `UnpackResultWire` in `researcher/cli/wire.py`
 
 - Updated dependencies: fastmcp 3.4.2 → 3.4.3, fastmcp-slim 3.4.2 → 3.4.3, grpcio 1.81.1 → 1.82.0
