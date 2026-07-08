@@ -26,7 +26,7 @@ class RepositoryService:
         if self._find_repository(config, name) is not None:
             raise RepositoryAlreadyExistsError(f"Repository '{name}' already exists")
 
-        kwargs = (options or RepoConfigOptions()).to_filtered_dict()
+        kwargs = (options or RepoConfigOptions()).model_dump(exclude_none=True)
         if exclude_patterns is not None:
             kwargs["exclude_patterns"] = exclude_patterns
         repo = RepositoryConfig(name=name, path=path, **kwargs)
@@ -71,7 +71,7 @@ class RepositoryService:
         if repo is None:
             raise RepositoryNotFoundError(f"Repository '{name}' not found")
 
-        updates = (options or RepoConfigOptions()).to_filtered_dict()
+        updates = (options or RepoConfigOptions()).model_dump(exclude_none=True)
 
         existing = repo.exclude_patterns
         added = [p for p in (add_exclude_patterns or []) if p not in existing]

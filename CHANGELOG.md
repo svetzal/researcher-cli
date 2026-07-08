@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Convert `RepoConfigOptions` from a `@dataclasses.dataclass` to a Pydantic `BaseModel`, replacing the hand-rolled `to_filtered_dict` method with `model_dump(exclude_none=True)` for consistency with the rest of the config module (internal refactor, no behavior change)
+
 - Updated dependencies: cffi 2.0.0 → 2.1.0, charset-normalizer 3.4.7 → 3.4.8, docling-parse 7.5.0 → 7.6.0, filelock 3.29.5 → 3.29.6, mlx-vlm 0.6.3 → 0.6.4, uvicorn 0.50.0 → 0.50.2, xxhash 3.8.0 → 3.8.1
 
 ### Changed

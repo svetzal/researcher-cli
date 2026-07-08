@@ -1,12 +1,9 @@
-import dataclasses
-
 from pydantic import BaseModel, Field
 
 from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
 
 
-@dataclasses.dataclass
-class RepoConfigOptions:
+class RepoConfigOptions(BaseModel):
     """Optional config fields shared between add and update repository operations."""
 
     file_types: list[str] | None = None
@@ -15,9 +12,6 @@ class RepoConfigOptions:
     image_pipeline: ImagePipeline | None = None
     image_vlm_model: str | None = None
     audio_asr_model: AudioAsrModel | None = None
-
-    def to_filtered_dict(self) -> dict:
-        return {k: v for k, v in dataclasses.asdict(self).items() if v is not None}
 
 
 class RepositoryConfig(BaseModel):
