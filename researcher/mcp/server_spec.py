@@ -135,7 +135,7 @@ class DescribeMcpServer:
         repo = RepositoryConfig(name="test-repo", path="/tmp")
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
-        mock_index_service.index_file.side_effect = StorageError("disk full")
+        mock_index_service.index_and_store_file.side_effect = StorageError("disk full")
         mock_factory.index_service.return_value = mock_index_service
 
         result = tools.add_to_index("test-repo", "/tmp/file.md")

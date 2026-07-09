@@ -6,7 +6,7 @@ from researcher.error_boundary import handle_boundary_errors
 from researcher.exceptions import ResearcherError
 from researcher.models import DocumentSearchResult, SearchResult
 from researcher.service_factory import ServiceFactory
-from researcher.services.index_facade import get_repo_status, index_file_in_repo, remove_from_repo
+from researcher.services.index_facade import get_repo_status, index_and_store_file_in_repo, remove_from_repo
 from researcher.services.multi_repo_search import (
     search_documents_across_repos,
     search_fragments_across_repos,
@@ -23,7 +23,7 @@ class ResearcherTools:
 
     @_mcp_errors(lambda e: f"Error: {e}")
     def add_to_index(self, repository: str, file_path: str) -> str:
-        chunk_result = index_file_in_repo(self._factory, repository, file_path)
+        chunk_result = index_and_store_file_in_repo(self._factory, repository, file_path)
         count = len(chunk_result.fragments) if chunk_result else 0
         return f"Indexed {count} fragments from {file_path}"
 

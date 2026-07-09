@@ -1,15 +1,58 @@
 from datetime import datetime
 
+import pytest
+
 from researcher.models import (
     ChunkResult,
     DocumentMetadata,
     DocumentSearchResult,
+    FileOutcome,
+    FileProcessResult,
     Fragment,
     FragmentWithEmbedding,
     IndexingResult,
     IndexStats,
     SearchResult,
 )
+
+
+class DescribeFileProcessResult:
+    def should_default_optional_fields_to_none(self):
+        result = FileProcessResult(outcome=FileOutcome.SKIPPED)
+
+        assert result.checksum is None
+        assert result.error is None
+        assert result.document_path == ""
+        assert result.fragments_created == 0
+
+    def should_carry_checksum_and_document_path_for_indexed_outcome(self):
+        result = FileProcessResult(
+            outcome=FileOutcome.INDEXED,
+            document_path="/docs/file.md",
+            checksum="abc123",
+            fragments_created=5,
+        )
+
+        assert result.checksum == "abc123"
+        assert result.document_path == "/docs/file.md"
+        assert result.fragments_created == 5
+
+    def should_carry_error_message_for_failed_outcome(self):
+        result = FileProcessResult(
+            outcome=FileOutcome.FAILED,
+            document_path="/docs/bad.pdf",
+            error="/docs/bad.pdf: conversion failed",
+        )
+
+        assert result.error == "/docs/bad.pdf: conversion failed"
+
+    def should_reject_mutation(self):
+        from pydantic import ValidationError
+
+        result = FileProcessResult(outcome=FileOutcome.SKIPPED)
+
+        with pytest.raises((ValidationError, TypeError)):
+            result.outcome = FileOutcome.INDEXED  # type: ignore[misc]
 
 
 class DescribeDocumentMetadata:

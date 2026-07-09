@@ -1,16 +1,18 @@
 from datetime import datetime
 from pathlib import Path
+from types import MappingProxyType
 from unittest.mock import Mock
 
 import pytest
 
 from researcher.config import RepositoryConfig
-from researcher.exceptions import DocumentConversionError
+from researcher.exceptions import DocumentConversionError, StorageError
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
+from researcher.models import FileOutcome
 from researcher.path_exclusion import is_path_excluded
 from researcher.services.index_service import IndexService
 
@@ -238,6 +240,67 @@ class DescribeIndexService:
 
         assert result.documents_indexed == 1
         assert result.fragments_created == 1
+
+    def should_not_call_checksums_load_when_force_is_true(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
+    ):
+        file_path = Path("/tmp/docs/doc.md")
+        mock_filesystem.list_files.return_value = [file_path]
+        mock_filesystem.compute_checksum.return_value = "abc123"
+        mock_filesystem.read_file.return_value = "Some text"
+
+        service.index_repository(repo_config, force=True)
+
+        mock_checksums.load.assert_not_called()
+
+    def should_chunk_plain_text_file_without_calling_embedding_or_chroma(
+        self, service, mock_filesystem, mock_embedding, mock_chroma, mock_checksums
+    ):
+        file_path = Path("/tmp/docs/notes.txt")
+        mock_filesystem.read_file.return_value = "Some plain text content"
+
+        service.chunk_file(file_path)
+
+        mock_embedding.embed_texts.assert_not_called()
+        mock_chroma.add_fragments_with_embeddings.assert_not_called()
+
+    def should_call_embedding_and_chroma_when_index_and_store_file(
+        self, service, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums
+    ):
+        file_path = Path("/tmp/docs/doc.pdf")
+        mock_docling.convert.return_value = "mock_document"
+        mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
+
+        service.index_and_store_file(file_path)
+
+        mock_embedding.embed_texts.assert_called_once()
+        mock_chroma.add_fragments_with_embeddings.assert_called_once()
+
+    def should_return_failed_result_with_error_text_on_storage_error(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
+    ):
+        file_path = Path("/tmp/docs/bad.pdf")
+        mock_filesystem.compute_checksum.return_value = "checksum"
+        mock_docling.convert.side_effect = StorageError("disk full")
+
+        result = service._process_file(file_path, {})
+
+        assert result.outcome == FileOutcome.FAILED
+        assert result.error is not None
+        assert "disk full" in result.error
+
+    def should_not_mutate_checksums_mapping_in_process_file(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
+    ):
+        file_path = Path("/tmp/docs/notes.txt")
+        mock_filesystem.compute_checksum.return_value = "abc123"
+        mock_filesystem.read_file.return_value = "Some plain text"
+        frozen = MappingProxyType({})
+
+        # Must not raise even though frozen cannot be mutated
+        result = service._process_file(file_path, frozen)
+
+        assert result.outcome == FileOutcome.INDEXED
 
     def should_purge_excluded_documents_during_indexing(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums

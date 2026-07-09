@@ -22,7 +22,10 @@ class FileProcessResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     outcome: FileOutcome
+    document_path: str = ""
     fragments_created: int = 0
+    checksum: str | None = None
+    error: str | None = None
 
 
 class DocumentMetadata(BaseModel):

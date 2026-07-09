@@ -7,11 +7,16 @@ from researcher.conftest import make_repo
 from researcher.exceptions import StorageError
 from researcher.models import IndexingResult
 from researcher.service_factory import ServiceFactory
-from researcher.services.index_facade import index_file_in_repo, index_repos, remove_from_repo, update_repo_with_purge
+from researcher.services.index_facade import (
+    index_and_store_file_in_repo,
+    index_repos,
+    remove_from_repo,
+    update_repo_with_purge,
+)
 from researcher.services.index_service import IndexService
 
 
-class DescribeIndexFileInRepo:
+class DescribeIndexAndStoreFileInRepo:
     @pytest.fixture
     def mock_factory(self):
         return Mock(spec=ServiceFactory)
@@ -20,14 +25,14 @@ class DescribeIndexFileInRepo:
     def mock_index_service(self):
         return Mock(spec=IndexService)
 
-    def should_propagate_storage_error_from_index_file(self, mock_factory, mock_index_service):
+    def should_propagate_storage_error_from_index_and_store_file(self, mock_factory, mock_index_service):
         repo = make_repo("test-repo")
         mock_factory.repository_service.get_repository.return_value = repo
         mock_factory.index_service.return_value = mock_index_service
-        mock_index_service.index_file.side_effect = StorageError("disk full")
+        mock_index_service.index_and_store_file.side_effect = StorageError("disk full")
 
         with pytest.raises(StorageError):
-            index_file_in_repo(mock_factory, "test-repo", "/tmp/file.md")
+            index_and_store_file_in_repo(mock_factory, "test-repo", "/tmp/file.md")
 
 
 class DescribeRemoveFromRepo:

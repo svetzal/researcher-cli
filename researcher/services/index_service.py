@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from pathlib import Path
 
 import structlog
@@ -12,6 +13,7 @@ from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
+from researcher.indexing_core import FileAction, decide_file_action, fold_outcomes
 from researcher.models import (
     ChunkResult,
     FileOutcome,
@@ -45,65 +47,53 @@ class IndexService:
 
     def index_repository(self, config: RepositoryConfig, *, force: bool = False) -> IndexingResult:
         purged = self.purge_excluded_documents(config)
-        result = IndexingResult(
-            documents_indexed=0,
-            documents_skipped=0,
-            documents_failed=0,
-            documents_purged=purged,
-            fragments_created=0,
-        )
-        checksums = self._checksums.load()
-        if force:
-            checksums.clear()
+        prior: dict[str, str] = {} if force else self._checksums.load()
         files = self._filesystem.list_files(config.file_types, config.exclude_patterns)
 
-        for file_path in files:
-            outcome = self._process_file(file_path, checksums, config, result.errors)
-            if outcome.outcome == FileOutcome.INDEXED:
-                result.documents_indexed += 1
-                result.fragments_created += outcome.fragments_created
-            elif outcome.outcome == FileOutcome.SKIPPED:
-                result.documents_skipped += 1
-            else:
-                result.documents_failed += 1
+        outcomes = [self._process_file(f, prior) for f in files]
 
+        result, checksums = fold_outcomes(outcomes, prior, purged)
         self._checksums.save(checksums)
         return result
 
-    def _process_file(
-        self,
-        file_path: Path,
-        checksums: dict,
-        config: RepositoryConfig,
-        errors: list[str],
-    ) -> FileProcessResult:
+    def _process_file(self, file_path: Path, checksums: Mapping[str, str]) -> FileProcessResult:
         document_path = str(file_path)
         try:
             current_checksum = self._filesystem.compute_checksum(file_path)
-            if checksums.get(document_path) == current_checksum:
-                return FileProcessResult(outcome=FileOutcome.SKIPPED)
+            action = decide_file_action(document_path, current_checksum, checksums)
 
-            if document_path in checksums:
+            if action == FileAction.SKIP:
+                return FileProcessResult(outcome=FileOutcome.SKIPPED, document_path=document_path)
+
+            if action == FileAction.REINDEX:
                 self._chroma.delete_by_document(COLLECTION_NAME, document_path)
 
-            chunk_result = self.index_file(file_path, config)
+            chunk_result = self.index_and_store_file(file_path)
             if chunk_result is None:
-                return FileProcessResult(outcome=FileOutcome.SKIPPED)
-            checksums[document_path] = current_checksum
+                return FileProcessResult(outcome=FileOutcome.SKIPPED, document_path=document_path)
+
             fragment_count = len(chunk_result.fragments)
             logger.info("Indexed file", path=document_path, fragments=fragment_count)
-            return FileProcessResult(outcome=FileOutcome.INDEXED, fragments_created=fragment_count)
+            return FileProcessResult(
+                outcome=FileOutcome.INDEXED,
+                document_path=document_path,
+                fragments_created=fragment_count,
+                checksum=current_checksum,
+            )
 
         except (StorageError, EmbeddingError, DocumentConversionError) as e:
-            errors.append(f"{document_path}: {e}")
             logger.error("Failed to index file", path=document_path, error=str(e))
-            return FileProcessResult(outcome=FileOutcome.FAILED)
+            return FileProcessResult(
+                outcome=FileOutcome.FAILED,
+                document_path=document_path,
+                error=f"{document_path}: {e}",
+            )
 
     def _is_plain_text(self, file_path: Path) -> bool:
         return file_path.suffix.lstrip(".").lower() in PLAIN_TEXT_EXTENSIONS
 
-    def index_file(self, file_path: Path, config: RepositoryConfig) -> ChunkResult | None:
-        """Convert, chunk, embed, and store a single file.
+    def chunk_file(self, file_path: Path) -> ChunkResult | None:
+        """Convert and chunk a single file without storing the result.
 
         Returns None when the file requires docling but docling is unavailable.
         """
@@ -120,22 +110,22 @@ class IndexService:
             logger.warning("Skipping non-plain-text file (docling unavailable)", path=document_path)
             return None
 
-        if not fragments:
-            return ChunkResult(document_path=document_path, fragments=[])
-
-        self._store_fragments(document_path, fragments)
-
         return ChunkResult(document_path=document_path, fragments=fragments)
 
-    def _base_storage_payloads(self, document_path: str, fragments: list[Fragment]) -> list[dict]:
-        return [
-            {
-                "id": f"{document_path}::{i}",
-                "text": fragment.text,
-                "metadata": {"document_path": document_path, "fragment_index": fragment.fragment_index},
-            }
-            for i, fragment in enumerate(fragments)
-        ]
+    def store_chunks(self, chunk_result: ChunkResult) -> None:
+        """Embed and store a chunk result in the vector database."""
+        if chunk_result.fragments:
+            self._store_fragments(chunk_result.document_path, chunk_result.fragments)
+
+    def index_and_store_file(self, file_path: Path) -> ChunkResult | None:
+        """Convert, chunk, embed, and store a single file.
+
+        Returns None when the file requires docling but docling is unavailable.
+        """
+        chunk_result = self.chunk_file(file_path)
+        if chunk_result is not None:
+            self.store_chunks(chunk_result)
+        return chunk_result
 
     def _build_storage_fragments(
         self,
@@ -143,9 +133,14 @@ class IndexService:
         fragments: list[Fragment],
         embeddings: list[list[float]],
     ) -> list[FragmentWithEmbedding]:
-        payloads = self._base_storage_payloads(document_path, fragments)
         return [
-            FragmentWithEmbedding(**p, embedding=embedding) for p, embedding in zip(payloads, embeddings, strict=True)
+            FragmentWithEmbedding(
+                id=f"{document_path}::{i}",
+                text=fragment.text,
+                metadata={"document_path": document_path, "fragment_index": fragment.fragment_index},
+                embedding=embedding,
+            )
+            for i, (fragment, embedding) in enumerate(zip(fragments, embeddings, strict=True))
         ]
 
     def _store_fragments(self, document_path: str, fragments: list[Fragment]) -> None:

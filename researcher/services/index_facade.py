@@ -7,10 +7,10 @@ from researcher.models import ChunkResult, IndexingResult, IndexStats, RepoUpdat
 from researcher.service_factory import ServiceFactory
 
 
-def index_file_in_repo(factory: ServiceFactory, repo_name: str, file_path: str) -> ChunkResult | None:
+def index_and_store_file_in_repo(factory: ServiceFactory, repo_name: str, file_path: str) -> ChunkResult | None:
     repo = factory.repository_service.get_repository(repo_name)
     service = factory.index_service(repo)
-    return service.index_file(Path(file_path), repo)
+    return service.index_and_store_file(Path(file_path))
 
 
 def remove_from_repo(factory: ServiceFactory, repo_name: str, doc_path: str) -> None:
