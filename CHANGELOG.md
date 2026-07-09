@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: build 1.5.0 → 1.5.1, docling 2.110.0 → 2.111.0, fastmcp 3.4.3 → 3.4.4, grpcio 1.81.1 → 1.82.1, joserfc 1.7.2 → 1.7.3, setuptools 81.0.0 → 83.0.0, torch 2.12.1 → 2.13.0, torchvision 0.27.1 → 0.28.0, uvicorn 0.50.2 → 0.51.0
+
 - Split `IndexService.index_file()` into pure `chunk_file()` (convert + chunk, no I/O side effects) and effectful `index_and_store_file()` (convert, chunk, embed, and store); `_process_file()` now returns a `FileProcessResult` carrying `document_path`, `checksum`, and `error` instead of mutating caller-owned `checksums` and `errors` out-parameters; extracted pure `decide_file_action()` and `fold_outcomes()` into `researcher/indexing_core.py`; `index_file_in_repo` in the facade layer renamed to `index_and_store_file_in_repo` to reflect the write effect; `FileProcessResult` model extended with `document_path`, `checksum`, and `error` fields (internal refactor, no behavior change)
 
 - Updated dependencies: charset-normalizer 3.4.8 → 3.4.9, docling-parse 7.6.0 → 7.7.0, filelock 3.29.6 → 3.29.7, grpcio 1.82.0 → 1.81.1, mlx 0.31.2 → 0.32.0, mlx-metal 0.31.2 → 0.32.0, tqdm 4.68.3 → 4.68.4
