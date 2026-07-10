@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "allowed": [
+    {
+      "cve": "PYSEC-2026-311",
+      "reason": "ChromaDB HTTP-server RCE is unreachable: researcher-cli uses only the embedded PersistentClient and does not expose Chroma server mode.",
+      "expires": "2026-08-09"
+    }
+  ]
+}
