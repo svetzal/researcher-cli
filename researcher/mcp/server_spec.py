@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import Mock
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from researcher.config import RepositoryConfig
 from researcher.exceptions import RepositoryNotFoundError, StorageError
@@ -131,43 +132,50 @@ class DescribeMcpServer:
 
         assert result["repository_name"] == "specific-repo"
 
-    def should_return_error_string_from_add_to_index_on_storage_error(self, tools, mock_factory):
+    def should_raise_tool_error_from_add_to_index_on_storage_error(self, tools, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.index_and_store_file.side_effect = StorageError("disk full")
         mock_factory.index_service.return_value = mock_index_service
 
-        result = tools.add_to_index("test-repo", "/tmp/file.md")
+        with pytest.raises(ToolError, match="disk full"):
+            tools.add_to_index("test-repo", "/tmp/file.md")
 
-        assert result.startswith("Error:")
-
-    def should_return_error_string_from_remove_from_index_on_storage_error(self, tools, mock_factory):
+    def should_raise_tool_error_from_remove_from_index_on_storage_error(self, tools, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
         mock_factory.repository_service.get_repository.return_value = repo
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.remove_document.side_effect = StorageError("write failed")
         mock_factory.index_service.return_value = mock_index_service
 
-        result = tools.remove_from_index("test-repo", "doc.md")
+        with pytest.raises(ToolError, match="write failed"):
+            tools.remove_from_index("test-repo", "doc.md")
 
-        assert result.startswith("Error:")
-
-    def should_return_error_dict_from_search_fragments_on_repo_not_found(self, tools, mock_factory):
+    def should_raise_tool_error_from_search_fragments_on_repo_not_found(self, tools, mock_factory):
         mock_factory.repository_service.get_repository.side_effect = RepositoryNotFoundError("not found")
 
-        result = tools.search_fragments("query", repository="missing-repo")
+        with pytest.raises(ToolError, match="not found"):
+            tools.search_fragments("query", repository="missing-repo")
 
-        assert len(result) == 1
-        assert "error" in result[0]
-
-    def should_return_error_dict_from_get_index_status_on_storage_error(self, tools, mock_factory):
+    def should_raise_tool_error_from_get_index_status_on_storage_error(self, tools, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
         mock_factory.repository_service.list_repositories.return_value = [repo]
         mock_index_service = Mock(spec=IndexService)
         mock_index_service.get_stats.side_effect = StorageError("chroma down")
         mock_factory.index_service.return_value = mock_index_service
 
-        result = tools.get_index_status()
+        with pytest.raises(ToolError, match="chroma down"):
+            tools.get_index_status()
 
-        assert "error" in result
+    def should_raise_tool_error_from_search_documents_on_repo_not_found(self, tools, mock_factory):
+        mock_factory.repository_service.get_repository.side_effect = RepositoryNotFoundError("not found")
+
+        with pytest.raises(ToolError, match="not found"):
+            tools.search_documents("query", repository="missing-repo")
+
+    def should_raise_tool_error_from_list_repositories_on_storage_error(self, tools, mock_factory):
+        mock_factory.repository_service.list_repositories.side_effect = StorageError("config corrupted")
+
+        with pytest.raises(ToolError, match="config corrupted"):
+            tools.list_repositories()

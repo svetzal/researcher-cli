@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- MCP tools now raise `ToolError` on failure instead of returning error dictionaries shaped like successful results, so a failed search is no longer indistinguishable from a one-hit search.
+
 ### Changed
 
 - Updated dependencies: build 1.5.0 → 1.5.1, docling 2.110.0 → 2.111.0, fastmcp 3.4.3 → 3.4.4, grpcio 1.81.1 → 1.82.1, joserfc 1.7.2 → 1.7.3, setuptools 81.0.0 → 83.0.0, torch 2.12.1 → 2.13.0, torchvision 0.27.1 → 0.28.0, uvicorn 0.50.2 → 0.51.0
