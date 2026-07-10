@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated dependencies: cyclopts 4.20.0 → 4.21.0, huggingface-hub 1.22.0 → 1.23.0, mlx-audio 0.4.4 → 0.4.5, ruff 0.15.20 → 0.15.21, websockets 16.0 → 16.1
+
 ### Fixed
 
 - MCP tools now raise `ToolError` on failure instead of returning error dictionaries shaped like successful results, so a failed search is no longer indistinguishable from a one-hit search.
