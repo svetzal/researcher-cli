@@ -1,9 +1,9 @@
 import typer
-import yaml
-from rich.syntax import Syntax
 
-from researcher.cli.output import cli_errors, console, make_service_factory_callback
-from researcher.config import ResearcherConfig
+from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
+from researcher.cli.presenters import present_config
+from researcher.cli.serializers import serialize_config, serialize_config_path, serialize_config_set
+from researcher.exceptions import ConfigValidationError
 from researcher.service_factory import ServiceFactory
 
 config_app = typer.Typer(help="Manage researcher configuration.")
@@ -12,42 +12,45 @@ make_service_factory_callback(config_app)
 
 
 @config_app.command("show")
-def show_config(ctx: typer.Context) -> None:
+def show_config(
+    ctx: typer.Context,
+    json_output: bool = JSON_OPTION,
+) -> None:
     factory: ServiceFactory = ctx.obj
-    config = factory.config
-    yaml_text = yaml.dump(config.model_dump(mode="json"), default_flow_style=False)
-    syntax = Syntax(yaml_text, "yaml", theme="monokai", line_numbers=False)
-    console.print(syntax)
+    config = factory.settings_service.get_settings()
+    cli_output(
+        serialize_config(config),
+        lambda: present_config(config, console),
+        json_output=json_output,
+    )
 
 
 @config_app.command("set")
-@cli_errors(ValueError)
+@cli_errors(ConfigValidationError)
 def set_config(
     ctx: typer.Context,
     key: str = typer.Argument(..., help="Configuration key (e.g. default_embedding_provider)"),
     value: str = typer.Argument(..., help="Configuration value"),
+    json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    config = factory.config
-    data = config.model_dump(mode="json")
-
-    if key not in data:
-        raise ValueError(f"Unknown configuration key: '{key}'")
-    if isinstance(data[key], int):
-        try:
-            data[key] = int(value)
-        except ValueError:
-            raise ValueError(f"Value for '{key}' must be an integer") from None
-    else:
-        data[key] = value
-
-    new_config = ResearcherConfig.model_validate(data)
-    factory.config_gateway.save(new_config)
-    console.print(f"[green]✓[/green] Set [bold]{key}[/bold] = {value}")
+    new_config = factory.settings_service.set_value(key, value)
+    cli_output(
+        serialize_config_set(key, getattr(new_config, key)),
+        f"[green]✓[/green] Set [bold]{key}[/bold] = {value}",
+        json_output=json_output,
+    )
 
 
 @config_app.command("path")
-def config_path(ctx: typer.Context) -> None:
+def config_path(
+    ctx: typer.Context,
+    json_output: bool = JSON_OPTION,
+) -> None:
     factory: ServiceFactory = ctx.obj
-    config_file = factory.config_gateway.config_dir / "config.yaml"
-    console.print(str(config_file))
+    path = factory.settings_service.config_file_path()
+    cli_output(
+        serialize_config_path(path),
+        str(path),
+        json_output=json_output,
+    )

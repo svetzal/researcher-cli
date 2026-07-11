@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--json` / `-j` output flag to `researcher config show`, `config set`, and `config path` commands.
+
+### Changed
+
+- Config mutation logic extracted from the CLI into `SettingsService`, making it importable and independently testable from library and MCP surfaces. The CLI layer now delegates to `factory.settings_service` for all config reads and writes.
+
 ### Changed
 
 - Updated dependencies: cyclopts 4.20.0 → 4.21.0, huggingface-hub 1.22.0 → 1.23.0, mlx-audio 0.4.4 → 0.4.5, ruff 0.15.20 → 0.15.21, websockets 16.0 → 16.1

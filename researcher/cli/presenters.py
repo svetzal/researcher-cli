@@ -1,10 +1,19 @@
+import yaml
 from rich.console import Console
 from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.table import Table
 
-from researcher.config import RepositoryConfig
+from researcher.config import RepositoryConfig, ResearcherConfig
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
 from researcher.services.model_archive_service import PackResult
+
+
+def present_config(config: ResearcherConfig, console: Console) -> None:
+    yaml_text = yaml.dump(config.model_dump(mode="json"), default_flow_style=False)
+    syntax = Syntax(yaml_text, "yaml", theme="monokai", line_numbers=False)
+    console.print(syntax)
+
 
 _INDEX_COUNT_LABELS = [
     ("documents_indexed", "indexed"),

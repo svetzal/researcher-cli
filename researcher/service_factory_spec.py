@@ -10,6 +10,7 @@ from researcher.service_factory import ServiceFactory
 from researcher.services.index_service import IndexService
 from researcher.services.repository_service import RepositoryService
 from researcher.services.search_service import SearchService
+from researcher.services.settings_service import SettingsService
 
 
 class DescribeServiceFactory:
@@ -55,6 +56,20 @@ class DescribeServiceFactory:
         service2 = factory.repository_service
 
         assert service1 is service2
+
+    def should_provide_settings_service(self, factory):
+        service = factory.settings_service
+
+        assert isinstance(service, SettingsService)
+
+    def should_cache_settings_service(self, factory):
+        service1 = factory.settings_service
+        service2 = factory.settings_service
+
+        assert service1 is service2
+
+    def should_share_config_gateway_with_settings_service(self, factory):
+        assert factory.settings_service._config_gateway is factory.config_gateway
 
     def should_create_index_service_for_repository(self, factory, temp_dir):
         repo = RepositoryConfig(name="test-repo", path=str(temp_dir))

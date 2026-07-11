@@ -18,6 +18,7 @@ from researcher.services.index_service import IndexService
 from researcher.services.model_archive_service import ModelArchiveService
 from researcher.services.repository_service import RepositoryService
 from researcher.services.search_service import SearchService
+from researcher.services.settings_service import SettingsService
 
 
 class ServiceFactory:
@@ -38,6 +39,10 @@ class ServiceFactory:
     @cached_property
     def repository_service(self) -> RepositoryService:
         return RepositoryService(config_gateway=self.config_gateway)
+
+    @cached_property
+    def settings_service(self) -> SettingsService:
+        return SettingsService(config_gateway=self.config_gateway)
 
     @cached_property
     def _docling_available(self) -> bool:

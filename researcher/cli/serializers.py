@@ -5,9 +5,21 @@ from researcher.cli.payloads import (
     SearchEnvelope,
 )
 from researcher.cli.wire import DocumentWireResult, FragmentWireResult, PackResultWire, UnpackResultWire
-from researcher.config import RepositoryConfig
+from researcher.config import RepositoryConfig, ResearcherConfig
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
 from researcher.services.model_archive_service import PackResult, UnpackResult
+
+
+def serialize_config(config: ResearcherConfig) -> dict[str, object]:
+    return config.model_dump(mode="json")
+
+
+def serialize_config_set(key: str, value: object) -> dict[str, object]:
+    return {"key": key, "value": value, "updated": True}
+
+
+def serialize_config_path(path: Path) -> dict[str, object]:
+    return {"config_path": str(path)}
 
 
 def serialize_index_result(repo_name: str, result: IndexingResult) -> dict[str, object]:

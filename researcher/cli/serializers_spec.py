@@ -3,6 +3,9 @@ from pathlib import Path
 
 from researcher.cli.serializers import (
     build_json_results_wrapper,
+    serialize_config,
+    serialize_config_path,
+    serialize_config_set,
     serialize_document_search,
     serialize_empty_search,
     serialize_fragment_search,
@@ -11,6 +14,7 @@ from researcher.cli.serializers import (
     serialize_pack_result,
     serialize_unpack_result,
 )
+from researcher.config import ResearcherConfig
 from researcher.conftest import make_doc_result, make_repo, make_search_result
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats
 from researcher.services.model_archive_service import PackResult, UnpackResult
@@ -46,6 +50,36 @@ def _make_index_stats(
         total_fragments=total_fragments,
         last_indexed=last_indexed,
     )
+
+
+class DescribeSerializeConfig:
+    def should_include_mcp_port(self):
+        config = ResearcherConfig(mcp_port=9000)
+
+        data = serialize_config(config)
+
+        assert data["mcp_port"] == 9000
+
+    def should_include_default_embedding_provider(self):
+        config = ResearcherConfig()
+
+        data = serialize_config(config)
+
+        assert "default_embedding_provider" in data
+
+
+class DescribeSerializeConfigSet:
+    def should_include_key_value_and_updated(self):
+        data = serialize_config_set("mcp_port", 9001)
+
+        assert data == {"key": "mcp_port", "value": 9001, "updated": True}
+
+
+class DescribeSerializeConfigPath:
+    def should_serialize_path_as_string(self):
+        data = serialize_config_path(Path("/home/user/.researcher/config.yaml"))
+
+        assert data == {"config_path": "/home/user/.researcher/config.yaml"}
 
 
 class DescribeSerializeIndexResult:

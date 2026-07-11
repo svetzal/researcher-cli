@@ -5,6 +5,7 @@ from pathlib import Path
 from rich.console import Console
 
 from researcher.cli.presenters import (
+    present_config,
     present_document_results,
     present_fragment_results,
     present_index_results,
@@ -13,6 +14,7 @@ from researcher.cli.presenters import (
     present_repo_update,
     present_status,
 )
+from researcher.config import ResearcherConfig
 from researcher.conftest import make_repo, make_search_result
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats
 from researcher.services.model_archive_service import PackResult
@@ -20,6 +22,26 @@ from researcher.services.model_archive_service import PackResult
 
 def _make_console() -> Console:
     return Console(file=StringIO(), highlight=False, markup=True)
+
+
+class DescribePresentConfig:
+    def should_render_config_keys(self):
+        config = ResearcherConfig(mcp_port=9000)
+        console = _make_console()
+
+        present_config(config, console)
+
+        output = console.file.getvalue()
+        assert "mcp_port" in output
+        assert "9000" in output
+
+    def should_render_default_embedding_provider(self):
+        config = ResearcherConfig()
+        console = _make_console()
+
+        present_config(config, console)
+
+        assert "default_embedding_provider" in console.file.getvalue()
 
 
 class DescribePresentIndexResults:

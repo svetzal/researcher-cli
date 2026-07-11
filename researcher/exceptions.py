@@ -18,6 +18,10 @@ class ConfigurationError(ResearcherError):
     """Configuration file parse or write failure."""
 
 
+class ConfigValidationError(ResearcherError):
+    """Unknown config key or invalid value for a config field."""
+
+
 class RepositoryNotFoundError(ResearcherError):
     pass
 
