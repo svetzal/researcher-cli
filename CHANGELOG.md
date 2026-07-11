@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated dependencies: docling 2.111.0 → 2.112.0, docling-parse 7.7.0 → 7.8.0, pyarrow 24.0.0 → 25.0.0, regex 2026.6.28 → 2026.7.10, tzdata 2026.2 → 2026.3
+
+## [0.5.4] - 2026-07-03
+
 ### Added
 
 - `--json` / `-j` output flag to `researcher config show`, `config set`, and `config path` commands.
