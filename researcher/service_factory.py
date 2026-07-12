@@ -4,6 +4,7 @@ from pathlib import Path
 
 from researcher.config import RepositoryConfig, ResearcherConfig
 from researcher.embedding_providers import resolve_embedding_config
+from researcher.gateways.bundled_skills_gateway import BundledSkillsGateway
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.chromadb_embedding_gateway import ChromaDbEmbeddingGateway
@@ -19,6 +20,7 @@ from researcher.services.model_archive_service import ModelArchiveService
 from researcher.services.repository_service import RepositoryService
 from researcher.services.search_service import SearchService
 from researcher.services.settings_service import SettingsService
+from researcher.services.skill_install_service import SkillInstallService
 
 
 class ServiceFactory:
@@ -100,6 +102,16 @@ class ServiceFactory:
 
     def model_archive_service(self) -> ModelArchiveService:
         return ModelArchiveService(model_cache_gateway=ModelCacheGateway())
+
+    @cached_property
+    def bundled_skills_gateway(self) -> BundledSkillsGateway:
+        return BundledSkillsGateway()
+
+    def skill_install_service(self, target_dir: Path) -> SkillInstallService:
+        return SkillInstallService(
+            filesystem_gateway=FilesystemGateway(base_path=target_dir),
+            bundled_skills_gateway=self.bundled_skills_gateway,
+        )
 
     def search_service(self, repo: RepositoryConfig) -> SearchService:
         return SearchService(

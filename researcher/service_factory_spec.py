@@ -11,6 +11,7 @@ from researcher.services.index_service import IndexService
 from researcher.services.repository_service import RepositoryService
 from researcher.services.search_service import SearchService
 from researcher.services.settings_service import SettingsService
+from researcher.services.skill_install_service import SkillInstallService
 
 
 class DescribeServiceFactory:
@@ -139,3 +140,14 @@ class DescribeServiceFactory:
         factory = ServiceFactory(config_dir=temp_dir)
 
         assert factory._docling_available is True
+
+    def should_create_skill_install_service_for_target_dir(self, factory, temp_dir):
+        service = factory.skill_install_service(temp_dir)
+
+        assert isinstance(service, SkillInstallService)
+
+    def should_create_new_skill_install_service_each_call(self, factory, temp_dir):
+        service1 = factory.skill_install_service(temp_dir)
+        service2 = factory.skill_install_service(temp_dir)
+
+        assert service1 is not service2

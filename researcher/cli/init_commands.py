@@ -1,62 +1,10 @@
-from importlib.metadata import version as pkg_version
-from importlib.resources import files
 from pathlib import Path
 
 import typer
 
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console
 from researcher.exceptions import StorageError
-from researcher.gateways.filesystem_gateway import FilesystemGateway
-from researcher.services.skill_versioning import decide_skill_action, stamp_version
-
-SKILLS = ["researcher-admin", "researcher-find"]
-
-
-def _get_package_version() -> str:
-    return pkg_version("researcher-cli")
-
-
-def run_init(
-    target_dir: Path,
-    *,
-    force: bool = False,
-    _version: str | None = None,
-    filesystem_gateway: FilesystemGateway | None = None,
-) -> dict:
-    gw = filesystem_gateway if filesystem_gateway is not None else FilesystemGateway(base_path=target_dir)
-    skills_dir = target_dir / ".claude" / "skills"
-    bundled = files("researcher.bundled_skills")
-    current_version = _version or _get_package_version()
-
-    installed: list[str] = []
-    skipped: list[str] = []
-    refused: list[str] = []
-
-    for skill_name in SKILLS:
-        dest = skills_dir / skill_name / "SKILL.md"
-        source = bundled.joinpath(skill_name, "SKILL.md")
-        source_text = source.read_text()
-
-        existing_text = gw.read_file(dest) if gw.file_exists(dest) else None
-        action, _message = decide_skill_action(existing_text, current_version, force=force)
-
-        if action == "refuse":
-            refused.append(skill_name)
-        elif action == "skip":
-            skipped.append(skill_name)
-        else:
-            gw.make_directories(dest.parent)
-            stamped = stamp_version(source_text, current_version)
-            gw.write_file(dest, stamped)
-            installed.append(skill_name)
-
-    return {
-        "skills_installed": installed,
-        "skills_skipped": skipped,
-        "skills_refused": refused,
-        "version": current_version,
-        "target_dir": str(target_dir),
-    }
+from researcher.service_factory import ServiceFactory
 
 
 def _print_init_results(result: dict) -> None:
@@ -82,6 +30,7 @@ def _print_init_results(result: dict) -> None:
 
 @cli_errors(StorageError)
 def init_command(
+    ctx: typer.Context,
     force: bool = typer.Option(
         False,
         "--force",
@@ -90,6 +39,7 @@ def init_command(
     global_install: bool = typer.Option(False, "--global", "-g", help="Install to ~/.claude/skills/ (global)"),
     json_output: bool = JSON_OPTION,
 ) -> None:
+    factory: ServiceFactory = ctx.obj
     target = Path.home() if global_install else Path.cwd()
-    result = run_init(target, force=force)
+    result = factory.skill_install_service(target).install(target, force=force)
     cli_output(result, lambda: _print_init_results(result), json_output=json_output)
