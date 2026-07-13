@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `init` now resolves its dependencies through `ServiceFactory` and reads bundled skills via a `BundledSkillsGateway`, removing test seams (`_version`, `filesystem_gateway`) from the former `run_init` signature; install-decision logic lives in a pure `plan_skill_installs` function in `researcher/services/skill_install_service.py` (internal refactor, no behavior change).
 - Updated dependencies: docling 2.111.0 → 2.112.0, docling-parse 7.7.0 → 7.8.0, pyarrow 24.0.0 → 25.0.0, regex 2026.6.28 → 2026.7.10, tzdata 2026.2 → 2026.3
 - Updated dependencies: docling-core 2.86.0 → 2.87.0
+- Updated dependencies: anyio 4.14.1 → 4.14.2, coverage 7.15.0 → 7.15.1, sentencepiece 0.2.1 → 0.2.2
 
 ## [0.5.4] - 2026-07-03
 
