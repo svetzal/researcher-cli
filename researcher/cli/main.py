@@ -9,11 +9,10 @@ from researcher.cli.model_commands import models_app
 from researcher.cli.output import (
     JSON_OPTION,
     cli_errors,
-    cli_exit_on_error,
     cli_output,
     console,
-    exit_no_repos,
     make_service_factory_callback,
+    require_repos,
 )
 from researcher.cli.presenters import present_index_results, present_status
 from researcher.cli.repo_commands import repo_app
@@ -41,22 +40,6 @@ app.add_typer(models_app, name="models")
 app.command("init")(init_command)
 
 
-def _resolve_repos_or_exit(
-    factory: ServiceFactory,
-    repo_name: str | None,
-    json_output: bool,
-) -> list[RepositoryConfig]:
-    with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
-        return factory.repository_service.resolve_repos(repo_name)
-
-
-def _repos_or_empty(factory: ServiceFactory, repo_name: str | None, json_output: bool) -> list[RepositoryConfig]:
-    """Return resolved repos, or an empty list when none are configured."""
-    if not factory.repository_service.list_repositories():
-        return []
-    return _resolve_repos_or_exit(factory, repo_name, json_output)
-
-
 make_service_factory_callback(app)
 
 
@@ -77,14 +60,7 @@ def index_command(
     force: bool = typer.Option(False, "--force", help="Re-index all files, ignoring checksums"),
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    repos = _repos_or_empty(factory, repo_name, json_output)
-
-    if not repos:
-        exit_no_repos(
-            {"repositories": []},
-            "[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]",
-            json_output=json_output,
-        )
+    repos = require_repos(factory, repo_name, json_output=json_output)
 
     on_repo = None if json_output else _spinner_for_repo
     results = index_repos(factory, repos, force=force, on_repo=on_repo)
@@ -122,10 +98,7 @@ def status_command(
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    repos = _repos_or_empty(factory, repo_name, json_output)
-
-    if not repos:
-        exit_no_repos({"repositories": []}, "[dim]No repositories configured.[/dim]", json_output=json_output)
+    repos = require_repos(factory, repo_name, json_output=json_output)
 
     stats = [factory.index_service(repo).get_stats() for repo in repos]
 
@@ -150,14 +123,9 @@ def search_command(
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    search_repos = _repos_or_empty(factory, repo, json_output)
-
-    if not search_repos:
-        exit_no_repos(
-            serialize_empty_search(query, mode, repo),
-            "[yellow]No repositories configured.[/yellow]",
-            json_output=json_output,
-        )
+    search_repos = require_repos(
+        factory, repo, json_output=json_output, empty_payload=serialize_empty_search(query, mode, repo)
+    )
 
     if mode == "fragments":
         run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)

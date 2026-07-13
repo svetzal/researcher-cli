@@ -1,10 +1,19 @@
 import json as json_module
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import pytest
 import typer
 from typer.testing import CliRunner
 
-from researcher.cli.output import cli_error, cli_exit_on_error, cli_output, make_service_factory_callback
+from researcher.cli.output import (
+    cli_error,
+    cli_exit_on_error,
+    cli_output,
+    make_service_factory_callback,
+    require_repos,
+)
+from researcher.conftest import make_repo
+from researcher.service_factory import ServiceFactory
 
 
 class DescribeCliOutput:
@@ -150,3 +159,89 @@ class DescribeMakeServiceFactoryCallback:
         result = runner.invoke(test_app, ["cmd"], obj=sentinel)
 
         assert "obj_is_sentinel" in result.output
+
+
+class DescribeRequireRepos:
+    @pytest.fixture
+    def mock_factory(self):
+        factory = Mock(spec=ServiceFactory)
+        factory.repository_service.resolve_repos.side_effect = lambda name: (
+            [factory.repository_service.get_repository(name)]
+            if name
+            else factory.repository_service.list_repositories()
+        )
+        return factory
+
+    def _invoke(self, mock_factory, repo_name=None, *, json_output=False, empty_payload=None):
+        app = typer.Typer()
+
+        @app.command()
+        def cmd():
+            result = require_repos(mock_factory, repo_name, json_output=json_output, empty_payload=empty_payload)
+            typer.echo(f"count:{len(result)}")
+
+        return CliRunner().invoke(app, [])
+
+    def should_exit_zero_with_default_payload_when_no_repos_and_json_mode(self, mock_factory):
+        mock_factory.repository_service.list_repositories.return_value = []
+
+        app = typer.Typer()
+
+        @app.command()
+        def cmd():
+            require_repos(mock_factory, json_output=True)
+
+        result = CliRunner().invoke(app, [])
+
+        assert result.exit_code == 0
+        data = json_module.loads(result.output)
+        assert data == {"repositories": []}
+
+    def should_exit_zero_with_custom_empty_payload_when_provided(self, mock_factory):
+        mock_factory.repository_service.list_repositories.return_value = []
+        custom_payload = {"query": "hello", "results": []}
+
+        app = typer.Typer()
+
+        @app.command()
+        def cmd():
+            require_repos(mock_factory, json_output=True, empty_payload=custom_payload)
+
+        result = CliRunner().invoke(app, [])
+
+        assert result.exit_code == 0
+        data = json_module.loads(result.output)
+        assert data == custom_payload
+
+    def should_print_shared_message_when_no_repos_and_not_json(self, mock_factory):
+        mock_factory.repository_service.list_repositories.return_value = []
+
+        result = self._invoke(mock_factory, json_output=False)
+
+        assert result.exit_code == 0
+        assert "No repositories configured" in result.output
+
+    def should_return_resolved_repos_when_repos_exist(self, mock_factory):
+        repo = make_repo("my-repo")
+        mock_factory.repository_service.list_repositories.return_value = [repo]
+
+        result = self._invoke(mock_factory, json_output=False)
+
+        assert result.exit_code == 0
+        assert "count:1" in result.output
+
+    def should_exit_one_when_named_repo_not_found(self, mock_factory):
+        mock_factory.repository_service.list_repositories.return_value = [make_repo("other")]
+        mock_factory.repository_service.get_repository.side_effect = ValueError("Repository 'missing' not found")
+
+        app = typer.Typer()
+
+        @app.command()
+        def cmd():
+            require_repos(mock_factory, "missing", json_output=True)
+
+        result = CliRunner().invoke(app, [])
+
+        assert result.exit_code == 1
+        data = json_module.loads(result.output)
+        assert "error" in data

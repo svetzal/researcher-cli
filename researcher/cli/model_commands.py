@@ -7,8 +7,8 @@ from researcher.cli.output import (
     cli_errors,
     cli_output,
     console,
-    exit_no_repos,
     make_service_factory_callback,
+    require_repos,
 )
 from researcher.cli.presenters import present_pack_result
 from researcher.cli.serializers import serialize_pack_result, serialize_unpack_result
@@ -28,14 +28,7 @@ def pack_command(
     json_output: bool = JSON_OPTION,
 ) -> None:
     factory: ServiceFactory = ctx.obj
-    repos = factory.repository_service.list_repositories()
-
-    if not repos:
-        exit_no_repos(
-            {"repositories": []},
-            "[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]",
-            json_output=json_output,
-        )
+    repos = require_repos(factory, json_output=json_output)
 
     service = factory.model_archive_service()
     result = service.pack(repos, output)

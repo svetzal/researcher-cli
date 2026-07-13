@@ -5,7 +5,9 @@ from collections.abc import Callable
 import typer
 from rich.console import Console
 
+from researcher.config import RepositoryConfig
 from researcher.error_boundary import handle_boundary_errors
+from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 
 console = Console()
@@ -64,11 +66,22 @@ def cli_errors(*exception_types):
 
 JSON_OPTION: bool = typer.Option(False, "--json", "-j", help="Output as JSON")
 
+NO_REPOS_MESSAGE = "[yellow]No repositories configured. Use 'researcher repo add' to add one.[/yellow]"
 
-def exit_no_repos(payload: dict, message: str, *, json_output: bool) -> None:
-    """Emit payload/message and exit cleanly when no repositories are configured."""
-    cli_output(payload, message, json_output=json_output)
-    raise typer.Exit(0)
+
+def require_repos(
+    factory: ServiceFactory,
+    repo_name: str | None = None,
+    *,
+    json_output: bool,
+    empty_payload: dict | None = None,
+) -> list[RepositoryConfig]:
+    """Resolve repos for a command, exiting cleanly (0) when none are configured."""
+    if not factory.repository_service.list_repositories():
+        cli_output(empty_payload or {"repositories": []}, NO_REPOS_MESSAGE, json_output=json_output)
+        raise typer.Exit(0)
+    with cli_exit_on_error(ValueError, ResearcherError, json_output=json_output):
+        return factory.repository_service.resolve_repos(repo_name)
 
 
 def make_service_factory_callback(typer_app: typer.Typer) -> None:
