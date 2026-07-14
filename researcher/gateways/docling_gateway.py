@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from researcher.docling_config import build_converter_config, build_document_converter
+from researcher.enums import AudioAsrModel, ImagePipeline
 from researcher.exceptions import DocumentConversionError
 from researcher.gateways.error_wrapper import wrap_gateway_error
 
@@ -18,9 +19,9 @@ class DoclingGateway:
 
     def __init__(
         self,
-        image_pipeline: str = "standard",
+        image_pipeline: ImagePipeline = ImagePipeline.STANDARD,
         image_vlm_model: str | None = None,
-        audio_asr_model: str = "turbo",
+        audio_asr_model: AudioAsrModel | None = AudioAsrModel.TURBO,
         converter: Any = None,
         chunker: Any = None,
     ):

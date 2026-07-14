@@ -5,6 +5,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from researcher.config import RepositoryConfig, ResearcherConfig
+from researcher.enums import ImagePipeline
 from researcher.models import DocumentSearchResult, IndexingResult, IndexStats, SearchResult
 from researcher.services.model_archive_service import PackResult
 
@@ -79,7 +80,7 @@ def present_repo_list(repos: list[RepositoryConfig], console: Console) -> None:
             embed_info += f"\n{repo.embedding_model}"
 
         image_info = repo.image_pipeline
-        if repo.image_pipeline == "vlm" and repo.image_vlm_model:
+        if repo.image_pipeline == ImagePipeline.VLM and repo.image_vlm_model:
             image_info += f"\n{repo.image_vlm_model}"
 
         table.add_row(

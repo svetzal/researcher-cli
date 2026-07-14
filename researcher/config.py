@@ -28,6 +28,6 @@ class RepositoryConfig(BaseModel):
 
 class ResearcherConfig(BaseModel):
     repositories: list[RepositoryConfig] = Field(default_factory=list)
-    default_embedding_provider: str = "chromadb"
+    default_embedding_provider: EmbeddingProvider = EmbeddingProvider.CHROMADB
     default_embedding_model: str | None = None
     mcp_port: int = 8392

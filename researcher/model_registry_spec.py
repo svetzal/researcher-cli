@@ -4,9 +4,12 @@ from pathlib import Path
 import pytest
 
 from researcher.config import RepositoryConfig
+from researcher.enums import AudioAsrModel
 from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import (
     API_ONLY_PRESETS,
+    ASR_MLX_REPO_IDS,
+    ASR_WHISPER_CACHE_FILES,
     VLM_PRESET_REPOS,
     ModelRequirements,
     build_model_entries,
@@ -437,6 +440,16 @@ class DescribeResolveModelsForRepos:
 
         categories = {e.category for e in result}
         assert categories == {"docling", "huggingface", "chroma"}
+
+
+class DescribeAsrModelRegistryExhaustiveness:
+    @pytest.mark.parametrize("model", list(AudioAsrModel))
+    def should_have_mlx_entry_for_every_asr_model(self, model):
+        assert model in ASR_MLX_REPO_IDS
+
+    @pytest.mark.parametrize("model", list(AudioAsrModel))
+    def should_have_whisper_cache_entry_for_every_asr_model(self, model):
+        assert model in ASR_WHISPER_CACHE_FILES
 
 
 class DescribeVlmPresetValidity:

@@ -10,6 +10,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from researcher.config import RepositoryConfig
+from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
 from researcher.platform import is_apple_silicon
 
 # VLM preset → (default HF repo_id, optional MLX repo_id)
@@ -27,24 +28,24 @@ VLM_PRESET_REPOS: dict[str, tuple[str, str | None]] = {
 }
 
 # ASR model name → MLX HuggingFace repo ID (Apple Silicon only)
-ASR_MLX_REPO_IDS: dict[str, str] = {
-    "tiny": "mlx-community/whisper-tiny-mlx",
-    "base": "mlx-community/whisper-base-mlx",
-    "small": "mlx-community/whisper-small-mlx",
-    "medium": "mlx-community/whisper-medium-mlx-8bit",
-    "large": "mlx-community/whisper-large-mlx-8bit",
-    "turbo": "mlx-community/whisper-turbo",
+ASR_MLX_REPO_IDS: dict[AudioAsrModel, str] = {
+    AudioAsrModel.TINY: "mlx-community/whisper-tiny-mlx",
+    AudioAsrModel.BASE: "mlx-community/whisper-base-mlx",
+    AudioAsrModel.SMALL: "mlx-community/whisper-small-mlx",
+    AudioAsrModel.MEDIUM: "mlx-community/whisper-medium-mlx-8bit",
+    AudioAsrModel.LARGE: "mlx-community/whisper-large-mlx-8bit",
+    AudioAsrModel.TURBO: "mlx-community/whisper-turbo",
 }
 
 # ASR model name → openai-whisper cache filename (non-Apple platforms)
 # These live in ~/.cache/whisper/<name>.pt, not in the HuggingFace hub
-ASR_WHISPER_CACHE_FILES: dict[str, str] = {
-    "tiny": "tiny.pt",
-    "base": "base.pt",
-    "small": "small.pt",
-    "medium": "medium.pt",
-    "large": "large-v3.pt",
-    "turbo": "turbo.pt",
+ASR_WHISPER_CACHE_FILES: dict[AudioAsrModel, str] = {
+    AudioAsrModel.TINY: "tiny.pt",
+    AudioAsrModel.BASE: "base.pt",
+    AudioAsrModel.SMALL: "small.pt",
+    AudioAsrModel.MEDIUM: "medium.pt",
+    AudioAsrModel.LARGE: "large-v3.pt",
+    AudioAsrModel.TURBO: "turbo.pt",
 }
 
 # Presets that are API-only and have no local cache
@@ -126,13 +127,13 @@ def collect_requirements(repos: list[RepositoryConfig], *, apple_silicon: bool |
     whisper_cache_files: set[str] = set()
 
     for repo in repos:
-        if repo.image_pipeline == "standard":
+        if repo.image_pipeline == ImagePipeline.STANDARD:
             need_docling = True
-        if repo.image_pipeline == "vlm":
+        if repo.image_pipeline == ImagePipeline.VLM:
             _collect_vlm_repo_ids(repo, hf_repo_ids, apple_silicon=apple_silicon)
         if repo.audio_asr_model:
             _collect_asr_cache_ids(repo, hf_repo_ids, whisper_cache_files, apple_silicon=apple_silicon)
-        if repo.embedding_provider == "chromadb":
+        if repo.embedding_provider == EmbeddingProvider.CHROMADB:
             need_chroma = True
 
     return ModelRequirements(

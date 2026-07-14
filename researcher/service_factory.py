@@ -1,9 +1,11 @@
 import logging
+from collections.abc import Callable
 from functools import cached_property
 from pathlib import Path
 
 from researcher.config import RepositoryConfig, ResearcherConfig
-from researcher.embedding_providers import resolve_embedding_config
+from researcher.embedding_providers import EmbeddingProviderConfig, resolve_embedding_config
+from researcher.enums import EmbeddingProvider
 from researcher.gateways.bundled_skills_gateway import BundledSkillsGateway
 from researcher.gateways.checksum_gateway import ChecksumGateway
 from researcher.gateways.chroma_gateway import ChromaGateway
@@ -21,6 +23,12 @@ from researcher.services.repository_service import RepositoryService
 from researcher.services.search_service import SearchService
 from researcher.services.settings_service import SettingsService
 from researcher.services.skill_install_service import SkillInstallService
+
+_EMBEDDING_GATEWAYS: dict[EmbeddingProvider, Callable[[EmbeddingProviderConfig], EmbeddingGateway]] = {
+    EmbeddingProvider.CHROMADB: lambda c: ChromaDbEmbeddingGateway(),
+    EmbeddingProvider.OLLAMA: lambda c: OllamaEmbeddingGateway(model=c.model),
+    EmbeddingProvider.OPENAI: lambda c: OpenAIEmbeddingGateway(model=c.model),
+}
 
 
 class ServiceFactory:
@@ -62,15 +70,7 @@ class ServiceFactory:
 
     def _create_embedding_gateway(self, repo: RepositoryConfig) -> EmbeddingGateway:
         config = resolve_embedding_config(repo.embedding_provider, repo.embedding_model)
-        match config.provider:
-            case "chromadb":
-                return ChromaDbEmbeddingGateway()
-            case "ollama":
-                return OllamaEmbeddingGateway(model=config.model)
-            case "openai":
-                return OpenAIEmbeddingGateway(model=config.model)
-            case _:
-                raise ValueError(f"Unsupported embedding provider: {config.provider}")
+        return _EMBEDDING_GATEWAYS[config.provider](config)
 
     def _repo_data_dir(self, repo: RepositoryConfig) -> Path:
         return self._config_dir / "repositories" / repo.name

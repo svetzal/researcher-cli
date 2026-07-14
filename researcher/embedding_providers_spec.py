@@ -1,6 +1,14 @@
 import pytest
+from pydantic import ValidationError
 
 from researcher.embedding_providers import EmbeddingProviderConfig, resolve_embedding_config
+from researcher.enums import EmbeddingProvider
+
+
+class DescribeEmbeddingProviderConfig:
+    def should_reject_invalid_provider(self):
+        with pytest.raises(ValidationError):
+            EmbeddingProviderConfig(provider="bogus", model="x")
 
 
 class DescribeResolveEmbeddingConfig:
@@ -29,6 +37,8 @@ class DescribeResolveEmbeddingConfig:
 
         assert result == EmbeddingProviderConfig(provider="openai", model="text-embedding-3-large")
 
-    def should_raise_for_unknown_provider(self):
-        with pytest.raises(ValueError, match="Unknown embedding provider: bogus"):
-            resolve_embedding_config("bogus", None)
+    @pytest.mark.parametrize("provider", list(EmbeddingProvider))
+    def should_return_non_empty_model_for_every_provider(self, provider):
+        result = resolve_embedding_config(provider, None)
+
+        assert result.model

@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from researcher.config import RepositoryConfig, ResearcherConfig
+from researcher.enums import EmbeddingProvider
 from researcher.gateways.config_gateway import ConfigGateway
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_service import IndexService
@@ -151,3 +152,12 @@ class DescribeServiceFactory:
         service2 = factory.skill_install_service(temp_dir)
 
         assert service1 is not service2
+
+    @pytest.mark.parametrize("provider", list(EmbeddingProvider))
+    def should_have_gateway_factory_for_every_embedding_provider(self, factory, temp_dir, provider):
+        repo = RepositoryConfig(name="test-repo", path=str(temp_dir), embedding_provider=provider)
+
+        # Asserts no KeyError is raised — every provider has a factory entry
+        gateway = factory._create_embedding_gateway(repo)
+
+        assert gateway is not None

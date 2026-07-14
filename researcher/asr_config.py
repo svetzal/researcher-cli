@@ -3,22 +3,22 @@
 from researcher.enums import AudioAsrModel
 from researcher.platform import is_apple_silicon
 
-ASR_MODEL_MAP: dict[str, str] = {
-    "tiny": "WHISPER_TINY",
-    "base": "WHISPER_BASE",
-    "small": "WHISPER_SMALL",
-    "medium": "WHISPER_MEDIUM",
-    "large": "WHISPER_LARGE",
-    "turbo": "WHISPER_TURBO",
+ASR_MODEL_MAP: dict[AudioAsrModel, str] = {
+    AudioAsrModel.TINY: "WHISPER_TINY",
+    AudioAsrModel.BASE: "WHISPER_BASE",
+    AudioAsrModel.SMALL: "WHISPER_SMALL",
+    AudioAsrModel.MEDIUM: "WHISPER_MEDIUM",
+    AudioAsrModel.LARGE: "WHISPER_LARGE",
+    AudioAsrModel.TURBO: "WHISPER_TURBO",
 }
 
-ASR_MODEL_MAP_MLX: dict[str, str] = {
-    "tiny": "WHISPER_TINY_MLX",
-    "base": "WHISPER_BASE_MLX",
-    "small": "WHISPER_SMALL_MLX",
-    "medium": "WHISPER_MEDIUM_MLX",
-    "large": "WHISPER_LARGE_MLX",
-    "turbo": "WHISPER_TURBO_MLX",
+ASR_MODEL_MAP_MLX: dict[AudioAsrModel, str] = {
+    AudioAsrModel.TINY: "WHISPER_TINY_MLX",
+    AudioAsrModel.BASE: "WHISPER_BASE_MLX",
+    AudioAsrModel.SMALL: "WHISPER_SMALL_MLX",
+    AudioAsrModel.MEDIUM: "WHISPER_MEDIUM_MLX",
+    AudioAsrModel.LARGE: "WHISPER_LARGE_MLX",
+    AudioAsrModel.TURBO: "WHISPER_TURBO_MLX",
 }
 
 

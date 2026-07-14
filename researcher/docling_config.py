@@ -93,7 +93,7 @@ def build_converter_config(
         A fully resolved ConverterConfig.
     """
     vlm = None
-    if image_pipeline == "vlm":
+    if image_pipeline == ImagePipeline.VLM:
         vlm = VlmFormatConfig(preset=resolve_vlm_preset(image_vlm_model))
 
     asr = None

@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from researcher.config import RepositoryConfig, ResearcherConfig
+from researcher.enums import EmbeddingProvider
 
 
 class DescribeRepositoryConfig:
@@ -78,3 +79,12 @@ class DescribeResearcherConfig:
         assert config.repositories == []
         assert config.default_embedding_provider == "chromadb"
         assert config.mcp_port == 8392
+
+    def should_default_embedding_provider_to_chromadb_enum(self):
+        config = ResearcherConfig()
+
+        assert config.default_embedding_provider is EmbeddingProvider.CHROMADB
+
+    def should_reject_invalid_default_embedding_provider(self):
+        with pytest.raises(ValidationError):
+            ResearcherConfig(default_embedding_provider="local")

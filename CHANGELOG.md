@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Config values for embedding provider, image pipeline, and ASR model are now enum-typed end to end; invalid values are rejected at the config boundary rather than falling through at runtime.
 - `status` and `search` commands now show the same "Use 'researcher repo add' to add one." hint as `index` and `models pack` when no repositories are configured; the four previously hand-rolled empty-state guards have been collapsed into a single `require_repos` helper in `researcher/cli/output.py` with one shared `NO_REPOS_MESSAGE` constant.
 - `init` now resolves its dependencies through `ServiceFactory` and reads bundled skills via a `BundledSkillsGateway`, removing test seams (`_version`, `filesystem_gateway`) from the former `run_init` signature; install-decision logic lives in a pure `plan_skill_installs` function in `researcher/services/skill_install_service.py` (internal refactor, no behavior change).
 - Updated dependencies: docling 2.111.0 → 2.112.0, docling-parse 7.7.0 → 7.8.0, pyarrow 24.0.0 → 25.0.0, regex 2026.6.28 → 2026.7.10, tzdata 2026.2 → 2026.3
