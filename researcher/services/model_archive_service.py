@@ -9,6 +9,7 @@ from researcher.config import RepositoryConfig
 from researcher.exceptions import ModelArchiveError
 from researcher.gateways.model_cache_gateway import ArchiveMember, ModelCacheGateway
 from researcher.model_registry import (
+    MODEL_CACHE_CATEGORIES,
     ModelCacheEntry,
     build_model_entries,
     candidate_paths,
@@ -75,12 +76,7 @@ class ModelArchiveService:
         return UnpackResult(entries_restored=entries_restored, files_extracted=files_extracted)
 
     def _build_prefix_roots(self, bases: dict[str, Path]) -> dict[str, Path]:
-        return {
-            "docling/models": bases["docling"],
-            "huggingface/hub": bases["huggingface"],
-            "chroma": bases["chroma"],
-            "whisper": bases["whisper"],
-        }
+        return {c.archive_prefix: bases[c.name] for c in MODEL_CACHE_CATEGORIES}
 
     def _process_archive_members(self, archive_path: Path, prefix_roots: dict[str, Path]) -> tuple[int, dict | None]:
         files_extracted = 0

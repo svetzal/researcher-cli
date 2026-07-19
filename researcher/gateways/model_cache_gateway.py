@@ -4,6 +4,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from researcher.model_registry import MODEL_CACHE_CATEGORIES
+
 
 class ArchiveMember(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -16,12 +18,7 @@ class ArchiveMember(BaseModel):
 class ModelCacheGateway:
     def resolve_cache_base_dirs(self) -> dict[str, Path]:
         home = Path.home()
-        return {
-            "docling": home / ".cache" / "docling" / "models",
-            "huggingface": home / ".cache" / "huggingface" / "hub",
-            "chroma": home / ".cache" / "chroma",
-            "whisper": home / ".cache" / "whisper",
-        }
+        return {c.name: home / c.cache_subpath for c in MODEL_CACHE_CATEGORIES}
 
     def existing_paths(self, candidates: set[Path]) -> set[Path]:
         return {p for p in candidates if p.is_dir() or p.is_file()}

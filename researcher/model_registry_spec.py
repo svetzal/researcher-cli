@@ -10,6 +10,7 @@ from researcher.model_registry import (
     API_ONLY_PRESETS,
     ASR_MLX_REPO_IDS,
     ASR_WHISPER_CACHE_FILES,
+    MODEL_CACHE_CATEGORIES,
     VLM_PRESET_REPOS,
     ModelRequirements,
     build_model_entries,
@@ -450,6 +451,30 @@ class DescribeAsrModelRegistryExhaustiveness:
     @pytest.mark.parametrize("model", list(AudioAsrModel))
     def should_have_whisper_cache_entry_for_every_asr_model(self, model):
         assert model in ASR_WHISPER_CACHE_FILES
+
+
+class DescribeModelCacheCategories:
+    """Guard tests that encode the single-source-of-truth invariant for MODEL_CACHE_CATEGORIES."""
+
+    def should_have_four_categories_in_deterministic_order(self):
+        names = [c.name for c in MODEL_CACHE_CATEGORIES]
+
+        assert names == ["docling", "huggingface", "whisper", "chroma"]
+
+    @pytest.mark.parametrize("category", list(MODEL_CACHE_CATEGORIES))
+    def should_have_archive_prefix_equal_to_cache_subpath_without_dotcache(self, category):
+        # The invariant binding base dir to archive prefix:
+        # archive_prefix must equal cache_subpath with ".cache/" stripped.
+        # A violation here means the three consumers (gateway, registry, service)
+        # would diverge on path layout.
+        assert category.cache_subpath.startswith(".cache/")
+        assert category.archive_prefix == category.cache_subpath.removeprefix(".cache/")
+
+    def should_agree_with_gateway_on_category_coverage(self):
+        gateway_keys = set(ModelCacheGateway().resolve_cache_base_dirs().keys())
+        registry_keys = {c.name for c in MODEL_CACHE_CATEGORIES}
+
+        assert gateway_keys == registry_keys
 
 
 class DescribeVlmPresetValidity:

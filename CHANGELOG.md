@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Model-cache category scheme (base dirs, archive prefixes, extraction roots) is now defined once in `MODEL_CACHE_CATEGORIES` in `researcher/model_registry.py` rather than duplicated across the gateway, registry, and archive service; internal refactor with no user-facing behavior change.
 - Config values for embedding provider, image pipeline, and ASR model are now enum-typed end to end; invalid values are rejected at the config boundary rather than falling through at runtime.
 - `status` and `search` commands now show the same "Use 'researcher repo add' to add one." hint as `index` and `models pack` when no repositories are configured; the four previously hand-rolled empty-state guards have been collapsed into a single `require_repos` helper in `researcher/cli/output.py` with one shared `NO_REPOS_MESSAGE` constant.
 - `init` now resolves its dependencies through `ServiceFactory` and reads bundled skills via a `BundledSkillsGateway`, removing test seams (`_version`, `filesystem_gateway`) from the former `run_init` signature; install-decision logic lives in a pure `plan_skill_installs` function in `researcher/services/skill_install_service.py` (internal refactor, no behavior change).
 - Updated dependencies: docling 2.111.0 → 2.112.0, docling-parse 7.7.0 → 7.8.0, pyarrow 24.0.0 → 25.0.0, regex 2026.6.28 → 2026.7.10, tzdata 2026.2 → 2026.3
 - Updated dependencies: docling-core 2.86.0 → 2.87.0
 - Updated dependencies: anyio 4.14.1 → 4.14.2, coverage 7.15.0 → 7.15.1, sentencepiece 0.2.1 → 0.2.2
+- Updated dependencies: colorlog 6.10.1 → 6.11.0, coverage 7.15.1 → 7.15.2, cyclopts 4.21.0 → 4.21.2, doclang 0.7.2 → 0.7.3, docling 2.112.0 → 2.113.0, docling-core 2.87.0 → 2.87.1, docling-slim 2.112.0 → 2.113.0, fastapi 0.139.0 → 0.139.2, filelock 3.29.7 → 3.31.0, huggingface-hub 1.23.0 → 1.24.0, opentelemetry-* 1.43.0 → 1.44.0, platformdirs 4.10.0 → 4.10.1, pypdfium2 5.11.0 → 5.12.1, regex 2026.7.10 → 2026.7.19, ruff 0.15.21 → 0.15.22, soupsieve 2.8.4 → 2.9, tqdm 4.68.4 → 4.69.0, websockets 16.1 → 16.1.1
 
 ## [0.5.4] - 2026-07-03
 

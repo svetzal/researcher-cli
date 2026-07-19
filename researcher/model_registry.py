@@ -13,6 +13,37 @@ from researcher.config import RepositoryConfig
 from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
 from researcher.platform import is_apple_silicon
 
+
+class ModelCacheCategory(BaseModel):
+    """Single source of truth for one model-cache category.
+
+    ``cache_subpath`` is relative to ``Path.home()`` (e.g. ``.cache/docling/models``).
+    ``archive_prefix`` is the category's root path inside a packed archive
+    (e.g. ``docling/models``).  The invariant
+    ``archive_prefix == cache_subpath.removeprefix(".cache/")`` must hold for all
+    entries in ``MODEL_CACHE_CATEGORIES``.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    cache_subpath: str  # relative to Path.home(), e.g. ".cache/docling/models"
+    archive_prefix: str  # root path inside archive, e.g. "docling/models"
+
+
+# Authoritative registry of every model-cache category, in deterministic order.
+# Adding a new category means adding one entry here — gateway base dirs,
+# archive prefixes, and extraction roots all derive from this single table.
+MODEL_CACHE_CATEGORIES: tuple[ModelCacheCategory, ...] = (
+    ModelCacheCategory(name="docling", cache_subpath=".cache/docling/models", archive_prefix="docling/models"),
+    ModelCacheCategory(name="huggingface", cache_subpath=".cache/huggingface/hub", archive_prefix="huggingface/hub"),
+    ModelCacheCategory(name="whisper", cache_subpath=".cache/whisper", archive_prefix="whisper"),
+    ModelCacheCategory(name="chroma", cache_subpath=".cache/chroma", archive_prefix="chroma"),
+)
+
+# Derived lookup: category name → archive prefix
+_ARCHIVE_PREFIX_BY_CATEGORY: dict[str, str] = {c.name: c.archive_prefix for c in MODEL_CACHE_CATEGORIES}
+
 # VLM preset → (default HF repo_id, optional MLX repo_id)
 VLM_PRESET_REPOS: dict[str, tuple[str, str | None]] = {
     "smoldocling": ("docling-project/SmolDocling-256M-preview", "docling-project/SmolDocling-256M-preview-mlx-bf16"),
@@ -188,39 +219,45 @@ def _collect_asr_cache_ids(
 
 
 def _iter_model_specs(requirements: ModelRequirements, bases: dict[str, Path]) -> Iterator[ModelCacheEntry]:
-    """Single source of truth for the four model-cache categories.
-
-    Yields one ModelCacheEntry per required cache item in deterministic order:
+    """Yield one ModelCacheEntry per required cache item in deterministic order:
     docling → huggingface (sorted by repo_id) → whisper (sorted by filename) → chroma.
-    Adding a category requires editing only this function (plus the ModelRequirements field that flags it).
+
+    Archive prefixes come from ``MODEL_CACHE_CATEGORIES`` via ``_ARCHIVE_PREFIX_BY_CATEGORY``
+    — the single source of truth.  Adding a category requires one new entry in
+    ``MODEL_CACHE_CATEGORIES`` plus the ``ModelRequirements`` field that flags it and
+    the per-category yield block below.
     """
     if requirements.need_docling:
+        prefix = _ARCHIVE_PREFIX_BY_CATEGORY["docling"]
         yield ModelCacheEntry(
             category="docling",
             source_path=bases["docling"],
-            archive_path="docling/models",
+            archive_path=prefix,
         )
 
     for repo_id in sorted(requirements.hf_repo_ids):
         cache_dir_name = hf_repo_id_to_cache_dir(repo_id)
+        prefix = _ARCHIVE_PREFIX_BY_CATEGORY["huggingface"]
         yield ModelCacheEntry(
             category="huggingface",
             source_path=bases["huggingface"] / cache_dir_name,
-            archive_path=f"huggingface/hub/{cache_dir_name}",
+            archive_path=f"{prefix}/{cache_dir_name}",
         )
 
     for cache_file in sorted(requirements.whisper_cache_files):
+        prefix = _ARCHIVE_PREFIX_BY_CATEGORY["whisper"]
         yield ModelCacheEntry(
             category="whisper",
             source_path=bases["whisper"] / cache_file,
-            archive_path=f"whisper/{cache_file}",
+            archive_path=f"{prefix}/{cache_file}",
         )
 
     if requirements.need_chroma:
+        prefix = _ARCHIVE_PREFIX_BY_CATEGORY["chroma"]
         yield ModelCacheEntry(
             category="chroma",
             source_path=bases["chroma"] / CHROMA_ONNX_MODEL_RELPATH,
-            archive_path=f"chroma/{CHROMA_ONNX_MODEL_RELPATH}",
+            archive_path=f"{prefix}/{CHROMA_ONNX_MODEL_RELPATH}",
         )
 
 
