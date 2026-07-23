@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `researcher search` now exits non-zero and reports the error when every repository's store is unreadable, instead of silently printing "No results found."
+- `researcher repo list`, `config show`, `config path`, and `serve` now report errors cleanly (exit code 1, `Error:` message or `{"error": ...}` JSON) instead of raising an unhandled traceback.
+
 ### Changed
 
+- Multi-repository search now reports which repositories were unavailable (via a warning line in text output and a `failed_repositories` field in JSON output) when some, but not all, repositories fail.
 - Model-cache category scheme (base dirs, archive prefixes, extraction roots) is now defined once in `MODEL_CACHE_CATEGORIES` in `researcher/model_registry.py` rather than duplicated across the gateway, registry, and archive service; internal refactor with no user-facing behavior change.
 - Config values for embedding provider, image pipeline, and ASR model are now enum-typed end to end; invalid values are rejected at the config boundary rather than falling through at runtime.
 - `status` and `search` commands now show the same "Use 'researcher repo add' to add one." hint as `index` and `models pack` when no repositories are configured; the four previously hand-rolled empty-state guards have been collapsed into a single `require_repos` helper in `researcher/cli/output.py` with one shared `NO_REPOS_MESSAGE` constant.

@@ -26,10 +26,11 @@ class DescribeSearchFragmentsAcrossRepos:
         mock_factory.search_service.return_value = mock_search_service
         mock_search_service.search_fragments.return_value = [make_search_result("f1", distance=0.2)]
 
-        results = search_fragments_across_repos(mock_factory, [repo], "query", n_results=5)
+        outcome = search_fragments_across_repos(mock_factory, [repo], "query", n_results=5)
 
-        assert len(results) == 1
-        assert results[0].fragment_id == "f1"
+        assert len(outcome.results) == 1
+        assert outcome.results[0].fragment_id == "f1"
+        assert outcome.failed_repositories == []
 
     def should_merge_and_sort_fragments_from_multiple_repos(self, mock_factory, mock_search_service):
         repo_a = make_repo("repo-a")
@@ -41,11 +42,11 @@ class DescribeSearchFragmentsAcrossRepos:
         mock_search_service.search_fragments.return_value = [far]
         mock_search_service_b.search_fragments.return_value = [near]
 
-        results = search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+        outcome = search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
 
-        assert len(results) == 2
-        assert results[0].fragment_id == "near"
-        assert results[1].fragment_id == "far"
+        assert len(outcome.results) == 2
+        assert outcome.results[0].fragment_id == "near"
+        assert outcome.results[1].fragment_id == "far"
 
     def should_truncate_to_n_results(self, mock_factory, mock_search_service):
         repo = make_repo()
@@ -54,32 +55,24 @@ class DescribeSearchFragmentsAcrossRepos:
             make_search_result(f"f{i}", distance=float(i)) for i in range(10)
         ]
 
-        results = search_fragments_across_repos(mock_factory, [repo], "query", n_results=3)
+        outcome = search_fragments_across_repos(mock_factory, [repo], "query", n_results=3)
 
-        assert len(results) == 3
+        assert len(outcome.results) == 3
 
     def should_return_empty_list_when_no_repos(self, mock_factory):
-        results = search_fragments_across_repos(mock_factory, [], "query", n_results=5)
+        outcome = search_fragments_across_repos(mock_factory, [], "query", n_results=5)
 
-        assert results == []
+        assert outcome.results == []
+        assert outcome.failed_repositories == []
 
     def should_return_empty_list_when_repos_have_no_results(self, mock_factory, mock_search_service):
         repo = make_repo()
         mock_factory.search_service.return_value = mock_search_service
         mock_search_service.search_fragments.return_value = []
 
-        results = search_fragments_across_repos(mock_factory, [repo], "query", n_results=5)
+        outcome = search_fragments_across_repos(mock_factory, [repo], "query", n_results=5)
 
-        assert results == []
-
-    def should_return_empty_when_single_repo_raises_storage_error(self, mock_factory, mock_search_service):
-        repo = make_repo("failing-repo")
-        mock_factory.search_service.return_value = mock_search_service
-        mock_search_service.search_fragments.side_effect = StorageError("chroma down")
-
-        results = search_fragments_across_repos(mock_factory, [repo], "query", n_results=5)
-
-        assert results == []
+        assert outcome.results == []
 
     def should_return_results_from_healthy_repo_when_first_raises_embedding_error(
         self, mock_factory, mock_search_service
@@ -91,12 +84,13 @@ class DescribeSearchFragmentsAcrossRepos:
         mock_search_service.search_fragments.side_effect = EmbeddingError("provider down")
         mock_search_service_b.search_fragments.return_value = [make_search_result("f1", distance=0.1)]
 
-        results = search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+        outcome = search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
 
-        assert len(results) == 1
-        assert results[0].fragment_id == "f1"
+        assert len(outcome.results) == 1
+        assert outcome.results[0].fragment_id == "f1"
+        assert outcome.failed_repositories == ["bad-repo"]
 
-    def should_return_empty_when_all_repos_fail(self, mock_factory, mock_search_service):
+    def should_raise_when_every_repository_fails(self, mock_factory, mock_search_service):
         repo_a = make_repo("bad-a")
         repo_b = make_repo("bad-b")
         mock_search_service_b = Mock(spec=SearchService)
@@ -104,9 +98,16 @@ class DescribeSearchFragmentsAcrossRepos:
         mock_search_service.search_fragments.side_effect = StorageError("disk full")
         mock_search_service_b.search_fragments.side_effect = StorageError("disk full")
 
-        results = search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+        with pytest.raises(StorageError, match="disk full"):
+            search_fragments_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
 
-        assert results == []
+    def should_raise_when_single_repository_fails(self, mock_factory, mock_search_service):
+        repo = make_repo("failing-repo")
+        mock_factory.search_service.return_value = mock_search_service
+        mock_search_service.search_fragments.side_effect = StorageError("chroma down")
+
+        with pytest.raises(StorageError, match="chroma down"):
+            search_fragments_across_repos(mock_factory, [repo], "query", n_results=5)
 
 
 class DescribeSearchDocumentsAcrossRepos:
@@ -123,10 +124,11 @@ class DescribeSearchDocumentsAcrossRepos:
         mock_factory.search_service.return_value = mock_search_service
         mock_search_service.search_documents.return_value = [make_doc_result("doc.md", best_distance=0.2)]
 
-        results = search_documents_across_repos(mock_factory, [repo], "query", n_results=5)
+        outcome = search_documents_across_repos(mock_factory, [repo], "query", n_results=5)
 
-        assert len(results) == 1
-        assert results[0].document_path == "doc.md"
+        assert len(outcome.results) == 1
+        assert outcome.results[0].document_path == "doc.md"
+        assert outcome.failed_repositories == []
 
     def should_merge_and_sort_documents_from_multiple_repos(self, mock_factory, mock_search_service):
         repo_a = make_repo("repo-a")
@@ -138,11 +140,11 @@ class DescribeSearchDocumentsAcrossRepos:
         mock_search_service.search_documents.return_value = [far]
         mock_search_service_b.search_documents.return_value = [near]
 
-        results = search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+        outcome = search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
 
-        assert len(results) == 2
-        assert results[0].document_path == "near.md"
-        assert results[1].document_path == "far.md"
+        assert len(outcome.results) == 2
+        assert outcome.results[0].document_path == "near.md"
+        assert outcome.results[1].document_path == "far.md"
 
     def should_truncate_to_n_results(self, mock_factory, mock_search_service):
         repo = make_repo()
@@ -151,23 +153,15 @@ class DescribeSearchDocumentsAcrossRepos:
             make_doc_result(f"doc{i}.md", best_distance=float(i)) for i in range(10)
         ]
 
-        results = search_documents_across_repos(mock_factory, [repo], "query", n_results=3)
+        outcome = search_documents_across_repos(mock_factory, [repo], "query", n_results=3)
 
-        assert len(results) == 3
+        assert len(outcome.results) == 3
 
     def should_return_empty_list_when_no_repos(self, mock_factory):
-        results = search_documents_across_repos(mock_factory, [], "query", n_results=5)
+        outcome = search_documents_across_repos(mock_factory, [], "query", n_results=5)
 
-        assert results == []
-
-    def should_return_empty_when_single_repo_raises_storage_error(self, mock_factory, mock_search_service):
-        repo = make_repo("failing-repo")
-        mock_factory.search_service.return_value = mock_search_service
-        mock_search_service.search_documents.side_effect = StorageError("chroma down")
-
-        results = search_documents_across_repos(mock_factory, [repo], "query", n_results=5)
-
-        assert results == []
+        assert outcome.results == []
+        assert outcome.failed_repositories == []
 
     def should_return_results_from_healthy_repo_when_first_raises_embedding_error(
         self, mock_factory, mock_search_service
@@ -179,12 +173,13 @@ class DescribeSearchDocumentsAcrossRepos:
         mock_search_service.search_documents.side_effect = EmbeddingError("provider down")
         mock_search_service_b.search_documents.return_value = [make_doc_result("doc.md", best_distance=0.1)]
 
-        results = search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+        outcome = search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
 
-        assert len(results) == 1
-        assert results[0].document_path == "doc.md"
+        assert len(outcome.results) == 1
+        assert outcome.results[0].document_path == "doc.md"
+        assert outcome.failed_repositories == ["bad-repo"]
 
-    def should_return_empty_when_all_repos_fail(self, mock_factory, mock_search_service):
+    def should_raise_when_every_repository_fails(self, mock_factory, mock_search_service):
         repo_a = make_repo("bad-a")
         repo_b = make_repo("bad-b")
         mock_search_service_b = Mock(spec=SearchService)
@@ -192,6 +187,13 @@ class DescribeSearchDocumentsAcrossRepos:
         mock_search_service.search_documents.side_effect = StorageError("disk full")
         mock_search_service_b.search_documents.side_effect = StorageError("disk full")
 
-        results = search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
+        with pytest.raises(StorageError, match="disk full"):
+            search_documents_across_repos(mock_factory, [repo_a, repo_b], "query", n_results=5)
 
-        assert results == []
+    def should_raise_when_single_repository_fails(self, mock_factory, mock_search_service):
+        repo = make_repo("failing-repo")
+        mock_factory.search_service.return_value = mock_search_service
+        mock_search_service.search_documents.side_effect = StorageError("chroma down")
+
+        with pytest.raises(StorageError, match="chroma down"):
+            search_documents_across_repos(mock_factory, [repo], "query", n_results=5)

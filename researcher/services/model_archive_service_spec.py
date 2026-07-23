@@ -270,22 +270,6 @@ class DescribeModelArchiveServiceUnpack:
 
         assert result.entries_restored == 0
 
-    def should_raise_in_process_archive_members_for_missing_manifest(self, service, mock_cache, archive_path):
-        file_member = ArchiveMember(name="random/file.txt", is_file=True, is_dir=False)
-        ctx, _ = _make_open_archive_ctx()
-        mock_cache.open_archive.return_value = ctx
-        mock_cache.read_members.return_value = [file_member]
-        mock_cache.extract_member_bytes.return_value = None
-        category_roots = {
-            "docling/models": _FAKE_BASES["docling"],
-            "huggingface/hub": _FAKE_BASES["huggingface"],
-            "chroma": _FAKE_BASES["chroma"],
-            "whisper": _FAKE_BASES["whisper"],
-        }
-
-        with pytest.raises(ModelArchiveError, match=r"missing manifest\.json"):
-            service._process_archive_members(archive_path, category_roots)
-
     def should_not_reopen_archive_after_unpack(self, service, mock_cache, archive_path):
         """Manifest is captured during the first pass — no second open."""
         mock_cache.archive_exists.return_value = True

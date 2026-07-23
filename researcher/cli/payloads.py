@@ -8,6 +8,7 @@ class SearchEnvelope(TypedDict):
     repos_searched: list[str]
     result_count: int
     results: list[dict[str, object]]
+    failed_repositories: list[str]
 
 
 class RepositoriesWrapper(TypedDict):

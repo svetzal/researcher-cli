@@ -59,6 +59,26 @@ class DescribeFilesystemGateway:
 
         assert files == []
 
+    def should_exclude_files_matching_exclude_patterns(self, gateway, temp_dir):
+        excluded_dir = temp_dir / "node_modules"
+        excluded_dir.mkdir()
+        (excluded_dir / "dep.md").write_text("dependency")
+        (temp_dir / "readme.md").write_text("# Readme")
+
+        files = gateway.list_files(["md"], exclude_patterns=["node_modules"])
+
+        assert len(files) == 1
+        assert files[0].name == "readme.md"
+
+    def should_exclude_dotfiles_matching_exclude_patterns(self, gateway, temp_dir):
+        (temp_dir / ".hidden.md").write_text("hidden")
+        (temp_dir / "readme.md").write_text("# Readme")
+
+        files = gateway.list_files(["md"], exclude_patterns=[".*"])
+
+        assert len(files) == 1
+        assert files[0].name == "readme.md"
+
     def should_read_file_contents(self, gateway, temp_dir):
         (temp_dir / "test.txt").write_text("Hello, World!")
 

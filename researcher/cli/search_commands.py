@@ -9,6 +9,13 @@ from researcher.services.multi_repo_search import (
 )
 
 
+def _warn_unavailable_repos(failed_repositories: list[str], *, json_output: bool) -> None:
+    if not failed_repositories or json_output:
+        return
+    names = ", ".join(failed_repositories)
+    console.print(f"[yellow]Warning: {len(failed_repositories)} repositories unavailable: {names}[/yellow]")
+
+
 def run_search_fragments(
     factory: ServiceFactory,
     repos: list[RepositoryConfig],
@@ -16,10 +23,11 @@ def run_search_fragments(
     n_results: int,
     json_output: bool = False,
 ) -> None:
-    all_results = search_fragments_across_repos(factory, repos, query, n_results)
+    outcome = search_fragments_across_repos(factory, repos, query, n_results)
+    _warn_unavailable_repos(outcome.failed_repositories, json_output=json_output)
     cli_output(
-        serialize_fragment_search(repos, query, all_results),
-        lambda: present_fragment_results(all_results, console),
+        serialize_fragment_search(repos, query, outcome.results, outcome.failed_repositories),
+        lambda: present_fragment_results(outcome.results, console),
         json_output=json_output,
     )
 
@@ -31,9 +39,10 @@ def run_search_documents(
     n_results: int,
     json_output: bool = False,
 ) -> None:
-    all_results = search_documents_across_repos(factory, repos, query, n_results)
+    outcome = search_documents_across_repos(factory, repos, query, n_results)
+    _warn_unavailable_repos(outcome.failed_repositories, json_output=json_output)
     cli_output(
-        serialize_document_search(repos, query, all_results),
-        lambda: present_document_results(all_results, console),
+        serialize_document_search(repos, query, outcome.results, outcome.failed_repositories),
+        lambda: present_document_results(outcome.results, console),
         json_output=json_output,
     )

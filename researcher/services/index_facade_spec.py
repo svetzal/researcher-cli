@@ -104,12 +104,22 @@ class DescribeIndexRepos:
     def mock_index_service(self):
         return Mock(spec=IndexService)
 
+    def _make_result(self, **overrides) -> IndexingResult:
+        defaults = {
+            "documents_indexed": 0,
+            "documents_skipped": 0,
+            "documents_failed": 0,
+            "documents_purged": 0,
+            "fragments_created": 0,
+        }
+        return IndexingResult(**(defaults | overrides))
+
     def should_call_index_repository_once_per_repo(self, mock_factory, mock_index_service):
         repo1 = make_repo("repo-a")
         repo2 = make_repo("repo-b")
         mock_factory.index_service.return_value = mock_index_service
-        result_a = Mock(spec=IndexingResult)
-        result_b = Mock(spec=IndexingResult)
+        result_a = self._make_result(documents_indexed=1)
+        result_b = self._make_result(documents_indexed=2)
         mock_index_service.index_repository.side_effect = [result_a, result_b]
 
         results = index_repos(mock_factory, [repo1, repo2], force=False)
@@ -120,7 +130,7 @@ class DescribeIndexRepos:
     def should_invoke_on_repo_context_manager_per_repo(self, mock_factory, mock_index_service):
         repo1 = make_repo("repo-a")
         mock_factory.index_service.return_value = mock_index_service
-        mock_index_service.index_repository.return_value = Mock(spec=IndexingResult)
+        mock_index_service.index_repository.return_value = self._make_result()
 
         entered = []
 
@@ -136,7 +146,7 @@ class DescribeIndexRepos:
     def should_skip_on_repo_when_none(self, mock_factory, mock_index_service):
         repo1 = make_repo("repo-a")
         mock_factory.index_service.return_value = mock_index_service
-        mock_index_service.index_repository.return_value = Mock(spec=IndexingResult)
+        mock_index_service.index_repository.return_value = self._make_result()
 
         results = index_repos(mock_factory, [repo1], force=False, on_repo=None)
 

@@ -40,6 +40,7 @@ def _search_envelope(
     repository: str | None,
     repos_searched: list[str],
     results: list[dict[str, object]],
+    failed_repositories: list[str],
 ) -> SearchEnvelope:
     return {
         "query": query,
@@ -48,6 +49,7 @@ def _search_envelope(
         "repos_searched": repos_searched,
         "result_count": len(results),
         "results": results,
+        "failed_repositories": failed_repositories,
     }
 
 
@@ -55,24 +57,26 @@ def serialize_fragment_search(
     repos: list[RepositoryConfig],
     query: str,
     results: list[SearchResult],
+    failed_repositories: list[str] | None = None,
 ) -> SearchEnvelope:
     results_data = [FragmentWireResult.from_domain(r).model_dump(mode="json") for r in results]
     repository, repos_searched = _repo_identity(repos)
-    return _search_envelope(query, "fragments", repository, repos_searched, results_data)
+    return _search_envelope(query, "fragments", repository, repos_searched, results_data, failed_repositories or [])
 
 
 def serialize_document_search(
     repos: list[RepositoryConfig],
     query: str,
     results: list[DocumentSearchResult],
+    failed_repositories: list[str] | None = None,
 ) -> SearchEnvelope:
     results_data = [DocumentWireResult.from_domain(r).model_dump(mode="json") for r in results]
     repository, repos_searched = _repo_identity(repos)
-    return _search_envelope(query, "documents", repository, repos_searched, results_data)
+    return _search_envelope(query, "documents", repository, repos_searched, results_data, failed_repositories or [])
 
 
 def serialize_empty_search(query: str, mode: str, repo: str | None) -> SearchEnvelope:
-    return _search_envelope(query, mode, repo, [], [])
+    return _search_envelope(query, mode, repo, [], [], [])
 
 
 def serialize_pack_result(result: PackResult) -> dict[str, object]:

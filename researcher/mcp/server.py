@@ -41,14 +41,14 @@ class ResearcherTools:
     @_mcp_errors
     def search_fragments(self, query: str, repository: str | None = None, n_results: int = 10) -> list[SearchResult]:
         repos = self._factory.repository_service.resolve_repos(repository)
-        return search_fragments_across_repos(self._factory, repos, query, n_results)
+        return search_fragments_across_repos(self._factory, repos, query, n_results).results
 
     @_mcp_errors
     def search_documents(
         self, query: str, repository: str | None = None, n_results: int = 5
     ) -> list[DocumentSearchResult]:
         repos = self._factory.repository_service.resolve_repos(repository)
-        return search_documents_across_repos(self._factory, repos, query, n_results)
+        return search_documents_across_repos(self._factory, repos, query, n_results).results
 
     @_mcp_errors
     def list_repositories(self) -> list[RepositoryConfig]:

@@ -6,7 +6,7 @@ from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, 
 from researcher.cli.presenters import present_repo_list, present_repo_update
 from researcher.config import RepoConfigOptions, RepositoryConfig
 from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
-from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
+from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError, ResearcherError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_facade import update_repo_with_purge
@@ -150,6 +150,7 @@ def update_repo(
 
 
 @repo_app.command("list")
+@cli_errors(ResearcherError)
 def list_repos(
     ctx: typer.Context,
     json_output: bool = JSON_OPTION,

@@ -86,6 +86,21 @@ class DocumentSearchResult(BaseModel):
         return len(self.top_fragments)
 
 
+class MultiRepoSearchOutcome[T: (SearchResult, DocumentSearchResult)](BaseModel):
+    """Result of searching across one or more repositories.
+
+    ``failed_repositories`` lists the names of repositories that raised an
+    error during the search but did not prevent other repositories from
+    being searched (a total failure across every repository is raised as
+    an exception rather than represented here).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    results: list[T]
+    failed_repositories: list[str] = Field(default_factory=list)
+
+
 class ChunkResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 

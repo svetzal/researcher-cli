@@ -36,6 +36,15 @@ To create a new release:
 8. Deploy locally: `uv tool install . --force`
 9. Re-init skills: `researcher init --global --force`
 
+## Testing Standard
+
+Tests must verify behavior, not wiring. Follow these rules when writing or reviewing specs in this repo:
+
+- Mock only gateway classes (`researcher/gateways/*`) and the `ServiceFactory` composition root. Never mock value objects defined in `researcher/models.py` — construct real instances instead (they are cheap, validated Pydantic models).
+- Never call `_`-prefixed (private) methods from a `*_spec.py` file. Drive behavior through the class's public API and assert on its return value or observable side effects.
+- A test whose arrange block reimplements the logic under test (e.g. a `side_effect` that re-runs the same filtering/business logic the production code is supposed to run) is not a real test — it will pass even if the production code is broken. Delete or rewrite it so the production code actually executes the behavior being asserted.
+- Prefer asserting on outcomes (return values, raised exceptions, persisted state) over asserting that a mock method was called, unless the call itself — not its effect — is the contract being tested (e.g. "force mode skips an expensive I/O call").
+
 ## Skill Distribution
 
 Researcher ships two Claude Code skills (`researcher-admin` and `researcher-find`). The authoritative source files live in `researcher/bundled_skills/`.

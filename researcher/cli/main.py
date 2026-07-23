@@ -134,6 +134,7 @@ def search_command(
 
 
 @app.command("serve")
+@cli_errors(ResearcherError)
 def serve_command(
     port: int | None = typer.Option(None, "--port", "-p", help="HTTP port (default: STDIO mode)"),
 ) -> None:

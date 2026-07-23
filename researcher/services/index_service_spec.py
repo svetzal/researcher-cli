@@ -12,8 +12,6 @@ from researcher.gateways.chroma_gateway import ChromaGateway
 from researcher.gateways.docling_gateway import DoclingGateway
 from researcher.gateways.embedding_gateway import EmbeddingGateway
 from researcher.gateways.filesystem_gateway import FilesystemGateway
-from researcher.models import FileOutcome
-from researcher.path_exclusion import is_path_excluded
 from researcher.services.index_service import IndexService
 
 
@@ -92,7 +90,7 @@ class DescribeIndexService:
         assert result.documents_skipped == 0
         assert result.documents_indexed == 1
 
-    def should_exclude_files_matching_exclude_patterns(
+    def should_pass_exclude_patterns_from_repo_config_to_filesystem_list_files(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
     ):
         repo_config = RepositoryConfig(
@@ -101,36 +99,11 @@ class DescribeIndexService:
             embedding_provider="chromadb",
             exclude_patterns=["node_modules", ".*"],
         )
-        base = Path("/tmp/docs")
-        candidates = [Path("/tmp/docs/node_modules/dep.md"), Path("/tmp/docs/readme.md")]
+        mock_filesystem.list_files.return_value = []
 
-        def _filtered_list(file_types, patterns):
-            return [p for p in candidates if not is_path_excluded(p.relative_to(base), patterns)]
+        service.index_repository(repo_config)
 
-        mock_filesystem.list_files.side_effect = _filtered_list
-        mock_filesystem.compute_checksum.return_value = "new_checksum"
-        mock_filesystem.read_file.return_value = "# Content"
-
-        result = service.index_repository(repo_config)
-
-        assert result.documents_indexed == 1
-
-    def should_exclude_dotfiles_by_default(
-        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
-    ):
-        base = Path("/tmp/docs")
-        candidates = [Path("/tmp/docs/.hidden.md"), Path("/tmp/docs/readme.md")]
-
-        def _filtered_list(file_types, patterns):
-            return [p for p in candidates if not is_path_excluded(p.relative_to(base), patterns)]
-
-        mock_filesystem.list_files.side_effect = _filtered_list
-        mock_filesystem.compute_checksum.return_value = "new_checksum"
-        mock_filesystem.read_file.return_value = "# Content"
-
-        result = service.index_repository(repo_config)
-
-        assert result.documents_indexed == 1
+        mock_filesystem.list_files.assert_called_once_with(repo_config.file_types, ["node_modules", ".*"])
 
     def should_index_new_files(self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config):
         file_path = Path("/tmp/docs/doc.pdf")
@@ -210,23 +183,7 @@ class DescribeIndexService:
         assert len(result.errors) == 1
         assert "Conversion failed" in result.errors[0]
 
-    def should_use_external_embeddings_for_non_chromadb_provider(
-        self, service, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums, repo_config
-    ):
-        repo_config = RepositoryConfig(name="test-repo", path="/tmp/docs", embedding_provider="ollama")
-        file_path = Path("/tmp/docs/doc.pdf")
-        mock_filesystem.list_files.return_value = [file_path]
-        mock_filesystem.compute_checksum.return_value = "checksum"
-        mock_docling.convert.return_value = "mock_document"
-        mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
-        mock_embedding.embed_texts.return_value = [[0.1, 0.2, 0.3]]
-
-        result = service.index_repository(repo_config)
-
-        assert result.documents_indexed == 1
-        assert result.fragments_created == 1
-
-    def should_index_and_store_fragments_for_chromadb_provider(
+    def should_index_and_store_fragments_from_a_converted_document(
         self, service, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums
     ):
         repo_config = RepositoryConfig(name="test-repo", path="/tmp/docs", embedding_provider="chromadb")
@@ -264,43 +221,33 @@ class DescribeIndexService:
         mock_embedding.embed_texts.assert_not_called()
         mock_chroma.add_fragments_with_embeddings.assert_not_called()
 
-    def should_call_embedding_and_chroma_when_index_and_store_file(
-        self, service, mock_filesystem, mock_docling, mock_embedding, mock_chroma, mock_checksums
-    ):
-        file_path = Path("/tmp/docs/doc.pdf")
-        mock_docling.convert.return_value = "mock_document"
-        mock_docling.chunk.return_value = [_FakeChunk("Hello world")]
-
-        service.index_and_store_file(file_path)
-
-        mock_embedding.embed_texts.assert_called_once()
-        mock_chroma.add_fragments_with_embeddings.assert_called_once()
-
-    def should_return_failed_result_with_error_text_on_storage_error(
-        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
+    def should_record_storage_error_in_indexing_result(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
     ):
         file_path = Path("/tmp/docs/bad.pdf")
+        mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "checksum"
         mock_docling.convert.side_effect = StorageError("disk full")
+        mock_checksums.load.return_value = {}
 
-        result = service._process_file(file_path, {})
+        result = service.index_repository(repo_config)
 
-        assert result.outcome == FileOutcome.FAILED
-        assert result.error is not None
-        assert "disk full" in result.error
+        assert result.documents_failed == 1
+        assert any("disk full" in error for error in result.errors)
 
-    def should_not_mutate_checksums_mapping_in_process_file(
-        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums
+    def should_index_repository_when_checksums_mapping_is_immutable(
+        self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums, repo_config
     ):
         file_path = Path("/tmp/docs/notes.txt")
+        mock_filesystem.list_files.return_value = [file_path]
         mock_filesystem.compute_checksum.return_value = "abc123"
         mock_filesystem.read_file.return_value = "Some plain text"
-        frozen = MappingProxyType({})
+        mock_checksums.load.return_value = MappingProxyType({})
 
-        # Must not raise even though frozen cannot be mutated
-        result = service._process_file(file_path, frozen)
+        # Must not raise even though the checksums mapping from storage cannot be mutated
+        result = service.index_repository(repo_config)
 
-        assert result.outcome == FileOutcome.INDEXED
+        assert result.documents_indexed == 1
 
     def should_purge_excluded_documents_during_indexing(
         self, service, mock_filesystem, mock_docling, mock_chroma, mock_checksums

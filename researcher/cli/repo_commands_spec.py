@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.repo_commands import repo_app
 from researcher.config import RepositoryConfig
-from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError
+from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError, StorageError
 from researcher.services.index_service import IndexService
 
 runner = CliRunner()
@@ -160,6 +160,14 @@ class DescribeRepoListCommand:
 
         assert result.exit_code == 0
         assert "md" in result.output
+
+    def should_exit_with_error_when_config_cannot_be_read(self, mock_factory):
+        mock_factory.repository_service.list_repositories.side_effect = StorageError("config file corrupt")
+
+        result = runner.invoke(repo_app, ["list"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output
 
 
 class DescribeRepoAddJsonOutput:

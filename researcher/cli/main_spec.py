@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.main import app
 from researcher.conftest import make_doc_result, make_repo, make_search_result
+from researcher.exceptions import StorageError
 from researcher.models import IndexingResult, IndexStats
 from researcher.services.index_service import IndexService
 
@@ -224,6 +225,48 @@ class DescribeSearchCommand:
         assert "doc.md" in result.output
 
 
+class DescribeSearchCommandFailureReporting:
+    def should_exit_nonzero_when_every_repository_search_fails(self, mock_factory):
+        repo = make_repo("test-repo", "/tmp")
+        mock_factory.repository_service.list_repositories.return_value = [repo]
+        mock_factory.search_service.return_value.search_documents.side_effect = StorageError("chroma store corrupt")
+
+        result = runner.invoke(app, ["search", "query"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "corrupt" in result.output
+        assert "No results found." not in result.output
+
+    def should_report_error_json_when_every_repository_search_fails(self, mock_factory):
+        repo = make_repo("test-repo", "/tmp")
+        mock_factory.repository_service.list_repositories.return_value = [repo]
+        mock_factory.search_service.return_value.search_documents.side_effect = StorageError("chroma store corrupt")
+
+        result = runner.invoke(app, ["search", "query", "--json"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        last_line = result.output.strip().splitlines()[-1]
+        data = json.loads(last_line)
+        assert "error" in data
+
+    def should_return_results_from_healthy_repo_when_one_repo_fails(self, mock_factory):
+        repo_a = make_repo("bad-repo", "/tmp/bad")
+        repo_b = make_repo("good-repo", "/tmp/good")
+        mock_factory.repository_service.list_repositories.return_value = [repo_a, repo_b]
+        healthy_service = Mock()
+        failing_service = Mock()
+        mock_factory.search_service.side_effect = [failing_service, healthy_service]
+        failing_service.search_documents.side_effect = StorageError("chroma store corrupt")
+        doc = make_doc_result(doc_path="notes/design.md", best_distance=0.1)
+        healthy_service.search_documents.return_value = [doc]
+
+        result = runner.invoke(app, ["search", "query"], obj=mock_factory)
+
+        assert result.exit_code == 0
+        assert "notes/design.md" in result.output
+        assert "bad-repo" in result.output
+
+
 class DescribeIndexCommandJsonOutput:
     def should_write_valid_json_with_repositories_key(self, mock_factory):
         repo = make_repo("test-repo", "/tmp")
@@ -410,3 +453,16 @@ class DescribeSearchCommandJsonOutput:
         result = runner.invoke(app, ["search", "query", "--mode", "bogus"], obj=mock_factory)
 
         assert result.exit_code != 0
+
+
+class DescribeServeCommand:
+    def should_exit_with_error_when_server_fails_to_start(self, mock_factory, monkeypatch):
+        def _boom(port=None):
+            raise StorageError("mcp server crashed")
+
+        monkeypatch.setattr("researcher.mcp.server.start_server", _boom)
+
+        result = runner.invoke(app, ["serve"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output

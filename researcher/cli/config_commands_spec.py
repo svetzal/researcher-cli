@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.config_commands import config_app
 from researcher.config import ResearcherConfig
-from researcher.exceptions import ConfigValidationError
+from researcher.exceptions import ConfigValidationError, StorageError
 from researcher.services.settings_service import SettingsService
 
 runner = CliRunner()
@@ -42,6 +42,15 @@ class DescribeConfigShowCommand:
         data = json.loads(result.output)
         assert "mcp_port" in data
         assert data["mcp_port"] == 9000
+
+    def should_exit_with_error_when_config_cannot_be_read(self, mock_factory):
+        mock_factory.settings_service = Mock(spec=SettingsService)
+        mock_factory.settings_service.get_settings.side_effect = StorageError("config file corrupt")
+
+        result = runner.invoke(config_app, ["show"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output
 
 
 class DescribeConfigSetCommand:
@@ -130,3 +139,12 @@ class DescribeConfigPathCommand:
         data = json.loads(result.output)
         assert "config_path" in data
         assert "config.yaml" in data["config_path"]
+
+    def should_exit_with_error_when_config_cannot_be_read(self, mock_factory):
+        mock_factory.settings_service = Mock(spec=SettingsService)
+        mock_factory.settings_service.config_file_path.side_effect = StorageError("config file corrupt")
+
+        result = runner.invoke(config_app, ["path"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output
