@@ -236,6 +236,7 @@ def __init__(self, provider: str = "chromadb", model: str | None = None):
         "openai": self._embed_with_openai,
     }
 
+
 def embed_texts(self, texts: list[str]) -> list[list[float]]:
     embed_fn = self._dispatch.get(self._config.provider)
     if embed_fn is None:
@@ -260,11 +261,13 @@ This is a minor improvement — the gateway is still a single class, but the bra
 ```python
 _factory: ServiceFactory | None = None
 
+
 def _get_factory() -> ServiceFactory:
     global _factory
     if _factory is None:
         _factory = ServiceFactory()
     return _factory
+
 
 def set_factory(factory: ServiceFactory) -> None:
     """Allow tests to inject a mock factory."""

@@ -82,6 +82,7 @@ from datetime import datetime
 
 class DocumentMetadata(BaseModel):
     """Metadata about an indexed document."""
+
     file_path: str
     file_name: str
     file_type: str
@@ -92,6 +93,7 @@ class DocumentMetadata(BaseModel):
 
 class Fragment(BaseModel):
     """A chunk of text from a document, as produced by chunking."""
+
     text: str
     document_path: str
     fragment_index: int
@@ -99,6 +101,7 @@ class Fragment(BaseModel):
 
 class FragmentForStorage(BaseModel):
     """A fragment prepared for storage in the vector database."""
+
     id: str
     text: str
     metadata: dict
@@ -106,6 +109,7 @@ class FragmentForStorage(BaseModel):
 
 class FragmentWithEmbedding(BaseModel):
     """A fragment with its computed embedding vector."""
+
     id: str
     text: str
     metadata: dict
@@ -114,6 +118,7 @@ class FragmentWithEmbedding(BaseModel):
 
 class SearchResult(BaseModel):
     """A single search result from vector search."""
+
     fragment_id: str
     text: str
     document_path: str
@@ -123,6 +128,7 @@ class SearchResult(BaseModel):
 
 class DocumentSearchResult(BaseModel):
     """Aggregated search results grouped by document."""
+
     document_path: str
     top_fragments: list[SearchResult]
     best_distance: float
@@ -130,12 +136,14 @@ class DocumentSearchResult(BaseModel):
 
 class ChunkResult(BaseModel):
     """Result of chunking a single document."""
+
     document_path: str
     fragments: list[Fragment]
 
 
 class IndexingResult(BaseModel):
     """Summary of an indexing operation."""
+
     documents_indexed: int
     documents_skipped: int
     documents_failed: int
@@ -145,6 +153,7 @@ class IndexingResult(BaseModel):
 
 class IndexStats(BaseModel):
     """Current state of a repository's index."""
+
     repository_name: str
     total_documents: int
     total_fragments: int
@@ -160,6 +169,7 @@ class IndexStats(BaseModel):
 ```python
 class RepositoryConfig(BaseModel):
     """Configuration for a single document repository."""
+
     name: str
     path: str
     file_types: list[str] = Field(default_factory=lambda: ["md", "txt", "pdf", "docx", "html"])
@@ -169,6 +179,7 @@ class RepositoryConfig(BaseModel):
 
 class ResearcherConfig(BaseModel):
     """Top-level configuration for the researcher tool."""
+
     repositories: list[RepositoryConfig] = Field(default_factory=list)
     default_embedding_provider: str = "chromadb"
     default_embedding_model: str | None = None
@@ -215,7 +226,9 @@ class ChromaGateway:
     def add_fragments(self, collection_name: str, fragments: list[FragmentForStorage]) -> None: ...
     def add_fragments_with_embeddings(self, collection_name: str, fragments: list[FragmentWithEmbedding]) -> None: ...
     def query(self, collection_name: str, query_text: str, n_results: int = 10) -> list[SearchResult]: ...
-    def query_with_embedding(self, collection_name: str, query_embedding: list[float], n_results: int = 10) -> list[SearchResult]: ...
+    def query_with_embedding(
+        self, collection_name: str, query_embedding: list[float], n_results: int = 10
+    ) -> list[SearchResult]: ...
     def delete_by_document(self, collection_name: str, document_path: str) -> None: ...
     def delete_collection(self, collection_name: str) -> None: ...
     def count(self, collection_name: str) -> int: ...
@@ -443,21 +456,26 @@ Exposes researcher-cli functionality as MCP tools via `fastmcp`.
 def add_to_index(repository: str, file_path: str) -> str:
     """Index a specific file in a repository."""
 
+
 @mcp.tool()
 def remove_from_index(repository: str, document_path: str) -> str:
     """Remove a document from a repository's index."""
+
 
 @mcp.tool()
 def search_fragments(query: str, repository: str | None = None, n_results: int = 10) -> list[dict]:
     """Search for text fragments across indexed repositories."""
 
+
 @mcp.tool()
 def search_documents(query: str, repository: str | None = None, n_results: int = 5) -> list[dict]:
     """Search for documents across indexed repositories, returning top fragments per document."""
 
+
 @mcp.tool()
 def list_repositories() -> list[dict]:
     """List all configured repositories with their settings."""
+
 
 @mcp.tool()
 def get_index_status(repository: str | None = None) -> dict:

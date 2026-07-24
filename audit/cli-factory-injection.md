@@ -74,11 +74,13 @@ Tests then simply pass a mock factory via `runner.invoke(app, [...], obj=mock_fa
 ```python
 _factory: ServiceFactory | None = None
 
+
 def get_factory() -> ServiceFactory:
     global _factory
     if _factory is None:
         _factory = ServiceFactory()
     return _factory
+
 
 def set_factory(factory: ServiceFactory) -> None:
     global _factory

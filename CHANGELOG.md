@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependencies: docling-core 2.86.0 → 2.87.0
 - Updated dependencies: anyio 4.14.1 → 4.14.2, coverage 7.15.0 → 7.15.1, sentencepiece 0.2.1 → 0.2.2
 - Updated dependencies: colorlog 6.10.1 → 6.11.0, coverage 7.15.1 → 7.15.2, cyclopts 4.21.0 → 4.21.2, doclang 0.7.2 → 0.7.3, docling 2.112.0 → 2.113.0, docling-core 2.87.0 → 2.87.1, docling-slim 2.112.0 → 2.113.0, fastapi 0.139.0 → 0.139.2, filelock 3.29.7 → 3.31.0, huggingface-hub 1.23.0 → 1.24.0, opentelemetry-* 1.43.0 → 1.44.0, platformdirs 4.10.0 → 4.10.1, pypdfium2 5.11.0 → 5.12.1, regex 2026.7.10 → 2026.7.19, ruff 0.15.21 → 0.15.22, soupsieve 2.8.4 → 2.9, tqdm 4.68.4 → 4.69.0, websockets 16.1 → 16.1.1
+- Updated dependencies: annotated-types 0.7.0 → 0.8.0, cachetools 7.1.5 → 7.1.6, colorlog 6.11.0 → 6.12.0, docling 2.114.0 → 2.115.0, docling-slim 2.114.0 → 2.115.0, grpcio 1.82.1 → 1.83.0, ruff 0.15.22 → 0.16.0
+- Reformatted embedded Python code fences in `MLX.md`, `SPEC.md`, and `audit/` docs to satisfy `ruff format` 0.16's markdown formatting
 
 ## [0.5.4] - 2026-07-03
 
