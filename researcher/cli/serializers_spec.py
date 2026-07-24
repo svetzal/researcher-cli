@@ -1,22 +1,17 @@
-from datetime import datetime
 from pathlib import Path
 
 from researcher.cli.serializers import (
-    build_json_results_wrapper,
-    serialize_config,
     serialize_config_path,
     serialize_config_set,
     serialize_document_search,
     serialize_empty_search,
     serialize_fragment_search,
     serialize_index_result,
-    serialize_index_stats,
     serialize_pack_result,
     serialize_unpack_result,
 )
-from researcher.config import ResearcherConfig
 from researcher.conftest import make_doc_result, make_repo, make_search_result
-from researcher.models import DocumentSearchResult, IndexingResult, IndexStats
+from researcher.models import DocumentSearchResult, IndexingResult
 from researcher.services.model_archive_service import PackResult, UnpackResult
 
 
@@ -36,36 +31,6 @@ def _make_indexing_result(
         fragments_created=fragments_created,
         errors=errors or [],
     )
-
-
-def _make_index_stats(
-    repository_name: str = "my-notes",
-    total_documents: int = 42,
-    total_fragments: int = 318,
-    last_indexed: datetime | None = None,
-) -> IndexStats:
-    return IndexStats(
-        repository_name=repository_name,
-        total_documents=total_documents,
-        total_fragments=total_fragments,
-        last_indexed=last_indexed,
-    )
-
-
-class DescribeSerializeConfig:
-    def should_include_mcp_port(self):
-        config = ResearcherConfig(mcp_port=9000)
-
-        data = serialize_config(config)
-
-        assert data["mcp_port"] == 9000
-
-    def should_include_default_embedding_provider(self):
-        config = ResearcherConfig()
-
-        data = serialize_config(config)
-
-        assert "default_embedding_provider" in data
 
 
 class DescribeSerializeConfigSet:
@@ -119,33 +84,6 @@ class DescribeSerializeIndexResult:
         assert set(serialized) == {"repository"} | set(IndexingResult.model_fields)
 
 
-class DescribeSerializeIndexStats:
-    def should_include_all_fields(self):
-        stats = _make_index_stats()
-
-        data = serialize_index_stats(stats)
-
-        assert data["repository_name"] == "my-notes"
-        assert data["total_documents"] == 42
-        assert data["total_fragments"] == 318
-        assert data["last_indexed"] is None
-
-    def should_serialize_last_indexed_as_iso_string(self):
-        ts = datetime(2026, 2, 20, 10, 0, 0)
-        stats = _make_index_stats(last_indexed=ts)
-
-        data = serialize_index_stats(stats)
-
-        assert data["last_indexed"] == "2026-02-20T10:00:00"
-
-    def should_expose_every_index_stats_field(self):
-        stats = IndexStats(repository_name="r", total_documents=1, total_fragments=10, last_indexed=None)
-
-        serialized = serialize_index_stats(stats)
-
-        assert set(serialized) == set(IndexStats.model_fields)
-
-
 class DescribeSerializeFragmentSearch:
     def should_write_valid_structure(self):
         repo = make_repo()
@@ -168,6 +106,14 @@ class DescribeSerializeFragmentSearch:
         assert result["fragment_index"] == 2
         assert result["distance"] == 0.234
         assert result["text"] == "JWT tokens"
+
+    def should_pin_the_fragment_result_key_set(self):
+        repo = make_repo()
+        sr = make_search_result()
+
+        data = serialize_fragment_search([repo], "query", [sr])
+
+        assert set(data["results"][0]) == {"document_path", "fragment_index", "text", "distance"}
 
     def should_set_repository_to_name_when_single_repo(self):
         repo = make_repo("my-notes")
@@ -218,6 +164,15 @@ class DescribeSerializeDocumentSearch:
         assert result["top_fragment"]["text"] == "JWT tokens"
         assert result["top_fragment"]["fragment_index"] == 2
         assert result["top_fragment"]["distance"] == 0.123
+
+    def should_pin_the_top_fragment_key_set(self):
+        repo = make_repo()
+        sr = make_search_result()
+        doc = make_doc_result(fragment=sr)
+
+        data = serialize_document_search([repo], "query", [doc])
+
+        assert set(data["results"][0]["top_fragment"]) == {"text", "fragment_index", "distance"}
 
     def should_set_top_fragment_to_null_when_no_fragments(self):
         repo = make_repo()
@@ -272,6 +227,20 @@ class DescribeSerializePackResult:
         assert data["entries"][0]["category"] == "docling"
         assert data["entries"][0]["archive_path"] == "docling/models"
 
+    def should_pin_the_entry_key_set(self):
+        from researcher.model_registry import ModelCacheEntry
+
+        entry = ModelCacheEntry(
+            category="docling",
+            source_path=Path("/tmp/docling"),
+            archive_path="docling/models",
+        )
+        result = PackResult(archive_path=Path("/tmp/models.tar.gz"), entries=[entry], total_files=3)
+
+        data = serialize_pack_result(result)
+
+        assert set(data["entries"][0]) == {"category", "archive_path"}
+
 
 class DescribeSerializeUnpackResult:
     def should_include_all_fields(self):
@@ -282,19 +251,3 @@ class DescribeSerializeUnpackResult:
         assert data["archive"] == "/tmp/models.tar.gz"
         assert data["entries_restored"] == 2
         assert data["files_extracted"] == 10
-
-
-class DescribeBuildJsonResultsWrapper:
-    def should_wrap_results_in_repositories_key(self):
-        results = [{"repository": "my-notes", "documents_indexed": 5}]
-
-        data = build_json_results_wrapper(results)
-
-        assert "repositories" in data
-        assert len(data["repositories"]) == 1
-        assert data["repositories"][0]["repository"] == "my-notes"
-
-    def should_wrap_empty_list(self):
-        data = build_json_results_wrapper([])
-
-        assert data == {"repositories": []}

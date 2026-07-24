@@ -3,7 +3,6 @@ from typing import NoReturn
 import fastmcp
 from fastmcp.exceptions import ToolError
 
-from researcher.cli.payloads import IndexStatusWrapper
 from researcher.config import RepositoryConfig
 from researcher.error_boundary import handle_boundary_errors
 from researcher.exceptions import ResearcherError
@@ -55,7 +54,7 @@ class ResearcherTools:
         return self._factory.repository_service.list_repositories()
 
     @_mcp_errors
-    def get_index_status(self, repository: str | None = None) -> dict[str, object] | IndexStatusWrapper:
+    def get_index_status(self, repository: str | None = None) -> dict[str, object]:
         statuses = [s.model_dump(mode="json") for s in get_repo_status(self._factory, repository)]
         if len(statuses) == 1:
             return statuses[0]

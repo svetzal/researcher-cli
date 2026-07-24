@@ -18,10 +18,8 @@ from researcher.cli.presenters import present_index_results, present_status
 from researcher.cli.repo_commands import repo_app
 from researcher.cli.search_commands import run_search_documents, run_search_fragments
 from researcher.cli.serializers import (
-    build_json_results_wrapper,
     serialize_empty_search,
     serialize_index_result,
-    serialize_index_stats,
 )
 from researcher.config import RepositoryConfig
 from researcher.enums import SearchMode
@@ -66,7 +64,7 @@ def index_command(
     results = index_repos(factory, repos, force=force, on_repo=on_repo)
 
     cli_output(
-        build_json_results_wrapper([serialize_index_result(name, r) for name, r in results]),
+        {"repositories": [serialize_index_result(name, r) for name, r in results]},
         lambda: present_index_results(results, console),
         json_output=json_output,
     )
@@ -103,7 +101,7 @@ def status_command(
     stats = [factory.index_service(repo).get_stats() for repo in repos]
 
     cli_output(
-        build_json_results_wrapper([serialize_index_stats(s) for s in stats]),
+        {"repositories": [s.model_dump(mode="json") for s in stats]},
         lambda: present_status(stats, console),
         json_output=json_output,
     )

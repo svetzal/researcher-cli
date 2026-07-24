@@ -2,7 +2,7 @@ import typer
 
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
 from researcher.cli.presenters import present_config
-from researcher.cli.serializers import serialize_config, serialize_config_path, serialize_config_set
+from researcher.cli.serializers import serialize_config_path, serialize_config_set
 from researcher.exceptions import ConfigValidationError, ResearcherError
 from researcher.service_factory import ServiceFactory
 
@@ -20,7 +20,7 @@ def show_config(
     factory: ServiceFactory = ctx.obj
     config = factory.settings_service.get_settings()
     cli_output(
-        serialize_config(config),
+        config.model_dump(mode="json"),
         lambda: present_config(config, console),
         json_output=json_output,
     )
