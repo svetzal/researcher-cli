@@ -230,6 +230,21 @@ class DescribeSkillInstallService:
 
         assert "researcher-admin" in result["skills_installed"]
 
+    def should_install_when_installed_version_stamp_is_malformed(self, mock_fs, mock_bundled):
+        mock_fs.file_exists.return_value = True
+        mock_fs.read_file.return_value = (
+            "---\nname: researcher-admin\nresearcher-version: not-a-version\n---\ncontent\n"
+        )
+        service = SkillInstallService(
+            filesystem_gateway=mock_fs,
+            bundled_skills_gateway=mock_bundled,
+            skill_names=["researcher-admin"],
+        )
+
+        result = service.install(Path("/tmp/target"))
+
+        assert "researcher-admin" in result["skills_installed"]
+
     def should_propagate_storage_error_from_gateway(self, mock_fs, mock_bundled):
         mock_fs.file_exists.return_value = False
         mock_fs.write_file.side_effect = StorageError("disk full")

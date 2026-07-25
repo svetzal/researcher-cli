@@ -61,7 +61,12 @@ def cli_errors(*exception_types):
         cli_error(str(e), json_output=kwargs.get("json_output", False))
         raise typer.Exit(1) from None
 
-    return handle_boundary_errors(*exception_types, on_error=_on_error)
+    def decorator(func):
+        wrapped = handle_boundary_errors(*exception_types, on_error=_on_error)(func)
+        wrapped.cli_errors_exception_types = exception_types
+        return wrapped
+
+    return decorator
 
 
 JSON_OPTION: bool = typer.Option(False, "--json", "-j", help="Output as JSON")

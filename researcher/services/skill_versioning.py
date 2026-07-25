@@ -2,7 +2,7 @@
 
 import re
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 
 def parse_frontmatter_version(text: str) -> str | None:
@@ -56,7 +56,11 @@ def decide_skill_action(
     if existing_version is None:
         return "install", None  # no version field → no guard applies
 
-    existing = Version(existing_version)
+    try:
+        existing = Version(existing_version)
+    except InvalidVersion:
+        return "install", None
+
     current = Version(current_version)
 
     if existing > current:

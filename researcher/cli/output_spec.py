@@ -1,10 +1,14 @@
 import json as json_module
 from unittest.mock import Mock, patch
 
+import click
 import pytest
 import typer
 from typer.testing import CliRunner
 
+from researcher.cli.config_commands import config_app
+from researcher.cli.main import app
+from researcher.cli.model_commands import models_app
 from researcher.cli.output import (
     cli_error,
     cli_exit_on_error,
@@ -12,7 +16,9 @@ from researcher.cli.output import (
     make_service_factory_callback,
     require_repos,
 )
+from researcher.cli.repo_commands import repo_app
 from researcher.conftest import make_repo
+from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 
 
@@ -245,3 +251,38 @@ class DescribeRequireRepos:
         assert result.exit_code == 1
         data = json_module.loads(result.output)
         assert "error" in data
+
+
+def _leaf_commands(typer_app: typer.Typer) -> list[tuple[str, object]]:
+    """Return (name, callback) pairs for commands directly registered on typer_app,
+    excluding nested sub-typers (click.Group instances) which have no callback of
+    their own to guard."""
+    click_group = typer.main.get_command(typer_app)
+    return [
+        (name, cmd.callback)
+        for name, cmd in click_group.commands.items()
+        if not isinstance(cmd, click.Group) and cmd.callback is not None
+    ]
+
+
+class DescribeCliErrorCoverage:
+    """Every CLI command must be decorated with cli_errors(ResearcherError, ...) so a
+    sibling domain error can never escape as a raw traceback — decorating with a single
+    leaf exception class (e.g. RepositoryNotFoundError) is not sufficient."""
+
+    @pytest.mark.parametrize(
+        ("typer_app_name", "typer_app"),
+        [("app", app), ("repo_app", repo_app), ("config_app", config_app), ("models_app", models_app)],
+    )
+    def should_guard_every_command_with_researcher_error(self, typer_app_name, typer_app):
+        leaf_commands = _leaf_commands(typer_app)
+        assert leaf_commands, f"{typer_app_name} has no leaf commands to check"
+
+        for name, callback in leaf_commands:
+            exception_types = getattr(callback, "cli_errors_exception_types", None)
+            assert exception_types is not None, f"{typer_app_name}.{name} is not decorated with @cli_errors(...)"
+            assert isinstance(ResearcherError("boom"), exception_types), (
+                f"{typer_app_name}.{name} is decorated with @cli_errors{exception_types} "
+                "which does not catch ResearcherError (a sibling domain error would leak "
+                "a raw traceback) — use @cli_errors(ResearcherError) instead of a leaf subclass"
+            )

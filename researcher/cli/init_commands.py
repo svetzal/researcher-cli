@@ -3,7 +3,7 @@ from pathlib import Path
 import typer
 
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console
-from researcher.exceptions import StorageError
+from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 
 
@@ -28,7 +28,7 @@ def _print_init_results(result: dict) -> None:
     )
 
 
-@cli_errors(StorageError)
+@cli_errors(ResearcherError)
 def init_command(
     ctx: typer.Context,
     force: bool = typer.Option(

@@ -2,12 +2,17 @@ import json
 from datetime import datetime
 from unittest.mock import Mock
 
+import pytest
 from typer.testing import CliRunner
 
+from researcher.cli.config_commands import config_app
 from researcher.cli.main import app
+from researcher.cli.model_commands import models_app
+from researcher.cli.repo_commands import repo_app
 from researcher.conftest import make_doc_result, make_repo, make_search_result
 from researcher.exceptions import StorageError
 from researcher.models import IndexingResult, IndexStats
+from researcher.service_factory import ServiceFactory
 from researcher.services.index_service import IndexService
 
 runner = CliRunner()
@@ -453,6 +458,35 @@ class DescribeSearchCommandJsonOutput:
         result = runner.invoke(app, ["search", "query", "--mode", "bogus"], obj=mock_factory)
 
         assert result.exit_code != 0
+
+
+class DescribeCorruptConfigBoundary:
+    """End-to-end: a real ServiceFactory/ConfigGateway hitting malformed YAML must
+    never leak a raw traceback — every command group should render a friendly error."""
+
+    @pytest.fixture
+    def corrupt_config_dir(self, tmp_path):
+        config_dir = tmp_path / ".researcher"
+        config_dir.mkdir()
+        (config_dir / "config.yaml").write_text("repositories: [unterminated\n")
+        return config_dir
+
+    @pytest.mark.parametrize(
+        ("typer_app", "argv"),
+        [
+            (app, ["status"]),
+            (repo_app, ["list"]),
+            (config_app, ["show"]),
+            (models_app, ["pack", "--output", "/tmp/models.tar.gz"]),
+        ],
+    )
+    def should_render_friendly_error_instead_of_traceback(self, corrupt_config_dir, typer_app, argv):
+        factory = ServiceFactory(config_dir=corrupt_config_dir)
+
+        result = runner.invoke(typer_app, argv, obj=factory)
+
+        assert result.exit_code == 1
+        assert "Error:" in result.output
 
 
 class DescribeServeCommand:

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- CLI commands no longer crash with a raw traceback when a sibling domain error (e.g. a corrupt config file) occurs — `repo add/remove/update`, `config set`, `init`, and `models pack/unpack` now render a user-facing error and exit 1.
 - `researcher search` now exits non-zero and reports the error when every repository's store is unreadable, instead of silently printing "No results found."
 - `researcher repo list`, `config show`, `config path`, and `serve` now report errors cleanly (exit code 1, `Error:` message or `{"error": ...}` JSON) instead of raising an unhandled traceback.
 

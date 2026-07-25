@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.config_commands import config_app
 from researcher.config import ResearcherConfig
-from researcher.exceptions import ConfigValidationError, StorageError
+from researcher.exceptions import ConfigurationError, ConfigValidationError, StorageError
 from researcher.services.settings_service import SettingsService
 
 runner = CliRunner()
@@ -109,6 +109,18 @@ class DescribeConfigSetCommand:
         data = json.loads(result.output)
         assert "error" in data
         assert "bad_key" in data["error"]
+
+    def should_render_sibling_domain_error(self, mock_factory):
+        mock_factory.settings_service = Mock(spec=SettingsService)
+        mock_factory.settings_service.set_value.side_effect = ConfigurationError(
+            "Failed to load config file 'x': bad yaml"
+        )
+
+        result = runner.invoke(config_app, ["set", "mcp_port", "9001"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output
+        assert isinstance(result.exception, SystemExit)
 
 
 class DescribeConfigPathCommand:

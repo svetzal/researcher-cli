@@ -3,7 +3,7 @@ import typer
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
 from researcher.cli.presenters import present_config
 from researcher.cli.serializers import serialize_config_path, serialize_config_set
-from researcher.exceptions import ConfigValidationError, ResearcherError
+from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 
 config_app = typer.Typer(help="Manage researcher configuration.")
@@ -27,7 +27,7 @@ def show_config(
 
 
 @config_app.command("set")
-@cli_errors(ConfigValidationError)
+@cli_errors(ResearcherError)
 def set_config(
     ctx: typer.Context,
     key: str = typer.Argument(..., help="Configuration key (e.g. default_embedding_provider)"),

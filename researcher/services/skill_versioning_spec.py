@@ -71,3 +71,8 @@ class DescribeDecideSkillAction:
         text = "---\nname: test\nresearcher-version: 1.0.0\n---\ncontent"
         action, _ = decide_skill_action(text, "1.0.0", force=True)
         assert action == "skip"
+
+    def should_install_when_existing_version_is_unparseable(self):
+        text = "---\nname: test\nresearcher-version: not-a-version\n---\ncontent"
+        result = decide_skill_action(text, "1.0.0", force=False)
+        assert result == ("install", None)

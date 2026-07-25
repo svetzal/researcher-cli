@@ -1,8 +1,12 @@
+import os
+import tarfile
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
+from researcher.exceptions import StorageError
 from researcher.gateways.model_cache_gateway import ArchiveMember, ModelCacheGateway
 
 
@@ -162,3 +166,32 @@ class DescribeModelCacheGateway:
             result = gateway.extract_member_bytes(tar, "nonexistent.txt")
 
         assert result is None
+
+    def should_raise_storage_error_on_unreadable_archive(self, gateway, temp_dir):
+        not_a_gzip = temp_dir / "bad.tar.gz"
+        not_a_gzip.write_text("this is not a gzip archive")
+
+        with pytest.raises(StorageError, match=str(not_a_gzip)), gateway.open_archive(not_a_gzip):
+            pass
+
+    def should_raise_storage_error_on_unwritable_destination(self, gateway, temp_dir):
+        locked_dir = temp_dir / "locked"
+        locked_dir.mkdir()
+        dest = locked_dir / "output.bin"
+        os.chmod(locked_dir, 0o500)
+
+        try:
+            with pytest.raises(StorageError, match=str(dest)):
+                gateway.write_file(dest, b"content")
+        finally:
+            os.chmod(locked_dir, 0o700)
+
+    def should_raise_storage_error_when_archive_cannot_be_finalized(self, gateway, temp_dir):
+        archive_path = temp_dir / "test.tar.gz"
+
+        with (
+            patch.object(tarfile.TarFile, "close", side_effect=OSError("disk full")),
+            pytest.raises(StorageError, match=str(archive_path)),
+            gateway.create_archive(archive_path) as tar,
+        ):
+            gateway.add_bytes(tar, "hello.txt", b"data")

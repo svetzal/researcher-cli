@@ -6,7 +6,12 @@ from typer.testing import CliRunner
 
 from researcher.cli.repo_commands import repo_app
 from researcher.config import RepositoryConfig
-from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError, StorageError
+from researcher.exceptions import (
+    ConfigurationError,
+    RepositoryAlreadyExistsError,
+    RepositoryNotFoundError,
+    StorageError,
+)
 from researcher.services.index_service import IndexService
 
 runner = CliRunner()
@@ -31,6 +36,17 @@ class DescribeRepoAddCommand:
 
         assert result.exit_code == 1
         assert "Error" in result.output
+
+    def should_render_sibling_domain_error(self, mock_factory):
+        mock_factory.repository_service.add_repository.side_effect = ConfigurationError(
+            "Failed to load config file 'x': bad yaml"
+        )
+
+        result = runner.invoke(repo_app, ["add", "my-repo", "/tmp/docs"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output
+        assert isinstance(result.exception, SystemExit)
 
     @pytest.mark.parametrize(
         ("extra_cli_args", "config_overrides", "expected_fields"),
@@ -128,6 +144,17 @@ class DescribeRepoRemoveCommand:
         result = runner.invoke(repo_app, ["remove", "my-repo"], obj=mock_factory)
 
         assert "my-repo" in result.output
+
+    def should_render_sibling_domain_error(self, mock_factory):
+        mock_factory.repository_service.remove_repository.side_effect = ConfigurationError(
+            "Failed to load config file 'x': bad yaml"
+        )
+
+        result = runner.invoke(repo_app, ["remove", "my-repo"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output
+        assert isinstance(result.exception, SystemExit)
 
 
 class DescribeRepoListCommand:
@@ -408,6 +435,17 @@ class DescribeRepoUpdateCommand:
         data = json.loads(result.output)
         assert "error" in data
         assert "not found" in data["error"]
+
+    def should_render_sibling_domain_error(self, mock_factory):
+        mock_factory.repository_service.update_repository.side_effect = ConfigurationError(
+            "Failed to load config file 'x': bad yaml"
+        )
+
+        result = runner.invoke(repo_app, ["update", "my-repo"], obj=mock_factory)
+
+        assert result.exit_code == 1
+        assert "Error" in result.output
+        assert isinstance(result.exception, SystemExit)
 
     @pytest.mark.parametrize(
         ("extra_cli_args", "config_overrides", "expected_fields"),

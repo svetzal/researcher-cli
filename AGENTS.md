@@ -45,6 +45,15 @@ Tests must verify behavior, not wiring. Follow these rules when writing or revie
 - A test whose arrange block reimplements the logic under test (e.g. a `side_effect` that re-runs the same filtering/business logic the production code is supposed to run) is not a real test — it will pass even if the production code is broken. Delete or rewrite it so the production code actually executes the behavior being asserted.
 - Prefer asserting on outcomes (return values, raised exceptions, persisted state) over asserting that a mock method was called, unless the call itself — not its effect — is the contract being tested (e.g. "force mode skips an expensive I/O call").
 
+## Error Boundary
+
+Domain errors must never leak as raw Python tracebacks to CLI users:
+
+- Every CLI command must decorate with `@cli_errors(ResearcherError)` (plus `ValueError` where the command parses user input) — never a leaf subclass like `RepositoryNotFoundError` or `ConfigValidationError`. A leaf-scoped decorator only catches its own error and lets any *other* domain error (e.g. a corrupt config file raising `ConfigurationError`) escape unhandled.
+- Every gateway method (`researcher/gateways/*`) must carry a `wrap_gateway_error`/`wrap_storage_error`/`wrap_embedding_error` decorator (see `researcher/gateways/config_gateway.py` for the reference pattern) so third-party and stdlib exceptions are translated into a domain error at the boundary.
+- Non-domain third-party exceptions (e.g. `packaging.version.InvalidVersion`, `OSError`, `tarfile` errors) must be caught and converted at the gateway or service edge — never allowed to reach the CLI layer.
+- `researcher/cli/output_spec.py::DescribeCliErrorCoverage` structurally enforces this: it fails if any registered CLI command is undecorated or decorated with something narrower than `ResearcherError`.
+
 ## Skill Distribution
 
 Researcher ships two Claude Code skills (`researcher-admin` and `researcher-find`). The authoritative source files live in `researcher/bundled_skills/`.

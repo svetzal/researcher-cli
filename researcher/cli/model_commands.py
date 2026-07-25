@@ -12,7 +12,7 @@ from researcher.cli.output import (
 )
 from researcher.cli.presenters import present_pack_result
 from researcher.cli.serializers import serialize_pack_result, serialize_unpack_result
-from researcher.exceptions import ModelArchiveError
+from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 
 models_app = typer.Typer(help="Manage model caches for offline use.")
@@ -21,7 +21,7 @@ make_service_factory_callback(models_app)
 
 
 @models_app.command("pack")
-@cli_errors(ModelArchiveError)
+@cli_errors(ResearcherError)
 def pack_command(
     ctx: typer.Context,
     output: Path = typer.Option(..., "--output", "-o", help="Output archive path (e.g. models.tar.gz)"),
@@ -41,7 +41,7 @@ def pack_command(
 
 
 @models_app.command("unpack")
-@cli_errors(ModelArchiveError)
+@cli_errors(ResearcherError)
 def unpack_command(
     ctx: typer.Context,
     archive: Path = typer.Argument(..., help="Path to the model archive (.tar.gz)"),

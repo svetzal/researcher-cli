@@ -6,7 +6,7 @@ from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, 
 from researcher.cli.presenters import present_repo_list, present_repo_update
 from researcher.config import RepoConfigOptions, RepositoryConfig
 from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
-from researcher.exceptions import RepositoryAlreadyExistsError, RepositoryNotFoundError, ResearcherError
+from researcher.exceptions import ResearcherError
 from researcher.model_registry import API_ONLY_PRESETS, VLM_PRESET_REPOS
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_facade import update_repo_with_purge
@@ -58,7 +58,7 @@ make_service_factory_callback(repo_app)
 
 
 @repo_app.command("add")
-@cli_errors(RepositoryAlreadyExistsError)
+@cli_errors(ResearcherError)
 def add_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),
@@ -97,7 +97,7 @@ def add_repo(
 
 
 @repo_app.command("remove")
-@cli_errors(RepositoryNotFoundError)
+@cli_errors(ResearcherError)
 def remove_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name to remove"),
@@ -113,7 +113,7 @@ def remove_repo(
 
 
 @repo_app.command("update")
-@cli_errors(RepositoryNotFoundError)
+@cli_errors(ResearcherError)
 def update_repo(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Repository name"),

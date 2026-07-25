@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.model_commands import models_app
 from researcher.conftest import make_repo
-from researcher.exceptions import ModelArchiveError
+from researcher.exceptions import ModelArchiveError, StorageError
 from researcher.model_registry import ModelCacheEntry
 from researcher.services.model_archive_service import ModelArchiveService, PackResult, UnpackResult
 
@@ -113,6 +113,18 @@ class DescribePackCommand:
             assert result.exit_code == 1
             assert "Error" in result.output
 
+        def should_render_sibling_domain_error(self, mock_factory):
+            mock_factory.repository_service.list_repositories.return_value = [make_repo("my-notes")]
+            mock_service = Mock(spec=ModelArchiveService)
+            mock_service.pack.side_effect = StorageError("disk full")
+            mock_factory.model_archive_service.return_value = mock_service
+
+            result = runner.invoke(models_app, ["pack", "--output", "/tmp/models.tar.gz"], obj=mock_factory)
+
+            assert result.exit_code == 1
+            assert "Error" in result.output
+            assert isinstance(result.exception, SystemExit)
+
     class DescribeJsonOutput:
         def should_write_valid_json_on_success(self, mock_factory):
             entries = [_make_entry(category="docling", archive_path="docling/models")]
@@ -213,6 +225,17 @@ class DescribeUnpackCommand:
 
             assert result.exit_code == 1
             assert "Error" in result.output
+
+        def should_render_sibling_domain_error(self, mock_factory):
+            mock_service = Mock(spec=ModelArchiveService)
+            mock_service.unpack.side_effect = StorageError("disk full")
+            mock_factory.model_archive_service.return_value = mock_service
+
+            result = runner.invoke(models_app, ["unpack", "/tmp/models.tar.gz"], obj=mock_factory)
+
+            assert result.exit_code == 1
+            assert "Error" in result.output
+            assert isinstance(result.exception, SystemExit)
 
     class DescribeJsonOutput:
         def should_write_valid_json_on_success(self, mock_factory):
