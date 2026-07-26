@@ -3,6 +3,7 @@ from pathlib import Path
 import typer
 
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console
+from researcher.cli.serializers import serialize_init_result
 from researcher.exceptions import ResearcherError
 from researcher.service_factory import ServiceFactory
 
@@ -42,4 +43,4 @@ def init_command(
     factory: ServiceFactory = ctx.obj
     target = Path.home() if global_install else Path.cwd()
     result = factory.skill_install_service(target).install(target, force=force)
-    cli_output(result, lambda: _print_init_results(result), json_output=json_output)
+    cli_output(serialize_init_result(result), lambda: _print_init_results(result), json_output=json_output)

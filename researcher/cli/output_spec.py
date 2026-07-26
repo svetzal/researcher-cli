@@ -1,4 +1,6 @@
+import ast
 import json as json_module
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import click
@@ -6,6 +8,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
+import researcher
 from researcher.cli.config_commands import config_app
 from researcher.cli.main import app
 from researcher.cli.model_commands import models_app
@@ -17,8 +20,9 @@ from researcher.cli.output import (
     require_repos,
 )
 from researcher.cli.repo_commands import repo_app
-from researcher.conftest import make_repo
+from researcher.conftest import make_repo, make_search_result
 from researcher.exceptions import ResearcherError
+from researcher.mcp.server import ResearcherTools
 from researcher.service_factory import ServiceFactory
 
 
@@ -286,3 +290,76 @@ class DescribeCliErrorCoverage:
                 "which does not catch ResearcherError (a sibling domain error would leak "
                 "a raw traceback) — use @cli_errors(ResearcherError) instead of a leaf subclass"
             )
+
+
+class DescribeSerializationBoundary:
+    """Every JSON payload the CLI or MCP server emits must be built by researcher.contracts.
+
+    ``model_dump`` calls scattered across cli/mcp modules are exactly how the CLI and
+    MCP contracts drifted apart before (e.g. the fragment_id exposure divergence).
+    This structurally enforces that the only places allowed to call ``model_dump`` are
+    the contracts module itself and ``presenters.py`` (which renders human-readable text
+    from the raw model fields, not JSON).
+    """
+
+    def should_confine_model_dump_calls_to_contracts_and_presenters(self):
+        pkg_dir = Path(researcher.__file__).parent
+        allowed = {pkg_dir / "contracts.py", pkg_dir / "cli" / "presenters.py"}
+        scan_files = [p for p in (pkg_dir / "cli").glob("*.py") if not p.name.endswith("_spec.py")]
+        scan_files.append(pkg_dir / "mcp" / "server.py")
+
+        violations = []
+        for path in scan_files:
+            if path in allowed:
+                continue
+            tree = ast.parse(path.read_text())
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Attribute) and node.attr == "model_dump":
+                    violations.append(f"{path.relative_to(pkg_dir)}:{node.lineno}")
+
+        assert not violations, (
+            "model_dump() must only be called from researcher/contracts.py or "
+            f"researcher/cli/presenters.py — found calls in: {violations}. "
+            "Route new JSON payloads through researcher.contracts instead."
+        )
+
+
+class DescribeCliMcpParity:
+    """The CLI's `researcher search --json` and the MCP search tools must agree on
+    what a search result looks like as JSON — this is the test that would have caught
+    the fragment_id drift between researcher/cli/serializers.py and researcher/mcp/server.py."""
+
+    def should_return_identical_fragment_payloads_from_cli_and_mcp(self, mock_factory):
+        repo = make_repo("test-repo")
+        sr = make_search_result(doc_path="doc.md", text="hello world", fragment_index=1, distance=0.3)
+        mock_factory.repository_service.list_repositories.return_value = [repo]
+        mock_factory.repository_service.get_repository.return_value = repo
+        mock_factory.search_service.return_value.search_fragments.return_value = [sr]
+
+        runner = CliRunner()
+        cli_result = runner.invoke(app, ["search", "query", "--mode", "fragments", "--json"], obj=mock_factory)
+        cli_data = json_module.loads(cli_result.output)
+
+        tools = ResearcherTools(mock_factory)
+        mcp_results = tools.search_fragments("query", repository="test-repo")
+
+        assert cli_data["results"] == mcp_results
+
+    def should_return_identical_document_payloads_from_cli_and_mcp(self, mock_factory):
+        from researcher.conftest import make_doc_result
+
+        repo = make_repo("test-repo")
+        sr = make_search_result(doc_path="doc.md", text="hello world", fragment_index=0, distance=0.2)
+        doc = make_doc_result(doc_path="doc.md", best_distance=0.2, fragment=sr)
+        mock_factory.repository_service.list_repositories.return_value = [repo]
+        mock_factory.repository_service.get_repository.return_value = repo
+        mock_factory.search_service.return_value.search_documents.return_value = [doc]
+
+        runner = CliRunner()
+        cli_result = runner.invoke(app, ["search", "query", "--mode", "documents", "--json"], obj=mock_factory)
+        cli_data = json_module.loads(cli_result.output)
+
+        tools = ResearcherTools(mock_factory)
+        mcp_results = tools.search_documents("query", repository="test-repo")
+
+        assert cli_data["results"] == mcp_results

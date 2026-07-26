@@ -3,28 +3,19 @@ import json
 import typer
 from typer.testing import CliRunner
 
-from researcher.cli.search_commands import run_search_documents, run_search_fragments
+from researcher.cli.search_commands import run_search
 from researcher.conftest import make_doc_result, make_repo, make_search_result
+from researcher.enums import SearchMode
 
 runner = CliRunner()
 
 
-def _fragment_app(mock_factory, repos, query, n_results=5, json_output=False):
+def _run_app(mock_factory, repos, query, mode, n_results=5, json_output=False):
     app = typer.Typer()
 
     @app.command()
     def cmd():
-        run_search_fragments(mock_factory, repos, query, n_results=n_results, json_output=json_output)
-
-    return runner.invoke(app, [])
-
-
-def _document_app(mock_factory, repos, query, n_results=5, json_output=False):
-    app = typer.Typer()
-
-    @app.command()
-    def cmd():
-        run_search_documents(mock_factory, repos, query, n_results=n_results, json_output=json_output)
+        run_search(mock_factory, repos, query, n_results=n_results, mode=mode, json_output=json_output)
 
     return runner.invoke(app, [])
 
@@ -35,7 +26,7 @@ class DescribeRunSearchFragments:
         sr = make_search_result(doc_path="notes/auth.md", text="JWT tokens")
         mock_factory.search_service(repo).search_fragments.return_value = [sr]
 
-        result = _fragment_app(mock_factory, [repo], "auth tokens", json_output=True)
+        result = _run_app(mock_factory, [repo], "auth tokens", SearchMode.FRAGMENTS, json_output=True)
 
         data = json.loads(result.output)
         assert data["mode"] == "fragments"
@@ -48,7 +39,7 @@ class DescribeRunSearchFragments:
         sr = make_search_result(doc_path="notes/auth.md", text="JWT tokens")
         mock_factory.search_service(repo).search_fragments.return_value = [sr]
 
-        result = _fragment_app(mock_factory, [repo], "auth", json_output=False)
+        result = _run_app(mock_factory, [repo], "auth", SearchMode.FRAGMENTS, json_output=False)
 
         assert "notes/auth.md" in result.output
 
@@ -60,7 +51,7 @@ class DescribeRunSearchFragments:
         mock_factory.search_service(repo_a).search_fragments.return_value = [sr_a]
         mock_factory.search_service(repo_b).search_fragments.return_value = [sr_b]
 
-        result = _fragment_app(mock_factory, [repo_a, repo_b], "query", json_output=True)
+        result = _run_app(mock_factory, [repo_a, repo_b], "query", SearchMode.FRAGMENTS, json_output=True)
 
         data = json.loads(result.output)
         assert data["repository"] is None
@@ -74,7 +65,7 @@ class DescribeRunSearchDocuments:
         doc = make_doc_result(doc_path="notes/design.md", best_distance=0.12)
         mock_factory.search_service(repo).search_documents.return_value = [doc]
 
-        result = _document_app(mock_factory, [repo], "design patterns", json_output=True)
+        result = _run_app(mock_factory, [repo], "design patterns", SearchMode.DOCUMENTS, json_output=True)
 
         data = json.loads(result.output)
         assert data["mode"] == "documents"
@@ -88,7 +79,7 @@ class DescribeRunSearchDocuments:
         doc = make_doc_result(doc_path="notes/design.md")
         mock_factory.search_service(repo).search_documents.return_value = [doc]
 
-        result = _document_app(mock_factory, [repo], "design", json_output=False)
+        result = _run_app(mock_factory, [repo], "design", SearchMode.DOCUMENTS, json_output=False)
 
         assert "notes/design.md" in result.output
 
@@ -100,7 +91,7 @@ class DescribeRunSearchDocuments:
         mock_factory.search_service(repo_a).search_documents.return_value = [doc_a]
         mock_factory.search_service(repo_b).search_documents.return_value = [doc_b]
 
-        result = _document_app(mock_factory, [repo_a, repo_b], "query", json_output=True)
+        result = _run_app(mock_factory, [repo_a, repo_b], "query", SearchMode.DOCUMENTS, json_output=True)
 
         data = json.loads(result.output)
         assert data["repository"] is None

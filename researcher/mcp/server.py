@@ -4,15 +4,14 @@ import fastmcp
 from fastmcp.exceptions import ToolError
 
 from researcher.config import RepositoryConfig
+from researcher.contracts import serialize_search, serialize_status
+from researcher.enums import SearchMode
 from researcher.error_boundary import handle_boundary_errors
 from researcher.exceptions import ResearcherError
-from researcher.models import DocumentSearchResult, SearchResult
+from researcher.search_modes import SEARCH_MODES
 from researcher.service_factory import ServiceFactory
 from researcher.services.index_facade import get_repo_status, index_and_store_file_in_repo, remove_from_repo
-from researcher.services.multi_repo_search import (
-    search_documents_across_repos,
-    search_fragments_across_repos,
-)
+from researcher.services.multi_repo_search import search_across_repos
 
 
 def _raise_tool_error(e: ResearcherError, **_: object) -> NoReturn:
@@ -38,16 +37,26 @@ class ResearcherTools:
         return f"Removed {document_path} from {repository}"
 
     @_mcp_errors
-    def search_fragments(self, query: str, repository: str | None = None, n_results: int = 10) -> list[SearchResult]:
+    def search_fragments(
+        self,
+        query: str,
+        repository: str | None = None,
+        n_results: int = SEARCH_MODES[SearchMode.FRAGMENTS].default_n_results,
+    ) -> list[dict[str, object]]:
         repos = self._factory.repository_service.resolve_repos(repository)
-        return search_fragments_across_repos(self._factory, repos, query, n_results).results
+        outcome = search_across_repos(self._factory, repos, query, n_results, SearchMode.FRAGMENTS)
+        return serialize_search(repos, query, outcome.results, SearchMode.FRAGMENTS)["results"]
 
     @_mcp_errors
     def search_documents(
-        self, query: str, repository: str | None = None, n_results: int = 5
-    ) -> list[DocumentSearchResult]:
+        self,
+        query: str,
+        repository: str | None = None,
+        n_results: int = SEARCH_MODES[SearchMode.DOCUMENTS].default_n_results,
+    ) -> list[dict[str, object]]:
         repos = self._factory.repository_service.resolve_repos(repository)
-        return search_documents_across_repos(self._factory, repos, query, n_results).results
+        outcome = search_across_repos(self._factory, repos, query, n_results, SearchMode.DOCUMENTS)
+        return serialize_search(repos, query, outcome.results, SearchMode.DOCUMENTS)["results"]
 
     @_mcp_errors
     def list_repositories(self) -> list[RepositoryConfig]:
@@ -55,10 +64,7 @@ class ResearcherTools:
 
     @_mcp_errors
     def get_index_status(self, repository: str | None = None) -> dict[str, object]:
-        statuses = [s.model_dump(mode="json") for s in get_repo_status(self._factory, repository)]
-        if len(statuses) == 1:
-            return statuses[0]
-        return {"repositories": statuses}
+        return serialize_status(get_repo_status(self._factory, repository))
 
 
 def build_server(factory: ServiceFactory) -> fastmcp.FastMCP:

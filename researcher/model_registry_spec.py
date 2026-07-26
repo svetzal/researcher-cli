@@ -3,13 +3,12 @@ from pathlib import Path
 
 import pytest
 
+from researcher.asr_config import ASR_MODELS
 from researcher.config import RepositoryConfig
 from researcher.enums import AudioAsrModel
 from researcher.gateways.model_cache_gateway import ModelCacheGateway
 from researcher.model_registry import (
     API_ONLY_PRESETS,
-    ASR_MLX_REPO_IDS,
-    ASR_WHISPER_CACHE_FILES,
     MODEL_CACHE_CATEGORIES,
     VLM_PRESET_REPOS,
     ModelRequirements,
@@ -446,11 +445,11 @@ class DescribeResolveModelsForRepos:
 class DescribeAsrModelRegistryExhaustiveness:
     @pytest.mark.parametrize("model", list(AudioAsrModel))
     def should_have_mlx_entry_for_every_asr_model(self, model):
-        assert model in ASR_MLX_REPO_IDS
+        assert model in ASR_MODELS
 
     @pytest.mark.parametrize("model", list(AudioAsrModel))
     def should_have_whisper_cache_entry_for_every_asr_model(self, model):
-        assert model in ASR_WHISPER_CACHE_FILES
+        assert model in ASR_MODELS
 
 
 class DescribeModelCacheCategories:

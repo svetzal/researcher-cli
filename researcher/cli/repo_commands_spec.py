@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 
 from researcher.cli.repo_commands import repo_app
 from researcher.config import RepositoryConfig
+from researcher.enums import AudioAsrModel
 from researcher.exceptions import (
     ConfigurationError,
     RepositoryAlreadyExistsError,
@@ -15,6 +16,15 @@ from researcher.exceptions import (
 from researcher.services.index_service import IndexService
 
 runner = CliRunner()
+
+
+class DescribeRepoAddHelp:
+    def should_list_every_audio_asr_model_option(self):
+        result = runner.invoke(repo_app, ["add", "--help"])
+
+        assert result.exit_code == 0
+        for model in AudioAsrModel:
+            assert model.value in result.output
 
 
 class DescribeRepoAddCommand:

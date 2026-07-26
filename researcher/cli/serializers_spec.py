@@ -3,14 +3,14 @@ from pathlib import Path
 from researcher.cli.serializers import (
     serialize_config_path,
     serialize_config_set,
-    serialize_document_search,
     serialize_empty_search,
-    serialize_fragment_search,
     serialize_index_result,
     serialize_pack_result,
+    serialize_search,
     serialize_unpack_result,
 )
 from researcher.conftest import make_doc_result, make_repo, make_search_result
+from researcher.enums import SearchMode
 from researcher.models import DocumentSearchResult, IndexingResult
 from researcher.services.model_archive_service import PackResult, UnpackResult
 
@@ -89,7 +89,7 @@ class DescribeSerializeFragmentSearch:
         repo = make_repo()
         sr = make_search_result()
 
-        data = serialize_fragment_search([repo], "test query", [sr])
+        data = serialize_search([repo], "test query", [sr], SearchMode.FRAGMENTS)
 
         assert data["query"] == "test query"
         assert data["mode"] == "fragments"
@@ -99,7 +99,7 @@ class DescribeSerializeFragmentSearch:
         repo = make_repo()
         sr = make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.234, text="JWT tokens")
 
-        data = serialize_fragment_search([repo], "auth", [sr])
+        data = serialize_search([repo], "auth", [sr], SearchMode.FRAGMENTS)
 
         result = data["results"][0]
         assert result["document_path"] == "/notes/auth.md"
@@ -111,21 +111,21 @@ class DescribeSerializeFragmentSearch:
         repo = make_repo()
         sr = make_search_result()
 
-        data = serialize_fragment_search([repo], "query", [sr])
+        data = serialize_search([repo], "query", [sr], SearchMode.FRAGMENTS)
 
         assert set(data["results"][0]) == {"document_path", "fragment_index", "text", "distance"}
 
     def should_set_repository_to_name_when_single_repo(self):
         repo = make_repo("my-notes")
 
-        data = serialize_fragment_search([repo], "query", [])
+        data = serialize_search([repo], "query", [], SearchMode.FRAGMENTS)
 
         assert data["repository"] == "my-notes"
 
     def should_set_repository_to_null_when_multiple_repos(self):
         repos = [make_repo("repo-a"), make_repo("repo-b")]
 
-        data = serialize_fragment_search(repos, "query", [])
+        data = serialize_search(repos, "query", [], SearchMode.FRAGMENTS)
 
         assert data["repository"] is None
         assert data["repos_searched"] == ["repo-a", "repo-b"]
@@ -133,7 +133,7 @@ class DescribeSerializeFragmentSearch:
     def should_return_empty_results_when_no_matches(self):
         repo = make_repo()
 
-        data = serialize_fragment_search([repo], "query", [])
+        data = serialize_search([repo], "query", [], SearchMode.FRAGMENTS)
 
         assert data["result_count"] == 0
         assert data["results"] == []
@@ -144,7 +144,7 @@ class DescribeSerializeDocumentSearch:
         repo = make_repo()
         doc = make_doc_result()
 
-        data = serialize_document_search([repo], "test query", [doc])
+        data = serialize_search([repo], "test query", [doc], SearchMode.DOCUMENTS)
 
         assert data["query"] == "test query"
         assert data["mode"] == "documents"
@@ -155,7 +155,7 @@ class DescribeSerializeDocumentSearch:
         sr = make_search_result(doc_path="/notes/auth.md", fragment_index=2, distance=0.123, text="JWT tokens")
         doc = make_doc_result(doc_path="/notes/auth.md", best_distance=0.123, fragment=sr)
 
-        data = serialize_document_search([repo], "auth", [doc])
+        data = serialize_search([repo], "auth", [doc], SearchMode.DOCUMENTS)
 
         result = data["results"][0]
         assert result["document_path"] == "/notes/auth.md"
@@ -170,7 +170,7 @@ class DescribeSerializeDocumentSearch:
         sr = make_search_result()
         doc = make_doc_result(fragment=sr)
 
-        data = serialize_document_search([repo], "query", [doc])
+        data = serialize_search([repo], "query", [doc], SearchMode.DOCUMENTS)
 
         assert set(data["results"][0]["top_fragment"]) == {"text", "fragment_index", "distance"}
 
@@ -178,14 +178,14 @@ class DescribeSerializeDocumentSearch:
         repo = make_repo()
         doc = DocumentSearchResult(document_path="doc.md", top_fragments=[], best_distance=0.5)
 
-        data = serialize_document_search([repo], "query", [doc])
+        data = serialize_search([repo], "query", [doc], SearchMode.DOCUMENTS)
 
         assert data["results"][0]["top_fragment"] is None
 
     def should_return_empty_results_when_no_matches(self):
         repo = make_repo()
 
-        data = serialize_document_search([repo], "query", [])
+        data = serialize_search([repo], "query", [], SearchMode.DOCUMENTS)
 
         assert data["result_count"] == 0
         assert data["results"] == []

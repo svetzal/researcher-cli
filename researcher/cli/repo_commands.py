@@ -4,6 +4,7 @@ import typer
 
 from researcher.cli.output import JSON_OPTION, cli_errors, cli_output, console, make_service_factory_callback
 from researcher.cli.presenters import present_repo_list, present_repo_update
+from researcher.cli.serializers import serialize_repositories, serialize_repository
 from researcher.config import RepoConfigOptions, RepositoryConfig
 from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
 from researcher.exceptions import ResearcherError
@@ -20,9 +21,8 @@ _IMAGE_PIPELINE_HELP = "Image processing pipeline: 'standard' (OCR) or 'vlm' (Vi
 _IMAGE_VLM_MODEL_HELP = (
     f"VLM preset name (only used when --image-pipeline=vlm). Available: {_vlm_names}. Default: granite_docling"
 )
-_AUDIO_ASR_MODEL_HELP = (
-    "Whisper ASR model for audio files. Options: tiny, base, small, medium, large, turbo. Default: turbo"
-)
+_asr_names = ", ".join(m.value for m in AudioAsrModel)
+_AUDIO_ASR_MODEL_HELP = f"Whisper ASR model for audio files. Options: {_asr_names}. Default: turbo"
 
 
 EmbeddingProviderOpt = Annotated[
@@ -90,7 +90,7 @@ def add_repo(
         exclude_patterns=exclude or [],
     )
     cli_output(
-        repo.model_dump(),
+        serialize_repository(repo),
         f"[green]✓[/green] Added repository '[bold]{repo.name}[/bold]' at {repo.path}",
         json_output=json_output,
     )
@@ -143,7 +143,7 @@ def update_repo(
     )
     outcome = update_repo_with_purge(factory, name, options, exclude or [], no_purge)
     cli_output(
-        outcome.repo.model_dump() | {"purged_documents": outcome.purged},
+        serialize_repository(outcome.repo) | {"purged_documents": outcome.purged},
         lambda: present_repo_update(outcome.repo, outcome.added_patterns, outcome.purged, outcome.no_purge, console),
         json_output=json_output,
     )
@@ -159,7 +159,7 @@ def list_repos(
     repos = factory.repository_service.list_repositories()
 
     cli_output(
-        {"repositories": [repo.model_dump() for repo in repos]},
+        {"repositories": serialize_repositories(repos)},
         lambda: present_repo_list(repos, console),
         json_output=json_output,
     )

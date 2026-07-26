@@ -9,8 +9,9 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from researcher.asr_config import ASR_MODELS
 from researcher.config import RepositoryConfig
-from researcher.enums import AudioAsrModel, EmbeddingProvider, ImagePipeline
+from researcher.enums import EmbeddingProvider, ImagePipeline
 from researcher.platform import is_apple_silicon
 
 
@@ -56,27 +57,6 @@ VLM_PRESET_REPOS: dict[str, tuple[str, str | None]] = {
     "gemma_12b": ("google/gemma-3-12b-it", "mlx-community/gemma-3-12b-it-bf16"),
     "gemma_27b": ("google/gemma-3-27b-it", "mlx-community/gemma-3-27b-it-bf16"),
     "dolphin": ("ByteDance/Dolphin", None),
-}
-
-# ASR model name → MLX HuggingFace repo ID (Apple Silicon only)
-ASR_MLX_REPO_IDS: dict[AudioAsrModel, str] = {
-    AudioAsrModel.TINY: "mlx-community/whisper-tiny-mlx",
-    AudioAsrModel.BASE: "mlx-community/whisper-base-mlx",
-    AudioAsrModel.SMALL: "mlx-community/whisper-small-mlx",
-    AudioAsrModel.MEDIUM: "mlx-community/whisper-medium-mlx-8bit",
-    AudioAsrModel.LARGE: "mlx-community/whisper-large-mlx-8bit",
-    AudioAsrModel.TURBO: "mlx-community/whisper-turbo",
-}
-
-# ASR model name → openai-whisper cache filename (non-Apple platforms)
-# These live in ~/.cache/whisper/<name>.pt, not in the HuggingFace hub
-ASR_WHISPER_CACHE_FILES: dict[AudioAsrModel, str] = {
-    AudioAsrModel.TINY: "tiny.pt",
-    AudioAsrModel.BASE: "base.pt",
-    AudioAsrModel.SMALL: "small.pt",
-    AudioAsrModel.MEDIUM: "medium.pt",
-    AudioAsrModel.LARGE: "large-v3.pt",
-    AudioAsrModel.TURBO: "turbo.pt",
 }
 
 # Presets that are API-only and have no local cache
@@ -207,15 +187,14 @@ def _collect_asr_cache_ids(
     On other platforms, openai-whisper caches .pt files in ~/.cache/whisper/.
     """
     model_name = repo.audio_asr_model
+    spec = ASR_MODELS.get(model_name)
+    if spec is None:
+        return
     _apple = _resolve_apple_silicon(apple_silicon)
     if _apple:
-        repo_id = ASR_MLX_REPO_IDS.get(model_name)
-        if repo_id:
-            hf_repo_ids.add(repo_id)
+        hf_repo_ids.add(spec.mlx_repo_id)
     else:
-        cache_file = ASR_WHISPER_CACHE_FILES.get(model_name)
-        if cache_file:
-            whisper_cache_files.add(cache_file)
+        whisper_cache_files.add(spec.whisper_cache_file)
 
 
 def _iter_model_specs(requirements: ModelRequirements, bases: dict[str, Path]) -> Iterator[ModelCacheEntry]:

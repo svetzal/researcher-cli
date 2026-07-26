@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- MCP `get_index_status` now always returns a `{"repositories": [...]}` envelope, even for a single repository, matching `researcher status --json`.
+- MCP `search_fragments` and `search_documents` now return the same JSON payload shape as `researcher search --json` (built from a single shared `researcher/contracts.py` module) — the internal `fragment_id` field is no longer exposed via MCP.
+- ASR model identifiers (docling spec name, MLX spec name, MLX HuggingFace repo ID, openai-whisper cache filename) are now defined once per model in `ASR_MODELS` in `researcher/asr_config.py`, rather than duplicated across four separate lookup tables; internal refactor with no user-facing behavior change.
+- Fragment-mode and document-mode search dispatch (service method, sort key, default result count) are now defined once in `researcher/search_modes.py` rather than restated across the search service, CLI, and MCP layers; internal refactor with no user-facing behavior change.
 - Updated dependencies: mlx-audio 0.4.5 → 0.4.6, pylatexenc 2.10 → 2.11
 
 ### Fixed

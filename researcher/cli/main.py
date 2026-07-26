@@ -16,10 +16,11 @@ from researcher.cli.output import (
 )
 from researcher.cli.presenters import present_index_results, present_status
 from researcher.cli.repo_commands import repo_app
-from researcher.cli.search_commands import run_search_documents, run_search_fragments
+from researcher.cli.search_commands import run_search
 from researcher.cli.serializers import (
     serialize_empty_search,
     serialize_index_result,
+    serialize_status,
 )
 from researcher.config import RepositoryConfig
 from researcher.enums import SearchMode
@@ -101,7 +102,7 @@ def status_command(
     stats = [factory.index_service(repo).get_stats() for repo in repos]
 
     cli_output(
-        {"repositories": [s.model_dump(mode="json") for s in stats]},
+        serialize_status(stats),
         lambda: present_status(stats, console),
         json_output=json_output,
     )
@@ -125,10 +126,8 @@ def search_command(
         factory, repo, json_output=json_output, empty_payload=serialize_empty_search(query, mode, repo)
     )
 
-    if mode == "fragments":
-        run_search_fragments(factory, search_repos, query, n_results=fragments, json_output=json_output)
-    else:
-        run_search_documents(factory, search_repos, query, n_results=documents, json_output=json_output)
+    n_results = fragments if mode == SearchMode.FRAGMENTS else documents
+    run_search(factory, search_repos, query, n_results, mode, json_output=json_output)
 
 
 @app.command("serve")

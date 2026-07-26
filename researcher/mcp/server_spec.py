@@ -67,7 +67,7 @@ class DescribeMcpServer:
         result = tools.search_fragments("query")
 
         assert len(result) == 1
-        assert result[0].fragment_id == "f1"
+        assert result[0]["document_path"] == "doc.md"
 
     def should_search_documents_across_repos(self, tools, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
@@ -82,7 +82,7 @@ class DescribeMcpServer:
         result = tools.search_documents("query")
 
         assert len(result) == 1
-        assert result[0].document_path == "doc.md"
+        assert result[0]["document_path"] == "doc.md"
 
     def should_get_index_status_for_single_repo(self, tools, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
@@ -95,7 +95,7 @@ class DescribeMcpServer:
 
         result = tools.get_index_status()
 
-        assert result["repository_name"] == "test-repo"
+        assert result["repositories"][0]["repository_name"] == "test-repo"
 
     def should_search_fragments_for_named_repository(self, tools, mock_factory):
         repo = RepositoryConfig(name="specific-repo", path="/tmp")
@@ -130,7 +130,7 @@ class DescribeMcpServer:
 
         result = tools.get_index_status(repository="specific-repo")
 
-        assert result["repository_name"] == "specific-repo"
+        assert result["repositories"][0]["repository_name"] == "specific-repo"
 
     def should_raise_tool_error_from_add_to_index_on_storage_error(self, tools, mock_factory):
         repo = RepositoryConfig(name="test-repo", path="/tmp")
