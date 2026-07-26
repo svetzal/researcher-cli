@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated dependencies: mlx-audio 0.4.5 → 0.4.6, pylatexenc 2.10 → 2.11
+
 ### Fixed
 
 - CLI commands no longer crash with a raw traceback when a sibling domain error (e.g. a corrupt config file) occurs — `repo add/remove/update`, `config set`, `init`, and `models pack/unpack` now render a user-facing error and exit 1.
