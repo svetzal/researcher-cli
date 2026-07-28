@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependencies: annotated-types 0.7.0 → 0.8.0, cachetools 7.1.5 → 7.1.6, colorlog 6.11.0 → 6.12.0, docling 2.114.0 → 2.115.0, docling-slim 2.114.0 → 2.115.0, grpcio 1.82.1 → 1.83.0, ruff 0.15.22 → 0.16.0
 - Reformatted embedded Python code fences in `MLX.md`, `SPEC.md`, and `audit/` docs to satisfy `ruff format` 0.16's markdown formatting
 - Updated dependencies: cyclopts 4.22.1 → 4.22.2, faker 40.35.0 → 40.36.0, fastapi 0.139.2 → 0.140.0, onnxruntime 1.27.0 → 1.28.0, tqdm 4.69.0 → 4.69.1
+- Updated dependencies: docling-core 2.87.1 → 2.88.0, fastapi 0.140.0 → 0.140.7, fastmcp 3.4.4 → 3.4.5, fastmcp-slim 3.4.4 → 3.4.5, huggingface-hub 1.24.0 → 1.25.1, tqdm 4.69.1 → 4.70.0
 
 ## [0.5.4] - 2026-07-03
 
