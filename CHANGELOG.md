@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: docling 2.115.0 → 2.116.0, docling-slim 2.115.0 → 2.116.0, fastapi 0.140.13 → 0.141.1, filelock 3.32.0 → 3.32.2, mail-parser 4.4.0 → 4.5.0, pip 26.1.2 → 26.2, uvicorn 0.51.0 → 0.52.0
 - MCP `get_index_status` now always returns a `{"repositories": [...]}` envelope, even for a single repository, matching `researcher status --json`.
 - MCP `search_fragments` and `search_documents` now return the same JSON payload shape as `researcher search --json` (built from a single shared `researcher/contracts.py` module) — the internal `fragment_id` field is no longer exposed via MCP.
 - ASR model identifiers (docling spec name, MLX spec name, MLX HuggingFace repo ID, openai-whisper cache filename) are now defined once per model in `ASR_MODELS` in `researcher/asr_config.py`, rather than duplicated across four separate lookup tables; internal refactor with no user-facing behavior change.

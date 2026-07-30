@@ -966,14 +966,14 @@ wheels = [
 
 [[package]]
 name = "docling"
-version = "2.115.0"
+version = "2.116.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docling-slim", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9c/31/1901a67e35abd97868cff08c57d8cbebfeafb8045413340f3746a1a5f249/docling-2.115.0.tar.gz", hash = "sha256:99f6fb72293f3270f42514711808a766d4d7305152278171532fd59eb6bf55a3", size = 9015, upload-time = "2026-07-23T14:47:20.597Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/ca/bfa3bb9cdae85503ba261da136419a48e61f2ceb57a2280059584e96c2e2/docling-2.116.0.tar.gz", hash = "sha256:92c2a8e81c7584f688fb84cdb3618d9fec11c0c3a96e55209ceee45517a14ea6", size = 9014, upload-time = "2026-07-29T11:27:35.616Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/fc/c8110cbab5703e6b17b5daf287e646b5389533bbf44b2cc8830e00b9c3fe/docling-2.115.0-py3-none-any.whl", hash = "sha256:1a3d9bdf2f82610e97085a1a1b53cf259d1bd7aff97651ff2decc3b2b105123c", size = 5179, upload-time = "2026-07-23T14:47:19.379Z" },
+    { url = "https://files.pythonhosted.org/packages/be/39/317f0b7f16778e8ecc57ba384edb421726f5ecc5a29e6e8e1ddafbaa8aea/docling-2.116.0-py3-none-any.whl", hash = "sha256:166a4ddec7cce21592aeaeb65b29404fb70401164ac02a981e5f059adbbd4874", size = 5180, upload-time = "2026-07-29T11:27:34.506Z" },
 ]
 
 [package.optional-dependencies]
@@ -1074,7 +1074,7 @@ wheels = [
 
 [[package]]
 name = "docling-slim"
-version = "2.115.0"
+version = "2.116.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -1086,9 +1086,9 @@ dependencies = [
     { name = "requests" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/b8/c78b8c9a07f20325176299d6a58ee8a0dcf088815ddc45590b29fc6c671a/docling_slim-2.115.0.tar.gz", hash = "sha256:4440eb2118e64e14df45eabf5f927a01eda2c37dcaa50435a708e31c19f8b7f3", size = 549486, upload-time = "2026-07-23T14:45:53.797Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/61/a92577403bd8ac709701fa90d72ef56d4b5a174448b5562b3885d9da0a98/docling_slim-2.116.0.tar.gz", hash = "sha256:f64500b4f42e772994ca83547e1bd6a9a41eda421313b3072028206950c12068", size = 553534, upload-time = "2026-07-29T11:26:09.382Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/a3/f8acf83bde1343728091d4362a9795a8ccf3bdd9737121833159ab2d1770/docling_slim-2.115.0-py3-none-any.whl", hash = "sha256:affa089efd112c88330af91b84a6a6d600731221c21e0971cd67a21a30448643", size = 684027, upload-time = "2026-07-23T14:45:51.9Z" },
+    { url = "https://files.pythonhosted.org/packages/00/9f/ed7700d4240394060498ffc6c3578afad8d462511b0fe856f6a47ce09c65/docling_slim-2.116.0-py3-none-any.whl", hash = "sha256:7376ed4d41a61c21c83d37ff3f45601ec655d6ab2d01a30cb3460e3683e28f92", size = 689549, upload-time = "2026-07-29T11:26:07.183Z" },
 ]
 
 [package.optional-dependencies]
@@ -1201,7 +1201,7 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.140.13"
+version = "0.141.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc", marker = "sys_platform == 'darwin'" },
@@ -1210,9 +1210,9 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin'" },
     { name = "typing-inspection", marker = "sys_platform == 'darwin'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/cb/7a4d2c2eb5a5d8a91763c05b7383d72917862e32f780daa0e27ffbb34cc6/fastapi-0.140.13.tar.gz", hash = "sha256:500172a08cf1459901f90b05c37d93060dada3b573fec8f0862445db52ba6b4b", size = 424843, upload-time = "2026-07-28T15:37:00.805Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/02/91e3416a8fdd715abb903a952a6bec7cdd8d14eed55d415fc8595524c319/fastapi-0.141.1.tar.gz", hash = "sha256:e8822fc40db1e1858054d7a949a888695bc9bdce70139178e33bd2871a453ca1", size = 425799, upload-time = "2026-07-29T17:18:05.568Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/4e/f9e8c762ef5e05c40482131e3d5e8b36bca13fa127578261f1d6b35a25d4/fastapi-0.140.13-py3-none-any.whl", hash = "sha256:8b017110e1e9f30a95e8bdb8f71fbe2f0fe3af5717109e5b14f9e069df54f6d4", size = 131222, upload-time = "2026-07-28T15:37:02.124Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/03/10388a42375ee7e4ac9b94eb2c5c569c8b5795e377e701c9ac3ad63de890/fastapi-0.141.1-py3-none-any.whl", hash = "sha256:bfb91aa2d334c61cb35ba9a116fc123b3d3df31640b801cf57a7a78ec3f603b3", size = 131954, upload-time = "2026-07-29T17:18:04.364Z" },
 ]
 
 [[package]]
@@ -1280,11 +1280,11 @@ server = [
 
 [[package]]
 name = "filelock"
-version = "3.32.0"
+version = "3.32.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c0/80/8232b582c4b318b817cf1274ba74976b07b34d35ef439b3eb948f98645a1/filelock-3.32.0.tar.gz", hash = "sha256:7be2ad23a14607ccc71808e68fe30848aeace7058ace17852f68e2a68e310402", size = 213757, upload-time = "2026-07-21T13:17:42.898Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/57/3ba6e6cb097f85b855b00163d169f35365f44277df044dcf96d55b8f62a3/filelock-3.32.2.tar.gz", hash = "sha256:c33351e1f49cae33414acbc6d56784e6ecee82514ec90795da1161fc4836b5b8", size = 217172, upload-time = "2026-07-29T22:46:04.895Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/79/b4c714bef36bc4ec2beeae1e0c124f0223888cd8c6feb1cdc56038116920/filelock-3.32.0-py3-none-any.whl", hash = "sha256:d396bea984af47333ef05e50eae7eff88c84256de6112aea0ec48a233c064fe3", size = 97732, upload-time = "2026-07-21T13:17:41.55Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/e8/72f8cef9fdfeffe06213fe8508039396ee48daa0e3259457ed766173bfd6/filelock-3.32.2-py3-none-any.whl", hash = "sha256:87dd94cf281e586d135fa51132b8e3d9a598b316e90377a288663c9321036c82", size = 98830, upload-time = "2026-07-29T22:46:03.52Z" },
 ]
 
 [[package]]
@@ -1926,11 +1926,11 @@ wheels = [
 
 [[package]]
 name = "mail-parser"
-version = "4.4.0"
+version = "4.5.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/9c/6e/2cee08e0d6fbce02a301d5ab72ef5ffe8f47dd59ac3d8ce61324d8a9143a/mail_parser-4.4.0.tar.gz", hash = "sha256:82d2c0fa98a138620feaa87a378af2a2643b2941b2e125d7abfc65dd21094b33", size = 2852896, upload-time = "2026-06-11T06:56:49.789Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/4d/5fe2ab8505a0f1fe2160e4fdd42500dac32a7ea41a55709aeb2025ba4dbd/mail_parser-4.5.0.tar.gz", hash = "sha256:9ce06b44332115d43b82ee6d21a77a4e2a25cc42e219efe43730534b70c77a7e", size = 2857302, upload-time = "2026-07-29T21:59:34.568Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/a7/99dfed167ba728384521acd54fadbb7649ce49333018f42e1f190ed25911/mail_parser-4.4.0-py3-none-any.whl", hash = "sha256:46f7931817660fec4f7723e6f1722e66a9cce44c2daeacbeb9e705078379561f", size = 35504, upload-time = "2026-06-11T06:56:48.348Z" },
+    { url = "https://files.pythonhosted.org/packages/02/fa/acbe2bb6e328703094306ef7e75cb5952233a487f17381cb030e6e640006/mail_parser-4.5.0-py3-none-any.whl", hash = "sha256:27ce06c80d2bf3680bc0a8d4aadef05a4f5ff6ebf13f6a668b8182bdcccdd72e", size = 35857, upload-time = "2026-07-29T21:59:33.587Z" },
 ]
 
 [[package]]
@@ -3137,11 +3137,11 @@ wheels = [
 
 [[package]]
 name = "pip"
-version = "26.1.2"
+version = "26.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/01/91/47e7d486260f618783899587af63ccf7980fb60245c3e63dd4571c6b57ad/pip-26.1.2.tar.gz", hash = "sha256:f49cd134c61cf2fd75e0ce2676db03e4054504a5a4986d00f8299ae632dc4605", size = 1840799, upload-time = "2026-05-31T17:33:58.56Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/96/e6f8e9d9d7b9cc4457092712a7e919c3186aa2c2fa9ffed2c5d29cc947e8/pip-26.2.tar.gz", hash = "sha256:2d8542afcc84cdd8e846c2b36b2861fad1da376dd98f8e7113e9108a3c331690", size = 1848845, upload-time = "2026-07-29T21:57:56.407Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/95/6b5cb3461ea5673ba0995989746db58eb18b91b54dbf331e72f569540946/pip-26.1.2-py3-none-any.whl", hash = "sha256:382ff9f685ee3bc25864f820aa50505825f10f5458ffff07e30a6d96e5715cab", size = 1813144, upload-time = "2026-05-31T17:33:56.772Z" },
+    { url = "https://files.pythonhosted.org/packages/62/36/a3aed958d60531cb442b7ab4596cda7b3621cfb916f8ae1d6769795c7dc1/pip-26.2-py3-none-any.whl", hash = "sha256:931c303696af6fa3417112103b1cad26890e5a07eccb5b99783700e33f2b8aad", size = 1816475, upload-time = "2026-07-29T21:57:54.763Z" },
 ]
 
 [[package]]
@@ -5006,15 +5006,15 @@ wheels = [
 
 [[package]]
 name = "uvicorn"
-version = "0.51.0"
+version = "0.52.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "h11" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/65/b7c6c443ccc58678c91e1e973bbe2a878591538655d6e1d47f24ba1c51f3/uvicorn-0.51.0.tar.gz", hash = "sha256:f6f4b69b657c312f516dd2d268ab9ae6f254b11e4bac504f37b2ab58b24dd0b0", size = 94412, upload-time = "2026-07-08T10:59:05.962Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/05/c8/2d307868453a4bca6e64fa3581d122ae0748a0869c53f159339def179c7c/uvicorn-0.52.0.tar.gz", hash = "sha256:ca8876ad6c1983f394157c168b39d52f6dd56dabf5602fa0982751cffc2293ae", size = 97504, upload-time = "2026-07-29T08:45:34.065Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/ec/dbb7e5a6b91f86bfb9eb7d2988a2730907b6a729875b949c7f022e8b88fa/uvicorn-0.51.0-py3-none-any.whl", hash = "sha256:5d38af6cd620f2ae3849fb44fd4879e0890aa1febe8d47eb355fb45d93fe6a5b", size = 73219, upload-time = "2026-07-08T10:59:04.44Z" },
+    { url = "https://files.pythonhosted.org/packages/39/e6/b5c0630ace9757232aec07112be8146b812787db52141ff9d50674aa7634/uvicorn-0.52.0-py3-none-any.whl", hash = "sha256:3d887809810b89ed33501bcf0a9aba469b06ecd608158efce04bd6b48d8c9b08", size = 79058, upload-time = "2026-07-29T08:45:32.492Z" },
 ]
 
 [package.optional-dependencies]
