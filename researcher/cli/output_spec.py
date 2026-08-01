@@ -3,7 +3,6 @@ import json as json_module
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import click
 import pytest
 import typer
 from typer.testing import CliRunner
@@ -259,13 +258,13 @@ class DescribeRequireRepos:
 
 def _leaf_commands(typer_app: typer.Typer) -> list[tuple[str, object]]:
     """Return (name, callback) pairs for commands directly registered on typer_app,
-    excluding nested sub-typers (click.Group instances) which have no callback of
-    their own to guard."""
+    excluding nested sub-typers (typer.core.TyperGroup instances) which have no
+    callback of their own to guard."""
     click_group = typer.main.get_command(typer_app)
     return [
         (name, cmd.callback)
         for name, cmd in click_group.commands.items()
-        if not isinstance(cmd, click.Group) and cmd.callback is not None
+        if not isinstance(cmd, typer.core.TyperGroup) and cmd.callback is not None
     ]
 
 
