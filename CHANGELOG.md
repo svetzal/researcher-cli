@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: cachetools 7.1.6 → 7.1.7, uvicorn 0.52.0 → 0.52.1
 - Updated dependencies: cryptography 49.0.0 → 50.0.0, docling-core 2.88.0 → 2.89.0, typer 0.24.2 → 0.26.8
 - Updated dependencies: cyclopts 4.22.2 → 4.22.3, docling 2.116.0 → 2.117.0, docling-slim 2.116.0 → 2.117.0, huggingface-hub 1.25.1 → 1.26.0, ruff 0.16.0 → 0.16.1
 - Updated dependencies: docling 2.115.0 → 2.116.0, docling-slim 2.115.0 → 2.116.0, fastapi 0.140.13 → 0.141.1, filelock 3.32.0 → 3.32.2, mail-parser 4.4.0 → 4.5.0, pip 26.1.2 → 26.2, uvicorn 0.51.0 → 0.52.0
