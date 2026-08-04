@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: cffi 2.1.0 → 2.1.1, docling 2.117.0 → 2.118.0, docling-core 2.89.0 → 2.90.0, docling-slim 2.117.0 → 2.118.0, hf-xet 1.5.2 → 1.6.0
 - Updated dependencies: coverage 7.15.2 → 7.15.3, cyclopts 4.22.3 → 4.22.4
 - Updated dependencies: cachetools 7.1.6 → 7.1.7, uvicorn 0.52.0 → 0.52.1
 - Updated dependencies: cryptography 49.0.0 → 50.0.0, docling-core 2.88.0 → 2.89.0, typer 0.24.2 → 0.26.8
