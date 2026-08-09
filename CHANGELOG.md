@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: pybase64 1.4.3 → 1.5.0, setuptools 83.0.0 → 84.0.0, starlette 1.4.1 → 1.6.0
 - Updated dependencies: docling-parse 7.9.0 → 7.10.0, fastmcp 3.4.5 → 3.4.6, fastmcp-slim 3.4.5 → 3.4.6, googleapis-common-protos 1.75.0 → 1.75.1, sse-starlette 3.4.6 → 3.4.8, starlette 1.3.1 → 1.4.1
 - Updated dependencies: aiofile 3.11.1 → 3.12.3, caio 0.9.25 → 0.12.2, cyclopts 4.22.4 → 4.22.5, docling-parse 7.8.1 → 7.9.0, packaging 26.2 → 26.3, pip 26.2 → 26.2.1, whisper-s2t-reborn 1.6.3 → 1.7.1
 - Removed the `--ignore-vuln CVE-2026-4539` (pygments) and `--ignore-vuln CVE-2025-3000` (torch) security-audit suppressions — both were resolved upstream by the dependency upgrades above. Only `--ignore-vuln CVE-2026-45829 --ignore-vuln PYSEC-2026-311` (ChromaDB, no upstream fix yet) remains.
