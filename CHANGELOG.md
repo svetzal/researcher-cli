@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: cyclonedx-python-lib 11.11.0 → 11.11.1, docling 2.118.1 → 2.119.0, docling-slim 2.118.1 → 2.119.0, fastmcp 3.4.6 → 3.4.7, fastmcp-slim 3.4.6 → 3.4.7, llguidance 1.7.6 → 1.8.0, platformdirs 4.11.1 → 4.11.2, pyarrow 25.0.0 → 25.0.1, typing-inspection 0.4.2 → 0.4.3, uncalled-for 0.3.2 → 0.4.0
 - Updated dependencies: mail-parser 4.5.0 → 4.6.0
 - Updated dependencies: pybase64 1.4.3 → 1.5.0, setuptools 83.0.0 → 84.0.0, starlette 1.4.1 → 1.6.0
 - Updated dependencies: docling-parse 7.9.0 → 7.10.0, fastmcp 3.4.5 → 3.4.6, fastmcp-slim 3.4.5 → 3.4.6, googleapis-common-protos 1.75.0 → 1.75.1, sse-starlette 3.4.6 → 3.4.8, starlette 1.3.1 → 1.4.1
