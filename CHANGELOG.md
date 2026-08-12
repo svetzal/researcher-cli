@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: docling-ibm-models 3.13.3 → 3.14.0, docling-parse 7.11.0 → 7.12.0, llvmlite 0.48.0 → 0.49.0, marko 2.2.3 → 2.2.4, numba 0.66.0 → 0.67.0, numpy 2.4.6 → 2.5.2
 - Updated dependencies: cyclonedx-python-lib 11.11.0 → 11.11.1, docling 2.118.1 → 2.119.0, docling-slim 2.118.1 → 2.119.0, fastmcp 3.4.6 → 3.4.7, fastmcp-slim 3.4.6 → 3.4.7, llguidance 1.7.6 → 1.8.0, platformdirs 4.11.1 → 4.11.2, pyarrow 25.0.0 → 25.0.1, typing-inspection 0.4.2 → 0.4.3, uncalled-for 0.3.2 → 0.4.0
 - Updated dependencies: mail-parser 4.5.0 → 4.6.0
 - Updated dependencies: pybase64 1.4.3 → 1.5.0, setuptools 83.0.0 → 84.0.0, starlette 1.4.1 → 1.6.0
