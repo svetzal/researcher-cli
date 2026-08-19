@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: docling 2.120.1 → 2.120.3, docling-parse 7.13.0 → 7.14.0, docling-slim 2.120.1 → 2.120.3, huggingface-hub 1.27.0 → 1.28.0, lxml 6.1.1 → 6.1.2, onnxruntime 1.28.0 → 1.29.0, pygments 2.20.0 → 2.21.0, tiktoken 0.13.0 → 0.14.0, uvicorn 0.52.3 → 0.52.4, and other transitive dependencies
 - Updated dependencies: docling 2.119.0 → 2.120.1, docling-parse 7.12.1 → 7.13.0, docling-slim 2.119.0 → 2.120.1, orjson 3.11.9 → 3.12.0
 - Updated dependencies: cyclonedx-python-lib 11.11.2 → 11.12.0, filelock 3.32.2 → 3.32.3, platformdirs 4.11.2 → 4.11.3, pypdfium2 5.12.1 → 5.13.0, ruff 0.16.2 → 0.16.3, uvicorn 0.52.1 → 0.52.3
 - Updated dependencies: av 18.0.0 → 18.1.0, charset-normalizer 3.4.9 → 3.5.0, cyclonedx-python-lib 11.11.1 → 11.11.2, docling-parse 7.12.0 → 7.12.1, mail-parser 4.6.0 → 4.6.2, typing-inspection 0.4.3 → 0.4.4, xxhash 3.8.1 → 4.0.0
