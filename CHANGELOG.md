@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: filelock 3.32.3 → 3.32.4, cuda-pathfinder 1.6.1 → 1.7.0
 - Updated dependencies: cyclopts 4.23.1 → 4.23.2
 - Updated dependencies: faker 40.36.0 → 40.37.0, mail-parser 4.6.3 → 4.6.4, scipy 1.18.0 → 1.18.1
 - Updated dependencies: docling 2.120.3 → 2.121.0, docling-core 2.91.0 → 2.92.0, docling-parse 7.14.0 → 7.15.0, docling-slim 2.120.3 → 2.121.0, cyclopts 4.23.0 → 4.23.1, mail-parser 4.6.2 → 4.6.3, protobuf 7.35.1 → 7.36.0, ruff 0.16.3 → 0.16.4
