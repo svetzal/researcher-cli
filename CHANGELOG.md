@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: mcp 1.29.0 → 1.29.1, platformdirs 4.11.3 → 4.11.4
+- Added `--ignore-vuln CVE-2026-45830 --ignore-vuln CVE-2026-45831 --ignore-vuln CVE-2026-45833` security-audit suppressions for newly disclosed ChromaDB server-mode multi-tenant authorization/RBAC bypass and code injection vulnerabilities; researcher-cli only uses `PersistentClient` (embedded, no server mode), so these are not reachable, and no patched ChromaDB release exists yet.
 - Updated dependencies: filelock 3.32.3 → 3.32.4, cuda-pathfinder 1.6.1 → 1.7.0
 - Updated dependencies: cyclopts 4.23.1 → 4.23.2
 - Updated dependencies: faker 40.36.0 → 40.37.0, mail-parser 4.6.3 → 4.6.4, scipy 1.18.0 → 1.18.1
