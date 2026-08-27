@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: click 8.4.2 → 8.5.0, cyclopts 4.23.2 → 4.23.3, docling 2.122.0 → 2.123.0, docling-slim 2.122.0 → 2.123.0, durationpy 0.10 → 0.11
 - Updated dependencies: mcp 1.29.0 → 1.29.1, platformdirs 4.11.3 → 4.11.4
 - Added `--ignore-vuln CVE-2026-45830 --ignore-vuln CVE-2026-45831 --ignore-vuln CVE-2026-45833` security-audit suppressions for newly disclosed ChromaDB server-mode multi-tenant authorization/RBAC bypass and code injection vulnerabilities; researcher-cli only uses `PersistentClient` (embedded, no server mode), so these are not reachable, and no patched ChromaDB release exists yet.
 - Updated dependencies: filelock 3.32.3 → 3.32.4, cuda-pathfinder 1.6.1 → 1.7.0
