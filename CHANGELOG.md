@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: fastmcp 3.4.7 → 4.0.0, fastmcp-slim 3.4.7 → 4.0.0, mcp 1.29.1 → 2.1.1, docling 2.123.1 → 2.124.0, docling-slim 2.123.1 → 2.124.0, cachetools 7.1.7 → 7.1.8, ctranslate2 4.8.1 → 4.8.2, filelock 3.32.4 → 3.32.5, platformdirs 4.11.5 → 4.11.6, protobuf 7.36.0 → 7.36.1, regex 2026.8.31 → 2026.9.3, websocket-client 1.9.1 → 1.9.2
 - Updated dependencies: authlib 1.7.2 → 1.8.0, regex 2026.7.19 → 2026.8.31
 - Updated dependencies: joserfc 1.7.4 → 1.7.5, websocket-client 1.9.0 → 1.9.1
 - Updated dependencies: click 8.4.2 → 8.5.0, cyclopts 4.23.2 → 4.23.3, docling 2.122.0 → 2.123.0, docling-slim 2.122.0 → 2.123.0, durationpy 0.10 → 0.11
