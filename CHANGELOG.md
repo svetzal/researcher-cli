@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: cyclopts 4.25.3 → 5.0.0, fastmcp 4.0.5 → 4.0.8, fastmcp-slim 4.0.5 → 4.0.8, filelock 4.0.1 → 4.0.3, httpcore2 2.13.0 → 2.13.1, httpx2 2.13.0 → 2.13.1, pyjwt 2.14.0 → 2.15.0, soupsieve 2.9.2 → 2.10, starlette 1.6.0 → 1.7.0, wcwidth 0.8.4 → 0.9.1
 - Updated dependencies: cuda-bindings 13.4.2 → 13.4.3, docling 2.129.0 → 2.130.0, docling-core 2.97.1 → 2.98.0, docling-parse 7.20.0 → 7.21.0, docling-slim 2.129.0 → 2.130.0, mlx-audio 0.5.4 → 0.5.5, mlx-vlm 0.7.1 → 0.7.2, multidict 6.9.0 → 6.9.1, networkx 3.6.1 → 3.7, platformdirs 4.11.11 → 4.11.12, timm 1.0.29 → 1.0.30, watchfiles 1.2.0 → 1.3.0
 - Updated dependencies: docling-core 2.97.0 → 2.97.1, docling-ibm-models 4.0.2 → 4.0.3, filelock 4.0.0 → 4.0.1, fsspec 2026.7.0 → 2026.9.0, platformdirs 4.11.10 → 4.11.11, py-key-value-aio 0.4.5 → 0.4.6
 - Updated dependencies: fastmcp 3.4.7 → 4.0.0, fastmcp-slim 3.4.7 → 4.0.0, mcp 1.29.1 → 2.1.1, docling 2.123.1 → 2.124.0, docling-slim 2.123.1 → 2.124.0, cachetools 7.1.7 → 7.1.8, ctranslate2 4.8.1 → 4.8.2, filelock 3.32.4 → 3.32.5, platformdirs 4.11.5 → 4.11.6, protobuf 7.36.0 → 7.36.1, regex 2026.8.31 → 2026.9.3, websocket-client 1.9.1 → 1.9.2
