@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: docling 2.130.0 → 2.131.0, docling-slim 2.130.0 → 2.131.0
 - Updated dependencies: fastmcp 4.0.9 → 4.0.10, fastmcp-slim 4.0.9 → 4.0.10
 - Updated dependencies: docling-core 2.98.0 → 2.98.1, fastmcp 4.0.8 → 4.0.9, fastmcp-slim 4.0.8 → 4.0.9, googleapis-common-protos 1.75.3 → 1.75.4, huggingface-hub 1.32.0 → 1.33.0, mlx-audio 0.5.5 → 0.5.6, mlx-vlm 0.7.2 → 0.7.3, platformdirs 4.11.12 → 4.11.13, ruff 0.16.8 → 0.16.9, uvicorn 0.53.0 → 0.54.0
 - Updated dependencies: cyclopts 4.25.3 → 5.0.0, fastmcp 4.0.5 → 4.0.8, fastmcp-slim 4.0.5 → 4.0.8, filelock 4.0.1 → 4.0.3, httpcore2 2.13.0 → 2.13.1, httpx2 2.13.0 → 2.13.1, pyjwt 2.14.0 → 2.15.0, soupsieve 2.9.2 → 2.10, starlette 1.6.0 → 1.7.0, wcwidth 0.8.4 → 0.9.1
