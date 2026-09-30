@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Updated transitive dependency oauthlib 3.3.1 → 4.0.0 to resolve CVE-2026-49265.
+
 ### Changed
 
 - Updated dependencies: docling 2.130.0 → 2.131.0, docling-slim 2.130.0 → 2.131.0
