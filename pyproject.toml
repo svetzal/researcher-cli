@@ -9,7 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.5.6",
     "docling[asr,vlm]>=2.0.0",
-    "typer>=0.20.0",
+    "typer>=0.27.2",
     "rich>=14.0.0",
     "pydantic>=2.0.0",
     "structlog>=24.0.0",
@@ -57,3 +57,8 @@ dev = [
     "ruff>=0.8.0",
     "pip-audit>=2.10.0",
 ]
+
+[tool.uv]
+# docling-slim (<=2.132.0) caps typer<0.27.0 for its own optional CLI. researcher uses
+# docling only as a library, so override the cap to allow our typer floor.
+override-dependencies = ["typer>=0.27.2"]
