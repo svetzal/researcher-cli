@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: typer 0.26.8 → 0.27.3. Every docling-slim release up to 2.134.0, the latest on PyPI, caps `typer<0.27.0` for docling's own CLI extras. researcher uses docling only as a library, so a `[tool.uv] override-dependencies` entry in `pyproject.toml` lifts that cap. Remove the override once docling allows typer 0.27.
 - Updated dependencies: docling 2.132.0 → 2.133.0, docling-slim 2.132.0 → 2.133.0, fastmcp 4.0.10 → 4.0.11, fastmcp-slim 4.0.10 → 4.0.11
 - Updated dependencies: docling 2.130.0 → 2.131.0, docling-slim 2.130.0 → 2.131.0
 - Updated dependencies: fastmcp 4.0.9 → 4.0.10, fastmcp-slim 4.0.9 → 4.0.10

@@ -57,3 +57,8 @@ dev = [
     "ruff>=0.8.0",
     "pip-audit>=2.10.0",
 ]
+
+[tool.uv]
+# docling-slim (<=2.134.0) caps typer<0.27.0 for its own CLI extras; researcher uses docling
+# only as a library. Remove this override once docling lifts the cap.
+override-dependencies = ["typer>=0.27.3"]
