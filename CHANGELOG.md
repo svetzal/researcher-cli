@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dev dependency: ruff 0.16.10 → 0.17.0
 - Updated dependencies: docling 2.135.0 → 2.137.0, docling-slim 2.135.0 → 2.137.0
 - Updated dependencies: fastmcp 4.0.11 → 4.1.0, fastmcp-slim 4.0.11 → 4.1.0, pydantic 2.13.5 → 2.14.0, pydantic-core 2.46.5 → 2.50.0
 - Updated dependencies: typer 0.26.8 → 0.27.3. Every docling-slim release up to 2.134.0, the latest on PyPI, caps `typer<0.27.0` for docling's own CLI extras. researcher uses docling only as a library, so a `[tool.uv] override-dependencies` entry in `pyproject.toml` lifts that cap. Remove the override once docling allows typer 0.27.
