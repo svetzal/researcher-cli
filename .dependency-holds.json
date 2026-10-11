@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "holds": [
+    {
+      "package": "typer",
+      "max": "0.26",
+      "reason": "docling-core (2.101.1) and docling-slim (2.137.0) require typer<0.27.0; docling-core's cap is unconditional. Re-check when the hold expires.",
+      "expires": "2027-01-09"
+    }
+  ]
+}
