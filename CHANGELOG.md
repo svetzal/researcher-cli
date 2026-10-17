@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: docling 2.139.0 → 2.140.0, docling-slim 2.139.0 → 2.140.0
 - Updated dev dependency: ruff 0.16.10 → 0.17.0
 - Updated dependencies: docling 2.135.0 → 2.137.0, docling-slim 2.135.0 → 2.137.0
 - Updated dependencies: fastmcp 4.0.11 → 4.1.0, fastmcp-slim 4.0.11 → 4.1.0, pydantic 2.13.5 → 2.14.0, pydantic-core 2.46.5 → 2.50.0
