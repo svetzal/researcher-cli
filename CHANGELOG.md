@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: fastmcp 4.1.0 → 4.1.1, fastmcp-slim 4.1.0 → 4.1.1
 - Updated dependencies: docling 2.139.0 → 2.140.0, docling-slim 2.139.0 → 2.140.0
 - Updated dev dependency: ruff 0.16.10 → 0.17.0
 - Updated dependencies: docling 2.135.0 → 2.137.0, docling-slim 2.135.0 → 2.137.0
