@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Updated transitive dependency oauthlib 3.3.1 → 4.0.0 to resolve CVE-2026-49265.
+- Updated transitive dependency aiohttp 3.14.3 → 3.14.4 to resolve CVE-2026-111063, CVE-2026-111064 and GHSA-2g87-pp6c-29x5.
 
 ### Changed
 
