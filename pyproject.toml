@@ -57,3 +57,10 @@ dev = [
     "ruff>=0.8.0",
     "pip-audit>=2.10.0",
 ]
+
+[tool.uv]
+# Security: pillow 12.3.0 has advisories (CVE-2026-112395, -112397, -112400, -112403,
+# -112404, -112895, -112896, -112897, -112899) fixed only in pillow 13.0.0 (per OSV).
+# docling-core/-slim/-parse/-ibm-models still declare pillow<13.0.0, so override that
+# upper bound. Remove this override once docling's packages allow pillow 13.
+override-dependencies = ["pillow>=13.0.0"]
