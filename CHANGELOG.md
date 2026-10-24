@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Updated transitive dependencies filelock 4.0.3 → 4.2.1 (resolves CVE-2026-112940, CVE-2026-112913 and CVE-2026-112907) and setuptools 84.0.0 → 84.1.0 (resolves GHSA-xmj3-9gf7-h52w).
 - Updated transitive dependency oauthlib 3.3.1 → 4.0.0 to resolve CVE-2026-49265.
 - Updated transitive dependency aiohttp 3.14.3 → 3.14.4 to resolve CVE-2026-111063, CVE-2026-111064 and GHSA-2g87-pp6c-29x5.
 - Updated transitive dependency pillow 12.3.0 → 13.0.0 to resolve CVE-2026-112395, CVE-2026-112397, CVE-2026-112400, CVE-2026-112403, CVE-2026-112404, CVE-2026-112895, CVE-2026-112896, CVE-2026-112897 and CVE-2026-112899. OSV lists 13.0.0 as the only fixed release, but docling-core, docling-slim, docling-parse and docling-ibm-models still declare `pillow<13.0.0`. A `[tool.uv] override-dependencies` entry in `pyproject.toml` lifts that upper bound. The test suite and an end-to-end docling PDF conversion pass with pillow 13. Remove the override once docling allows pillow 13.
 
 ### Changed
 
+- Updated dependencies: docling 2.142.0 → 2.142.1, docling-slim 2.142.0 → 2.142.1
 - Updated dependencies: docling 2.140.0 → 2.141.0, docling-slim 2.140.0 → 2.141.0, docling-parse 7.22.1 → 7.22.3, fastmcp 4.1.1 → 4.1.3, fastmcp-slim 4.1.1 → 4.1.3, certifi 2026.7.22 → 2026.10.19, openapi-pydantic 0.5.1 → 0.6.0
 - Updated dependencies: fastmcp 4.1.0 → 4.1.1, fastmcp-slim 4.1.0 → 4.1.1
 - Updated dependencies: docling 2.139.0 → 2.140.0, docling-slim 2.139.0 → 2.140.0
