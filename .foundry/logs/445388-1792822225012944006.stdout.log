@@ -1,0 +1,10 @@
+Name       Version ID                  Fix Versions
+---------- ------- ------------------- ------------
+filelock   4.0.3   CVE-2026-112940     4.2.1
+filelock   4.0.3   CVE-2026-112913     4.2.1
+filelock   4.0.3   CVE-2026-112907     4.2.1
+setuptools 84.0.0  GHSA-xmj3-9gf7-h52w 84.1.0
+
+Name           Skip Reason
+-------------- -----------------------------------------------------------------------------
+researcher-cli Dependency not found on PyPI and could not be audited: researcher-cli (0.5.4)
