@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Updated transitive dependency joserfc 1.7.5 → 1.7.7 to resolve CVE-2026-119284 (fixed in 1.7.6).
 - Updated transitive dependencies authlib 1.8.0 → 1.9.1 (resolves CVE-2026-96760, CVE-2026-114615, CVE-2026-114616, CVE-2026-114617, CVE-2026-114618 and CVE-2026-114620), dnspython 2.8.0 → 2.9.0 (resolves CVE-2026-114605) and msgpack 1.2.2 → 1.2.3 (resolves CVE-2026-114613).
 - Updated transitive dependencies filelock 4.0.3 → 4.2.1 (resolves CVE-2026-112940, CVE-2026-112913 and CVE-2026-112907) and setuptools 84.0.0 → 84.1.0 (resolves GHSA-xmj3-9gf7-h52w).
 - Updated transitive dependency oauthlib 3.3.1 → 4.0.0 to resolve CVE-2026-49265.
