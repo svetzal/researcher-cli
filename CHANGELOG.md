@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: fastmcp 4.1.4 → 4.1.5, fastmcp-slim 4.1.4 → 4.1.5
 - Updated dependencies: docling 2.143.0 → 2.143.1, docling-slim 2.143.0 → 2.143.1; dev dependency pytest 9.1.1 → 9.2.0
 - Updated dependencies: docling 2.142.0 → 2.142.1, docling-slim 2.142.0 → 2.142.1
 - Updated dependencies: docling 2.140.0 → 2.141.0, docling-slim 2.140.0 → 2.141.0, docling-parse 7.22.1 → 7.22.3, fastmcp 4.1.1 → 4.1.3, fastmcp-slim 4.1.1 → 4.1.3, certifi 2026.7.22 → 2026.10.19, openapi-pydantic 0.5.1 → 0.6.0
