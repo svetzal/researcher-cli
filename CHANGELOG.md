@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: docling 2.149.0 → 2.150.0, docling-slim 2.149.0 → 2.150.0, fastmcp 4.1.7 → 4.1.8, fastmcp-slim 4.1.7 → 4.1.8
 - Updated dependencies: docling 2.148.0 → 2.149.0, docling-slim 2.148.0 → 2.149.0; transitive mlx 0.32.2 → 0.32.4, mlx-metal 0.32.2 → 0.32.4, mlx-audio 0.5.6 → 0.6.4, and torchaudio 2.11.1 added
 - Updated dependencies: docling 2.147.0 → 2.148.0, docling-slim 2.147.0 → 2.148.0, pydantic 2.14.2 → 2.14.3, pydantic-core 2.50.2 → 2.50.4; dev dependency ruff 0.17.3 → 0.17.4
 - Updated dependencies: docling 2.146.0 → 2.147.0, docling-slim 2.146.0 → 2.147.0, docling-core 2.104.0 → 2.106.0, doclang 0.8.0 → 0.9.0
