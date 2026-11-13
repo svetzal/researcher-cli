@@ -1,0 +1,7 @@
+Name      Version ID              Fix Versions
+--------- ------- --------------- ------------
+soupsieve 2.10    CVE-2026-126190 4.0.0
+
+Name           Skip Reason
+-------------- -----------------------------------------------------------------------------
+researcher-cli Dependency not found on PyPI and could not be audited: researcher-cli (0.5.4)
