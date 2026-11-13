@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Updated transitive dependency soupsieve 2.10 → 4.0 to resolve CVE-2026-126190 (fixed in 4.0.0). soupsieve comes in through beautifulsoup4, which docling uses.
 - Updated transitive dependency oauthlib 4.0.0 → 4.0.1 to resolve CVE-2026-49272.
 - Updated transitive dependency joserfc 1.7.5 → 1.7.7 to resolve CVE-2026-119284 (fixed in 1.7.6).
 - Updated transitive dependencies authlib 1.8.0 → 1.9.1 (resolves CVE-2026-96760, CVE-2026-114615, CVE-2026-114616, CVE-2026-114617, CVE-2026-114618 and CVE-2026-114620), dnspython 2.8.0 → 2.9.0 (resolves CVE-2026-114605) and msgpack 1.2.2 → 1.2.3 (resolves CVE-2026-114613).
