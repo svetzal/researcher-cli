@@ -1,0 +1,5 @@
+Resolved 248 packages in 630ms
+Updated dnspython v2.9.0 -> v2.9.2
+Updated opentelemetry-api v1.45.1 -> v1.45.2
+Updated opentelemetry-sdk v1.45.1 -> v1.45.2
+Updated opentelemetry-semantic-conventions v0.66b1 -> v0.66b2
