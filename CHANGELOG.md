@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated dependencies: docling 2.153.0 → 2.154.0, docling-slim 2.153.0 → 2.154.0
 - Updated dependencies: fastmcp 4.2.5 → 4.2.6, fastmcp-slim 4.2.5 → 4.2.6; transitive authlib removed (no longer required by fastmcp)
 - Updated dependencies: docling 2.149.0 → 2.150.0, docling-slim 2.149.0 → 2.150.0, fastmcp 4.1.7 → 4.1.8, fastmcp-slim 4.1.7 → 4.1.8
 - Updated dependencies: docling 2.148.0 → 2.149.0, docling-slim 2.148.0 → 2.149.0; transitive mlx 0.32.2 → 0.32.4, mlx-metal 0.32.2 → 0.32.4, mlx-audio 0.5.6 → 0.6.4, and torchaudio 2.11.1 added
